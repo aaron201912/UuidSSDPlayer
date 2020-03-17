@@ -241,7 +241,8 @@ void mainActivity::onSlideItemClick(ZKSlideWindow *pSlideWindow, int index) {
     int tablen = sizeof(SSlideWindowItemClickCallbackTab) / sizeof(S_SlideWindowItemClickCallback);
     for (int i = 0; i < tablen; ++i) {
         if (SSlideWindowItemClickCallbackTab[i].id == pSlideWindow->getID()) {
-            SSlideWindowItemClickCallbackTab[i].onSlideItemClickCallback(pSlideWindow, index);
+	    if (index < sizeof(IconTab)/sizeof(char*))
+                SSlideWindowItemClickCallbackTab[i].onSlideItemClickCallback(pSlideWindow, index);
             break;
         }
     }

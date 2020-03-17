@@ -308,19 +308,23 @@ void USB_UnRegisterCallback(UsbHotplugCallback pfnCallback)
 	list_t *pListPos = NULL;
 	list_t *pListPosN = NULL;
 
-	if (!g_usbStart)
-		return;
+	printf("Enter USB_UnRegisterCallback\n");
 
-	pthread_mutex_lock(&g_callbackListMutex);
-	list_for_each_safe(pListPos, pListPosN, &g_usbCallbackListHead)
+	if (g_usbStart)
 	{
-		pstUsbCallbackData = list_entry(pListPos, UsbCallbackListData_t, callbackList);
-
-		if (pstUsbCallbackData->pfnCallback == pfnCallback)
+		pthread_mutex_lock(&g_callbackListMutex);
+		list_for_each_safe(pListPos, pListPosN, &g_usbCallbackListHead)
 		{
-			list_del(pListPos);
-			free(pstUsbCallbackData);
+			pstUsbCallbackData = list_entry(pListPos, UsbCallbackListData_t, callbackList);
+
+			if (pstUsbCallbackData->pfnCallback == pfnCallback)
+			{
+				list_del(pListPos);
+				free(pstUsbCallbackData);
+			}
 		}
+		pthread_mutex_unlock(&g_callbackListMutex);
 	}
-	pthread_mutex_unlock(&g_callbackListMutex);
+
+	printf("Leave USB_UnRegisterCallback\n");
 }

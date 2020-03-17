@@ -848,10 +848,18 @@ void DetectUsbHotplug(UsbParam_t *pstUsbParam)		// action 0, connect; action 1, 
 		g_bPlaying = FALSE;
 		g_bPause = FALSE;
 
-		// sendmessage to stop playing
-		player_deinit(g_pstPlayStat);
-		StopPlayAudio();
-		StopPlayVideo();
+		if (g_hideToolbarThread.isRunning())
+		{
+			printf("stop hideToolBarthread\n");
+			g_hideToolbarThread.requestExitAndWait();
+		}
+
+		g_bPlayFileThreadExit = true;
+		if (g_playFileThread)
+		{
+			pthread_join(g_playFileThread, NULL);
+			g_playFileThread = NULL;
+		}
 
 		SetPlayingStatus(false);
 		ResetSpeedMode();
