@@ -121,6 +121,8 @@ static void *CheckNetHotPlugProc(void *pdata)
 
 		int len = recv(nethotplug_sock, &buf, sizeof(buf), 0);
 
+		//printf("wired net: %s, len=%d\n", buf, len);
+
         for (nh = (struct nlmsghdr *)buf; NLMSG_OK(nh, len); nh = NLMSG_NEXT(nh, len))
         {
             if (nh->nlmsg_type == NLMSG_DONE)
@@ -164,11 +166,6 @@ static void *CheckNetHotPlugProc(void *pdata)
 				pstWiredNetworkCallbackData->pfnCallback(ifindex, status, szIfName);
 			}
 			pthread_mutex_unlock(&g_callbackListMutex);
-
-//            if (pfnCallbak != NULL)
-//            {
-//                pfnCallbak(ifindex, status, szIfName);
-//            }
         }
 
 msg_error:
@@ -176,20 +173,16 @@ msg_error:
 	}
 
 	printf("close net sock\n");
-//	if (nethotplug_sock != -1)
-//		close(nethotplug_sock);
 	DeinitNetHotplugSock(nethotplug_sock);
 
 	printf("exit thread proc\n");
 	return NULL;
 }
 
-//int WiredNetwork_StartCheckHotplug(NetHotplugCallback pfnCallback)
 int WiredNetwork_StartCheckHotplug()
 {
 	g_bCheckNetThreadRun = 1;
 
-    //pthread_create(&g_checkNetHotplugThread, NULL, CheckNetHotPlugProc, (void*)pfnCallback);
 	pthread_create(&g_checkNetHotplugThread, NULL, CheckNetHotPlugProc, NULL);
 
 	if (!g_checkNetHotplugThread)

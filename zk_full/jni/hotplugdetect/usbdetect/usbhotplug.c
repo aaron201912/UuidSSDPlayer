@@ -28,8 +28,10 @@
 
 
 #define CMD_BUFFER_SIZE 		512
-#define DEV_NAME_LEN_MIN    	7     // sda/sda*
+#define MULTI_DEV_NAME_LEN_MIN  7     // sda/sda*
+#define DEV_NAME_LEN_MIN    	2     // sd*
 #define USB_PARTTITION_CHECK    "/proc/partitions"
+#define USB_MOUNTS_CHECK    	"/proc/mounts"
 #define USB_MOUNT_DEFAULT_DIR   "/vendor"
 
 typedef struct
@@ -102,7 +104,20 @@ static void *CheckUsbHotPlugProc(void *pdata)
 
         if (strstr(buf, "sd") && (strlen(strstr(buf, "sd")) > DEV_NAME_LEN_MIN))
         {
-			char *pstmsg = strstr(buf, "sd") + strlen("sda/");
+        	//printf("\n******** start ********\n\n");
+			//printf("%s\n", buf);
+			//printf("\n******** end ********\n\n");
+
+			//char *pstmsg = strstr(buf, "sd") + strlen("sda/");
+			char *pstmsg = buf;
+
+			if (strlen(strstr(buf, "sd")) > MULTI_DEV_NAME_LEN_MIN)
+				pstmsg = strstr(buf, "sd") + strlen("sda/");
+			else
+				pstmsg = strstr(buf, "sd");
+
+			printf("pstmsg is %s\n", pstmsg);
+
 			UsbParam_t stUsbParam;
 			memset(&stUsbParam, 0, sizeof(UsbParam_t));
 
@@ -179,7 +194,8 @@ static char *freadline(FILE *stream)
 
 int USB_CheckCurrentStatus()
 {
-	FILE *pFile = fopen(USB_PARTTITION_CHECK, "r");
+	FILE *pFile = fopen(USB_PARTTITION_CHECK, "r");		// usb mount成功前已经获取了状态，所以通过proc/partitions是否存在节点来判断
+	//FILE *pFile = fopen(USB_MOUNTS_CHECK, "r");
 	char *pCurLine = NULL;
 	char *pSeek = NULL;
 	int nRet = 0;
