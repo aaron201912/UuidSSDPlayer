@@ -345,7 +345,8 @@ int saveWifiConfig()
 	//fsync(fileno(fp));
 	fclose(fp);
 	fp = NULL;
-
+	system("sync");
+	
 	DEBUG_EXIT();
 	return 0;
 }
