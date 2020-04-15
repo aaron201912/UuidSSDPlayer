@@ -340,7 +340,8 @@ int saveWifiConfig()
 	fseek(fp, 0, SEEK_SET);
 
 	fwrite(cJSON_Print(g_pRoot),strlen(cJSON_Print(g_pRoot)),1,fp);
-	fflush(fp);
+	//fflush(fp);
+    fdatasync(fileno(fp));
 	//fsync(fileno(fp));
 	fclose(fp);
 	fp = NULL;
