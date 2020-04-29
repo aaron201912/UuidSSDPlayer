@@ -22,6 +22,8 @@ public:
 	void setCheckedID(int id);
 	int getCheckedID() const;
 
+	ZKCheckBox* getRadioItem(int index) const;
+
 	void clearCheck();
 
 	void reloadTextTr();

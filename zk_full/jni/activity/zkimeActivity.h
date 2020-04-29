@@ -24,8 +24,10 @@
 #include "control/ZKEditText.h"
 #include "control/ZKVideoView.h"
 #include "window/ZKSlideWindow.h"
+#include "control/ZKSlideText.h"
 
 /*TAG:Macro宏ID*/
+#define ID_ZKIME_SLIDETEXT_HANZI    51000
 #define ID_ZKIME_BUTTON_NUMBER_SPACE    20120
 #define ID_ZKIME_BUTTON_NUMBER_DIV    20119
 #define ID_ZKIME_BUTTON_NUMBER_MULT    20118

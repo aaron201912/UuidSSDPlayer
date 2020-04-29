@@ -4,6 +4,7 @@
 #include "zkimeActivity.h"
 
 /*TAG:GlobalVariable全局变量*/
+static ZKSlideText* mSLIDETEXT_HANZIPtr;
 static ZKButton* mBUTTON_NUMBER_SPACEPtr;
 static ZKButton* mBUTTON_NUMBER_DIVPtr;
 static ZKButton* mBUTTON_NUMBER_MULTPtr;
@@ -239,6 +240,7 @@ const char* zkimeActivity::getAppName() const{
 //TAG:onCreate
 void zkimeActivity::onCreate() {
 	Activity::onCreate();
+    mSLIDETEXT_HANZIPtr = (ZKSlideText*)findControlByID(ID_ZKIME_SLIDETEXT_HANZI);
     mBUTTON_NUMBER_SPACEPtr = (ZKButton*)findControlByID(ID_ZKIME_BUTTON_NUMBER_SPACE);
     mBUTTON_NUMBER_DIVPtr = (ZKButton*)findControlByID(ID_ZKIME_BUTTON_NUMBER_DIV);
     mBUTTON_NUMBER_MULTPtr = (ZKButton*)findControlByID(ID_ZKIME_BUTTON_NUMBER_MULT);
