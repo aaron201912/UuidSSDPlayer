@@ -56,9 +56,17 @@ public:
 
 	/**
 	 * @brief 设置文本颜色
-	 * @param color 颜色值为0x RGB，不支持alpha
+	 * @param color 颜色值为0x ARGB
 	 */
 	void setTextColor(int color);
+
+	/**
+	 * @brief 获取文本内容宽高
+	 * @param text 文本内容
+	 * @param w 返回文本宽度
+	 * @param h 返回文本高度
+	 */
+	void getTextExtent(const char *text, int &w, int &h);
 
 public:
 	/**

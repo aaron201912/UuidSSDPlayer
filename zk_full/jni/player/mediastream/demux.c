@@ -16,6 +16,7 @@ static int demux_init(player_stat_t *is)
 {
     AVFormatContext *p_fmt_ctx = NULL;
     AVCodecParameters* p_codec_par;
+    AVDictionary* options = NULL;
     double totle_seconds;
     int err, i, ret;
     int a_idx = -1;
@@ -35,7 +36,12 @@ static int demux_init(player_stat_t *is)
 
     // 1. 构建AVFormatContext
     // 1.1 打开视频文件：读取文件头，将文件格式信息存储在"fmt context"中
+#if 0
     err = avformat_open_input(&p_fmt_ctx, is->filename, NULL, NULL);
+#else
+    av_dict_set(&options, "buffer_size", "1024000", 0);  //设置udp的接收缓冲
+    err = avformat_open_input(&p_fmt_ctx, is->filename, NULL, &options);
+#endif
     if (err < 0)
     {
         if (err == -101)
