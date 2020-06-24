@@ -57,7 +57,7 @@ typedef struct _FileTree_t
 typedef struct _FileChildInfo_t
 {
 	char name[256];
-	char time[32];
+	char time[64];
 	int dirFlag;
 	long size;
 } FileChildInfo_t;
@@ -166,7 +166,7 @@ int getBigMonthCount(int month)
     int i = 0;
     int count = 0;
 
-    for (i = 0; i < sizeof(bigMonth)/sizeof(int); i++)
+    for (i = 0; i < (int)(sizeof(bigMonth)/sizeof(int)); i++)
     {
         if (month > bigMonth[i])
             count++;
@@ -504,7 +504,7 @@ void GetPrevFile(char *pCurFileFullName, char *pPrevFileFullName, int prevFilePa
 	int i = 0;
 	int findCurFile = 0;
 
-	for (i = 0; i < sFileChildren.size(); i++)
+	for (i = 0; i < (int)(sFileChildren.size()); i++)
 	{
 		FileChildInfo_t &childInfo = sFileChildren.at(i);
 		memset(tmpPath, 0, sizeof(tmpPath));
@@ -519,7 +519,8 @@ void GetPrevFile(char *pCurFileFullName, char *pPrevFileFullName, int prevFilePa
 
 	while (findCurFile)
 	{
-		i = (--i + sFileChildren.size()) % sFileChildren.size();
+		--i;
+		i = (i + sFileChildren.size()) % sFileChildren.size();
 		FileChildInfo_t &childInfo = sFileChildren.at(i);
 
 		if (!childInfo.dirFlag)
@@ -537,7 +538,7 @@ void GetNextFile(char *pCurFileFullName, char *pNextFileFullName, int nextFilePa
 	int i = 0;
 	int findCurFile = 0;
 
-	for (i = 0; i < sFileChildren.size(); i++)
+	for (i = 0; i < (int)sFileChildren.size(); i++)
 	{
 		FileChildInfo_t &childInfo = sFileChildren.at(i);
 		memset(tmpPath, 0, sizeof(tmpPath));
@@ -552,7 +553,8 @@ void GetNextFile(char *pCurFileFullName, char *pNextFileFullName, int nextFilePa
 
 	while (findCurFile)
 	{
-		i = (++i + sFileChildren.size()) % sFileChildren.size();
+		++i;
+		i = (i + sFileChildren.size()) % sFileChildren.size();
 		FileChildInfo_t &childInfo = sFileChildren.at(i);
 
 		if (!childInfo.dirFlag)
@@ -615,7 +617,6 @@ static void onUI_intent(const Intent *intentPtr) {
         //TODO
     }
 #ifdef SUPPORT_PLAYER_MODULE
-    FileTree_t *pos = NULL;
     // init usb dev
 
     if (!SSTAR_GetUsbCurrentStatus())
@@ -645,7 +646,7 @@ static void onUI_intent(const Intent *intentPtr) {
 
     // create filetree according to rootpath
 	if (InitFileTreeRoot(&g_pFileRoot, g_udiskPath))
-		return -1;
+		return;
 
 	CreateFileTree(g_pFileRoot);
 
@@ -783,7 +784,7 @@ static void obtainListItemData_Listview_playlist(ZKListView *pListView,ZKListVie
 	}
 
 	pNameItem->setText(childInfo.name);
-	sprintf(szSize, "%d KB", (childInfo.size+1023)/1024);
+	sprintf(szSize, "%ld KB", (childInfo.size+1023)/1024);
 	pSizeItem->setText(szSize);
 	pModifyTimeItem->setText(childInfo.time);
 #endif

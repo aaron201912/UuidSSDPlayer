@@ -241,7 +241,7 @@ static int mmap_init(DeviceContex_t *ctx)
 
     for (i = 0; i < req.count; i++) {
         struct v4l2_buffer buf = {
-        	.index  = i,
+        	.index  = (__u32)i,
             .type   = V4L2_BUF_TYPE_VIDEO_CAPTURE,
             .memory = V4L2_MEMORY_MMAP
         };
@@ -359,7 +359,7 @@ static int mmap_start(DeviceContex_t *ctx)
 
     for (i = 0; i < s->buffers; i++) {
         struct v4l2_buffer buf = {
-        	.index  = i,
+        	.index  = (__u32)i,
             .type   = V4L2_BUF_TYPE_VIDEO_CAPTURE,
             .memory = V4L2_MEMORY_MMAP
         };

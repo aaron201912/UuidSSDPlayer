@@ -172,22 +172,22 @@ int V4L2_SendRawData(int vdecChn, unsigned char *buf, unsigned int len)
 
 MI_S32 CreateV4L2Pipe()
 {
-    MI_SYS_Version_t stVersion;
-    MI_U64 u64Pts = 0;
-    MI_DISP_PubAttr_t stPubAttr;
-    MI_DISP_VideoLayerAttr_t stLayerAttr;
+//    MI_SYS_Version_t stVersion;
+//    MI_U64 u64Pts = 0;
+//    MI_DISP_PubAttr_t stPubAttr;
+//    MI_DISP_VideoLayerAttr_t stLayerAttr;
 
     MI_SYS_ChnPort_t stDivpChnPort;
     MI_DIVP_ChnAttr_t stDivpChnAttr;
     MI_DIVP_OutputPortAttr_t stOutputPortAttr;
 
-    MI_DISP_DEV dispDev = DISP_DEV;
+//    MI_DISP_DEV dispDev = DISP_DEV;
     MI_DISP_LAYER dispLayer = DISP_LAYER;
     MI_U32 u32InputPort = DISP_INPUTPORT;
     MI_SYS_ChnPort_t stDispChnPort;
     MI_DISP_InputPortAttr_t stInputPortAttr;
     MI_DISP_RotateConfig_t stRotateConfig;
-    MI_PANEL_LinkType_e eLinkType;
+//    MI_PANEL_LinkType_e eLinkType;
 
     memset(&stDivpChnPort, 0, sizeof(MI_SYS_ChnPort_t));
     memset(&stDivpChnAttr, 0, sizeof(MI_DIVP_ChnAttr_t));

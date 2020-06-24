@@ -124,6 +124,26 @@ public:
 	void setSelection(int index);
 
 	/**
+	 * @brief 获取列表项宽
+	 */
+	uint32_t getItemWidth() const;
+
+	/**
+	 * @brief 获取列表项高
+	 */
+	uint32_t getItemHeight() const;
+
+	/**
+	 * @brief 获取列表行数
+	 */
+	uint32_t getRows() const;
+
+	/**
+	 * @brief 获取列表列数
+	 */
+	uint32_t getCols() const;
+
+	/**
 	 * @brief 获取列表总项数
 	 */
 	int getListItemCount() const;
@@ -132,6 +152,11 @@ public:
 	 * @brief 获取第一个可见项的索引值
 	 */
 	int getFirstVisibleItemIndex() const;
+
+	/**
+	 * @brief 获取第一个可见项的偏移值
+	 */
+	int getFirstVisibleItemOffset() const;
 
 protected:
 	ZKListView(ZKBase *pParent, ZKBasePrivate *pBP);

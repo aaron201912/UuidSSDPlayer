@@ -267,7 +267,7 @@ int StartPlay(Player *poPlayer)
 			//if(poPlayer->m_bSavePlayData)
 			if (0)
 			{
-				printf("save audio data, datalen=%d, pBuffer=%p\n", pAudioListData->pAudioData->dwBufferLength,
+				printf("save audio data, datalen=%lu, pBuffer=%p\n", pAudioListData->pAudioData->dwBufferLength,
 						pAudioListData->pAudioData->lpsData);
 				fwrite((BYTE*)pAudioListData->pAudioData->lpsData, pAudioListData->pAudioData->dwBufferLength * 2, 1, poPlayer->m_pFile);
 				poPlayer->m_waveFileHeader.dwDATALen += pAudioListData->pAudioData->dwBufferLength;

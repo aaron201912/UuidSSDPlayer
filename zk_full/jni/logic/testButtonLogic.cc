@@ -34,7 +34,7 @@
 #include "statusbarconfig.h"
 
 static void SendClickEvent(int v = 0) {
-  BYTE data[2] = {0, v};
+  BYTE data[2] = {0, (BYTE)v};
   sendProtocol(CMD_BUTTON_ON, data, sizeof(data));
 }
 

@@ -385,7 +385,7 @@ static void *_SSTAR_AudioInGetDataProc_(void *pdata)
     char szFileName[64] = {0,};
 
     InitVoiceFrameQueue();
-    ST_DBG("pid=%d\n", syscall(SYS_gettid));
+    ST_DBG("pid=%ld\n", syscall(SYS_gettid));
 
     MI_SYS_ChnPort_t stChnPort;
     MI_S32 s32Fd = -1;

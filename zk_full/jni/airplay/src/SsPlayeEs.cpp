@@ -35,11 +35,11 @@ void mvdec_dev_init()
 int ssd20x_scaler_init(int pos_x, int pos_y, int width,int height)
 {
     MI_DISP_InputPortAttr_t stInputPortAttr;
-    MI_DIVP_OutputPortAttr_t stDivpOutAttr;
-    MI_DIVP_ChnAttr_t stDivpChnAttr;
+//    MI_DIVP_OutputPortAttr_t stDivpOutAttr;
+//    MI_DIVP_ChnAttr_t stDivpChnAttr;
 
-    MI_SYS_ChnPort_t stDispChnPort;
-    MI_SYS_ChnPort_t stDivpChnPort;
+//    MI_SYS_ChnPort_t stDispChnPort;
+//    MI_SYS_ChnPort_t stDivpChnPort;
     MI_DISP_GetInputPortAttr(0, 0, &stInputPortAttr);
     stInputPortAttr.u16SrcWidth         = ALIGN_BACK(width , 32);
     stInputPortAttr.u16SrcHeight        = ALIGN_BACK(height, 32);

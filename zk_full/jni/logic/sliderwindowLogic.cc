@@ -32,7 +32,7 @@
 #include "statusbarconfig.h"
 
 static void updateUI_time(){
-	char timeStr[20];
+	char timeStr[32];
 	struct tm *t = TimeHelper::getDateTime();
 
 	sprintf(timeStr, "%02d:%02d:%02d", t->tm_hour,t->tm_min,t->tm_sec);
@@ -81,7 +81,7 @@ static const char* ActivityName[]={
 
 static void onSlideItemClick_SlideWindow1(ZKSlideWindow *pSlideWindow, int index) {
     //LOGD(" ProgressChanged SlideWindow1  !!!\n");
-	if(index < sizeof(ActivityName)/sizeof(const char*)){
+	if(index < (int)(sizeof(ActivityName)/sizeof(const char*))){
 		EASYUICONTEXT->openActivity(ActivityName[index]);
 	}
 }

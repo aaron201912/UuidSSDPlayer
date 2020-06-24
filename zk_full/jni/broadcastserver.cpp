@@ -162,7 +162,7 @@ void BroadcastServer::WriteImage(const char* file_name) {
         return;
     }
 
-    for (int i = 0; i < cache_.size(); ++i) {
+    for (int i = 0; i < (int)cache_.size(); ++i) {
         int r = fwrite(cache_.at(i).data, cache_.at(i).len, 1, fp);
         if (r != 1) {
             LOGD("write error");
@@ -184,7 +184,7 @@ void BroadcastServer::Add(const unsigned char* data, int len) {
 }
 
 void BroadcastServer::Clear() {
-    for (int i = 0; i < cache_.size(); ++i) {
+    for (int i = 0; i < (int)cache_.size(); ++i) {
         delete[] cache_.at(i).data;
     }
     cache_.clear();

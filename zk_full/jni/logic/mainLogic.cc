@@ -156,7 +156,7 @@ static void onSlideItemClick_Slidewindow1(ZKSlideWindow *pSlideWindow, int index
 }
 
 static void onSlidePageChange_Slidewindow1(ZKSlideWindow *pSlideWindow, int page) {
-	int totalPage = pSlideWindow->getPageSize();
+//	int totalPage = pSlideWindow->getPageSize();
 	g_curPageIdx = pSlideWindow->getCurrentPage();
 	//printf("Logic: param page is %d, total page is %d, cur page is %d\n", page, totalPage, g_curPageIdx);
 	mListview_indicatorPtr->refreshListView();

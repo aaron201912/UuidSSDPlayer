@@ -75,7 +75,7 @@ s_TOUCH_POINT g_touchPoint;
 
 static void onActivityItent(const Intent *intentPtr) {
 	int target = atoi(intentPtr->getExtra("target").c_str());
-    for (int i = 0; i < sizeof(g_Pages) / sizeof(s_PAGE_INFO); ++i) {
+    for (int i = 0; i < (int)(sizeof(g_Pages) / sizeof(s_PAGE_INFO)); ++i) {
         if (i == target) {
             g_curPageIndex = i;
             mTextTitlePtr->setText(LANGUAGEMANAGER->getValue(g_Pages[g_curPageIndex].title.c_str()));
@@ -177,7 +177,7 @@ static int getListItemCount_ListviewMenu(const ZKListView *pListView) {
 
 static void obtainListItemData_ListviewMenu(ZKListView *pListView,ZKListView::ZKListItem *pListItem, int index) {
     //LOGD(" obtainListItemData_ ListviewMenu  !!!\n");
-	if (index < 0 || index >= sizeof(g_washProcessTime)/sizeof(s_WASH_TIME_TYPE)) {
+	if (index < 0 || index >= (int)(sizeof(g_washProcessTime)/sizeof(s_WASH_TIME_TYPE))) {
         return;
    	}
     ZKListView::ZKListSubItem* subItem =  pListItem->findSubItemByID(ID_DETAIL_SubItemTimeType);

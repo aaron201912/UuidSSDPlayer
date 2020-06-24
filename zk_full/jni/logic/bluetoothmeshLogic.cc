@@ -111,7 +111,7 @@ int BL_MESH_Reset()
 	memset(send_data,0,sizeof(send_data));
 	strcpy(send_data,"delete\r");
 	ret = write(g_blFd,send_data,strlen(send_data));
-	if(ret != strlen(send_data))
+	if(ret != (int)strlen(send_data))
 		printf("send ack fail\n");
 	printf("+++++++delete++++++++++\n");
 	sleep(1);
@@ -142,7 +142,7 @@ int BL_MESH_SetConfig()
 	memset(send_data,0,sizeof(send_data));
 	strcpy(send_data,"config addr 0x0010\r");
 	ret = write(g_blFd,send_data,strlen(send_data));
-	if(ret != strlen(send_data))
+	if(ret != (int)strlen(send_data))
 		printf("send ack fail\n");
 	printf("+++++++config addr++++++++++\n");
 	sleep(1);
@@ -162,7 +162,7 @@ int BL_MESH_SetConfig()
 	memset(send_data,0,sizeof(send_data));
 	strcpy(send_data,"config iv 0x1 0\r");
 	ret = write(g_blFd,send_data,strlen(send_data));
-	if(ret != strlen(send_data))
+	if(ret != (int)strlen(send_data))
 		printf("send ack fail\n");
 	printf("+++++++config iv++++++++++\n");
 	sleep(1);
@@ -182,7 +182,7 @@ int BL_MESH_SetConfig()
 	memset(send_data,0,sizeof(send_data));
 	strcpy(send_data,"key add net 63964771734fbd76e3b40519d1d94a48 0\r");
 	ret = write(g_blFd,send_data,strlen(send_data));
-	if(ret != strlen(send_data))
+	if(ret != (int)strlen(send_data))
 		printf("send ack fail\n");
 	printf("+++++++key add net++++++++++\n");
 	sleep(1);
@@ -202,7 +202,7 @@ int BL_MESH_SetConfig()
 	memset(send_data,0,sizeof(send_data));
 	strcpy(send_data,"key add app 63964771734fbd76e3b40519d1d94a48 0x123 0\r");
 	ret = write(g_blFd,send_data,strlen(send_data));
-	if(ret != strlen(send_data))
+	if(ret != (int)strlen(send_data))
 		printf("send ack fail\n");
 	printf("+++++++key add app++++++++++\n");
 	sleep(1);
@@ -222,7 +222,7 @@ int BL_MESH_SetConfig()
 	memset(send_data,0,sizeof(send_data));
 	strcpy(send_data,"config bind\r");
 	ret = write(g_blFd,send_data,strlen(send_data));
-	if(ret != strlen(send_data))
+	if(ret != (int)strlen(send_data))
 		printf("send ack fail\n");
 	printf("+++++++config bind++++++++++\n");
 	sleep(1);
@@ -242,7 +242,7 @@ int BL_MESH_SetConfig()
 	memset(send_data,0,sizeof(send_data));
 	strcpy(send_data,"prov run 2163453296847e44827618f6e02c404a 63964771734fbd76e3b40519d1d94a48 0 0x1 0x2 0\r");
 	ret = write(g_blFd,send_data,strlen(send_data));
-	if(ret != strlen(send_data))
+	if(ret != (int)strlen(send_data))
 		printf("send ack fail\n");
 	printf("+++++++prov run++++++++++\n");
 
@@ -260,7 +260,7 @@ int BL_MESH_SetConfig()
 	memset(send_data,0,sizeof(send_data));
 	strcpy(send_data,"config addr 0x0010\r");
 	ret = write(g_blFd,send_data,strlen(send_data));
-	if(ret != strlen(send_data))
+	if(ret != (int)strlen(send_data))
 		printf("send ack fail\n");
 
 	ret = read(g_blFd, data, sizeof(data));
@@ -282,7 +282,7 @@ int BL_MESH_SetConfig()
 int BL_MESH_SetStatus(bool bOn)
 {
 	int ret = -1;
-	char data[1024];
+//	char data[1024];
 	char send_data[1024];
 
 	CHECK_FD_VALID(g_blFd);
@@ -292,7 +292,7 @@ int BL_MESH_SetStatus(bool bOn)
 		memset(send_data,0,sizeof(send_data));
 		strcpy(send_data,"msg onoff set 0x2 1 1\r");
 		ret = write(g_blFd,send_data,strlen(send_data));
-		if(ret != strlen(send_data))
+		if(ret != (int)strlen(send_data))
 			printf("send ack fail\n");
 		printf("+++++++msg on++++++++++\n");
 	}
@@ -301,7 +301,7 @@ int BL_MESH_SetStatus(bool bOn)
 		memset(send_data,0,sizeof(send_data));
 		strcpy(send_data,"msg onoff set 0x2 0 1\r");
 		ret = write(g_blFd,send_data,strlen(send_data));
-		if(ret != strlen(send_data))
+		if(ret != (int)strlen(send_data))
 			printf("send ack fail\n");
 		printf("+++++++msg off++++++++++\n");
 	}
@@ -315,7 +315,7 @@ int BL_MESH_SetStatus(bool bOn)
 int BL_MESH_Scan()
 {
 	int ret = -1;
-	char data[1024];
+//	char data[1024];
 	char send_data[1024];
 
 	CHECK_FD_VALID(g_blFd);
@@ -323,7 +323,7 @@ int BL_MESH_Scan()
 	memset(send_data,0,sizeof(send_data));
 	strcpy(send_data,"prov scan 1\r");
 	ret = write(g_blFd,send_data,strlen(send_data));
-	if(ret != strlen(send_data))
+	if(ret != (int)strlen(send_data))
 		printf("send ack fail\n");
 	printf("+++++++scan dev++++++++++\n");
 
@@ -425,18 +425,6 @@ static bool onbluetoothmeshActivityTouchEvent(const MotionEvent &ev) {
 static bool onButtonClick_sys_back(ZKButton *pButton) {
     //LOGD(" ButtonClick sys_back !!!\n");
     return false;
-}
-static int getListItemCount_Listview1(const ZKListView *pListView) {
-    //LOGD("getListItemCount_Listview1 !\n");
-    return 5;
-}
-
-static void obtainListItemData_Listview1(ZKListView *pListView,ZKListView::ZKListItem *pListItem, int index) {
-    //LOGD(" obtainListItemData_ Listview1  !!!\n");
-}
-
-static void onListItemClick_Listview1(ZKListView *pListView, int index, int id) {
-    //LOGD(" onListItemClick_ Listview1  !!!\n");
 }
 static bool onButtonClick_ButtonLedsw(ZKButton *pButton) {
     //LOGD(" ButtonClick ButtonLedsw !!!\n");

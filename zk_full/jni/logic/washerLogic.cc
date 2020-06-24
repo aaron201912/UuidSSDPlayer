@@ -100,7 +100,7 @@ static bool onUI_Timer(int id){
 		{
             static LayoutPosition pos = mWindowSetupPtr->getPosition();
             if ((g_setupWindowAnimation.locationIndex < 0)
-            		|| (g_setupWindowAnimation.locationIndex >= sizeof(animationLocation)/sizeof(short))) {
+            		|| (g_setupWindowAnimation.locationIndex >= (int)(sizeof(animationLocation)/sizeof(short)))) {
                if (g_setupWindowAnimation.event == ANIMATION_SETUP_WINDOW_LEAVE) {
             	   mWindowSetupPtr->setVisible(false);
                }
@@ -181,7 +181,7 @@ static int getListItemCount_ListviewSetup(const ZKListView *pListView) {
 }
 
 static void obtainListItemData_ListviewSetup(ZKListView *pListView,ZKListView::ZKListItem *pListItem, int index) {
-    if ((index < 0)  || (index >= sizeof(g_setupItems)/sizeof(s_SETUP_ITEM))) {
+    if ((index < 0)  || (index >= (int)(sizeof(g_setupItems)/sizeof(s_SETUP_ITEM)))) {
     	return;
     }
     ZKListView::ZKListSubItem* subItemIcon =  pListItem->findSubItemByID(ID_WASHER_SubItemIcon);
@@ -196,7 +196,7 @@ static void obtainListItemData_ListviewSetup(ZKListView *pListView,ZKListView::Z
 }
 
 static void onListItemClick_ListviewSetup(ZKListView *pListView, int index, int id) {
-    if ((index < 0)  || (index >= sizeof(g_setupItems)/sizeof(s_SETUP_ITEM))) {
+    if ((index < 0)  || (index >= (int)(sizeof(g_setupItems)/sizeof(s_SETUP_ITEM)))) {
     	return;
     }
     if (g_setupItems[index].windowId != -1 ) {

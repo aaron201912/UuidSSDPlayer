@@ -152,11 +152,6 @@ static void onEditTextChanged_EdittextAllInfo(const std::string &text) {
 #endif
 }
 
-static bool onButtonClick_Buttonbg(ZKButton *pButton) {
-    //LOGD(" ButtonClick Buttonbg !!!\n");
-    return false;
-}
-
 static bool onButtonClick_Button_connect_conn(ZKButton *pButton) {
     //LOGD(" ButtonClick Button_connect_conn !!!\n");
 #ifdef SUPPORT_WLAN_MODULE

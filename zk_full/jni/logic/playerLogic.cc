@@ -138,7 +138,6 @@ static int g_playViewHeight = PANEL_MAX_HEIGHT;
 static std::string g_fileName;
 static player_stat_t *g_pstPlayStat = NULL;
 static ImagePlayer_t *g_pstImagePlayer = NULL;
-static ImagePlayerCtrl_t g_stImagePlayerOps;
 
 // play pos
 static long long g_firstPlayPos = PLAY_INIT_POS;
@@ -271,8 +270,8 @@ MI_S32 CreatePlayerDev()
     MI_DIVP_ChnAttr_t stDivpChnAttr;
     MI_DIVP_OutputPortAttr_t stOutputPortAttr;
 
-    MI_U32 u32InputPort = DISP_INPUTPORT;
-    MI_DISP_DEV dispDev = DISP_DEV;
+//    MI_U32 u32InputPort = DISP_INPUTPORT;
+//    MI_DISP_DEV dispDev = DISP_DEV;
     MI_DISP_LAYER dispLayer = DISP_LAYER;
     MI_SYS_ChnPort_t stDispChnPort;
     MI_DISP_InputPortAttr_t stInputPortAttr;
@@ -364,8 +363,8 @@ MI_S32 CreatePlayerDev()
 
 void DestroyPlayerDev()
 {
-    MI_DISP_LAYER dispLayer = DISP_LAYER;
-    MI_U32 u32InputPort = DISP_INPUTPORT;
+//    MI_DISP_LAYER dispLayer = DISP_LAYER;
+//    MI_U32 u32InputPort = DISP_INPUTPORT;
     MI_SYS_ChnPort_t stDivpChnPort;
     MI_SYS_ChnPort_t stDispChnPort;
     
@@ -608,14 +607,14 @@ MI_S32 DisplayVideo(void *pData, bool bState)
 		{
 			for (int index = 0; index < stBufInfo.stFrameData.u16Height; index ++)
 	        {
-	            memcpy(stBufInfo.stFrameData.pVirAddr[0] + index * stBufInfo.stFrameData.u32Stride[0],
+	            memcpy((char*)stBufInfo.stFrameData.pVirAddr[0] + index * stBufInfo.stFrameData.u32Stride[0],
 	                   pFrame->data[0] + index * stBufInfo.stFrameData.u16Width,
 	                   stBufInfo.stFrameData.u16Width);
 	        }
 
 	        for (int index = 0; index < stBufInfo.stFrameData.u16Height / 2; index ++)
 	        {
-	            memcpy(stBufInfo.stFrameData.pVirAddr[1] + index * stBufInfo.stFrameData.u32Stride[1],
+	            memcpy((char*)stBufInfo.stFrameData.pVirAddr[1] + index * stBufInfo.stFrameData.u32Stride[1],
 	                   pFrame->data[1] + index * stBufInfo.stFrameData.u16Width,
 	                   stBufInfo.stFrameData.u16Width);
 	        }
@@ -826,7 +825,7 @@ static void SetStreamPlayerControlCallBack(player_stat_t *is)
 static void AdjustVolumeByTouch(int startPos, int endPos)
 {
 	int progress = mSeekbar_volumnPtr->getProgress();
-	char volInfo[8];
+	char volInfo[16];
 
 	memset(volInfo, 0, sizeof(volInfo));
 	// move up, vol++; move down, vol--
@@ -1212,7 +1211,7 @@ static void onUI_intent(const Intent *intentPtr) {
     g_fileName = intentPtr->getExtra("filepath");
 
     g_bPlayFileThreadExit = false;
-    pthread_create(&g_playFileThread, NULL, PlayFileProc, g_fileName.c_str());
+    pthread_create(&g_playFileThread, NULL, PlayFileProc, (void*)g_fileName.c_str());
 #endif
     }
 }
@@ -1424,10 +1423,6 @@ static void onStopTrackingTouch_Seekbar_progress(ZKSeekBar *pSeekBar) {
 #endif
 }
 
-static bool onButtonClick_sys_back(ZKButton *pButton) {
-    //LOGD(" ButtonClick sys_back !!!\n");
-    return false;
-}
 static bool onButtonClick_Button_play(ZKButton *pButton) {
     //LOGD(" ButtonClick Button_play !!!\n");
 #ifdef SUPPORT_PLAYER_MODULE
@@ -1525,7 +1520,8 @@ static bool onButtonClick_Button_slow(ZKButton *pButton) {
 
 		memset(speedMode, 0, sizeof(speedMode));
 		if (g_u32SpeedNumerator == g_u32SpeedDenomonator)
-			sprintf(speedMode, "", g_u32SpeedNumerator);
+			//sprintf(speedMode, "", g_u32SpeedNumerator);
+			memset(speedMode, 0, sizeof(speedMode));
 		else if (g_u32SpeedNumerator > g_u32SpeedDenomonator)
 			sprintf(speedMode, "%s %dX", ((g_ePlayDirection == E_PLAY_FORWARD) ? ">>" : "<<"), g_u32SpeedNumerator);
 		else

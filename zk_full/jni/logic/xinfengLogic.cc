@@ -40,7 +40,7 @@ std::string strpasswd;
 
 static void ProtocolDataUpdateFun(const SProtocolData &data);
 static void updateUI_time(){
-	char timeStr[20];
+	char timeStr[32];
 	//static bool bflash = false;
 	struct tm *t = TimeHelper::getDateTime();
 
@@ -81,11 +81,16 @@ static void UpdateUI_PM25(){
 	mTextPMValuePtr->setTextColor(textColor);
 
 }
-static void UpdateUI_Tempture(){
+
+#if 0
+static void UpdateUI_Tempture()
+{
 	mTextTemptureoutPtr->setText(mProtocolData.externalTemperature);
 	mTextTemptureinPtr->setText(mProtocolData.internalTemperature);
 }
-static void UpdateUI_Bar(){
+
+static void UpdateUI_Bar()
+{
 	char str[10];
 	mbtn_autoPtr->setSelected(mProtocolData.eRunMode == E_RUN_MODE_MANUAL);
 
@@ -99,6 +104,8 @@ static void UpdateUI_Bar(){
 	snprintf(str, 10, "%d",mProtocolData.externalWindSpeedLevel);
 	mbtn_external_windPtr->setText(str);
 }
+#endif
+
 static void UpdateUI_CO2(){
 	mTextCO2ValuePtr->setText(mProtocolData.co2);
 	if(mProtocolData.co2 > 3000){
@@ -118,9 +125,10 @@ static void UpdateUI_CO2(){
 static void initControls() {
 	mProtocolData = getProtocolData();
 	registerProtocolDataUpdateListener(&ProtocolDataUpdateFun);
-	BYTE reqCmd = 0xFF;
+	//BYTE reqCmd = 0xFF;
 }
 
+#if 0
 static void sendMcuHearbeat(){
 
 	BYTE reqCmd = 0x00;
@@ -128,6 +136,8 @@ static void sendMcuHearbeat(){
 	reqCmd |= (mProtocolData.power&0x01)<<3;
 //	sendProtocol(CMDID_SYS_STATUS,0,&reqCmd,1);
 }
+#endif
+
 static void onUI_init(){
     //Tips :添加 UI初始化的显示代码到这里,如:mText1->setText("123");
 	mWindowPayPtr->hideWnd();
@@ -181,7 +191,7 @@ static bool onButtonClick_btn_auto(ZKButton *pButton) {
 		mTextPassPtr->setText("Locked, please enter the password");
 		return false;
 	}
-	BYTE mode = mbtn_autoPtr->isSelected() ? E_RUN_MODE_AUTO : E_RUN_MODE_MANUAL;
+//	BYTE mode = mbtn_autoPtr->isSelected() ? E_RUN_MODE_AUTO : E_RUN_MODE_MANUAL;
 //	sendProtocol(CMDID_RUN_MODE, 0, &mode, 1);
 	mbtn_autoPtr->setSelected(!mbtn_autoPtr->isSelected());
 	return true;
@@ -196,7 +206,7 @@ if(getProtocolData().childLock){
 		mTextPassPtr->setText("Locked, please enter the password");
 		return false;
 	}
-	BYTE degerming = mbtn_degermingPtr->isSelected() ? 0 : 1;
+//	BYTE degerming = mbtn_degermingPtr->isSelected() ? 0 : 1;
 //	sendProtocol(CMDID_UVLIGHT, 0, &degerming, 1);
 	mbtn_degermingPtr->setSelected(!mbtn_degermingPtr->isSelected());
 	return true;
@@ -212,7 +222,7 @@ static bool onButtonClick_btn_heat(ZKButton *pButton) {
 		mTextPassPtr->setText("Locked, please enter the password");
 		return false;
 	}
-	BYTE hot = mbtn_heatPtr->isSelected() ? 0 : 1;
+//	BYTE hot = mbtn_heatPtr->isSelected() ? 0 : 1;
 
 //	sendProtocol(CMDID_HEAT, 0, &hot, 1);
 	mbtn_heatPtr->setSelected(!mbtn_heatPtr->isSelected());
@@ -300,10 +310,10 @@ static bool onButtonClick_ButtonCO2Status(ZKButton *pButton) {
 
 static void onProgressChanged_SeekBarFanSpeed(ZKSeekBar *pSeekBar, int progress) {
     //LOGD(" ProgressChanged SeekBarFanSpeed %d !!!\n", progress);
-	char str[10];
-	int value;
+//	char str[10];
+//	int value;
 	if(mbShowWndMode == SHOWWND_INTWND){
-		value =progress;
+//		value =progress;
 //		sendProtocol(CMDID_WIND_SPEED_LEVEL, 0, (const BYTE *) &value, 1);
 		mProtocolData.internalWindSpeedLevel = progress;
 		getProtocolData().internalWindSpeedLevel = progress;
@@ -311,7 +321,7 @@ static void onProgressChanged_SeekBarFanSpeed(ZKSeekBar *pSeekBar, int progress)
 		mbtn_internal_windPtr->setText(progress);
 
 	}else if(mbShowWndMode ==  SHOWWND_OUTWND){
-		value =progress;
+//		value =progress;
 //		sendProtocol(CMDID_WIND_SPEED_LEVEL, 1, (const BYTE *) &value, 1);
 		mProtocolData.externalWindSpeedLevel = progress;
 		getProtocolData().externalWindSpeedLevel = progress;
@@ -550,11 +560,6 @@ static bool onButtonClick_ButtonK4(ZKButton *pButton) {
 	strpasswd +="4";
 	mTextPassPtr->setText(strpasswd.c_str());
 	return false;
-}
-
-static bool onButtonClick_Button234(ZKButton *pButton) {
-    //LOGD(" ButtonClick Button234 !!!\n");
-    return true;
 }
 
 static void onProtocolDataUpdate(const SProtocolData &data) {

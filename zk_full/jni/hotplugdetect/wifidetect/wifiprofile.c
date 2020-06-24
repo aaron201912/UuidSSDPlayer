@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <vector>
 
 #ifdef SUPPORT_WLAN_MODULE

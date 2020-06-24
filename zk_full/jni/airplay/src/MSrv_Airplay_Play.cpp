@@ -71,10 +71,10 @@ int sstar_send_stream(const char *data, int size, int pts)
 {
 	int ret = 0;
     MI_VDEC_VideoStream_t stVdecStream;
-    const char start_code[4] = {0, 0, 0, 1};
+//    const char start_code[4] = {0, 0, 0, 1};
     //printf("size, %d, data: %x,%x,%x,%x,%x,%x,%x,%x\n",size,
     		//data[0], data[1], data[2], data[3], data[4], data[5], data[6], data[7]);
-    stVdecStream.pu8Addr      = data;
+    stVdecStream.pu8Addr      = (MI_U8*)data;
     stVdecStream.u32Len       = size;
     stVdecStream.u64PTS       = pts;
     stVdecStream.bEndOfFrame  = 1;
@@ -95,7 +95,7 @@ static void *sstar_play_pthread(void *arg)
 	ss_player_t *args = (ss_player_t *)arg;
     AVFormatContext *format_ctx = NULL;
     AVDictionary *format_opts = NULL;
-    AVPacket *packet = av_malloc(sizeof(AVPacket));
+    AVPacket *packet = (AVPacket *)av_malloc(sizeof(AVPacket));
     int ret = 0, video_idx;
 
     printf("get in sstar_play_pthread!\n");
@@ -140,7 +140,7 @@ replay:
         {
             if (packet->stream_index == video_idx || format_ctx->nb_streams == 0)
             {
-                sstar_send_stream(packet->data, packet->size, packet->pts);
+                sstar_send_stream((const char*)packet->data, packet->size, packet->pts);
             }
             av_packet_unref(packet);
         }
@@ -329,7 +329,7 @@ int Ss_DLNA_ServiceStart(void)
         char *error = dlerror();
         if(error != NULL)
         {
-            printf("!!!warning(%s) open fail| error.\n");
+            printf("!!!warning(%s) open fail| error.\n", dlaname);
         }
         else
         {
@@ -413,7 +413,7 @@ static void Ss_Pthread_Pcm(void)
 	if((pthread_create(&g_thid_pcm, NULL, Pcm_bufloop, &margs2))!= 0)
 	{
 		printf("pthread_create error.\n");
-		return -1;
+		return;
 	}
 }
 
@@ -432,7 +432,7 @@ static void Ss_pthread_finish(void)
 
 void VideoMirroringOpen(void *cls, int width, int height, const void *buffer, int buflen, int payloadtype, double timestamp)
 {
-	int ret = 0;
+//	int ret = 0;
 	int spscnt =0,spsnalsize=0,ppscnt=0,ppsnalsize=0;
 	MI_VDEC_VideoStream_t stVdecStream;
 	MI_U32 s32Ret;
@@ -847,7 +847,7 @@ void Airplay_setosversion(void *cls,double osversion)
         char *error = dlerror();
         if(error != NULL)
         {
-            printf("!!!warning(%s) open fail| error.\n");
+            printf("!!!warning(%s) open fail| error.\n", dllname);
         }
         else
         {

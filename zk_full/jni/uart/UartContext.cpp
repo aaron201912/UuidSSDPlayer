@@ -100,7 +100,7 @@ bool UartContext::send(const BYTE *pData, UINT len) {
 		return false;
 	}
 
-	if (write(mUartID, pData, len) != len) {	// fail
+	if (write(mUartID, pData, (size_t)len) != (ssize_t)len) {	// fail
 		LOGD("send Fail\n");
 		return false;
 	}
@@ -140,7 +140,7 @@ bool UartContext::threadLoop() {
 			const BYTE *pData = mDataBufPtr;
 			mDataBufLen += readNum;
 
-			int dataLen;	// 数据包长度
+//			int dataLen;	// 数据包长度
 			int frameLen;	// 帧长度
 			// FF FF cmd data data AA AA
 			while (mDataBufLen >= 7) {

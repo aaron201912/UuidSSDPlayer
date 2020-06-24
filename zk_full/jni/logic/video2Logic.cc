@@ -297,17 +297,6 @@ static bool onButtonClick_VoiceButton(ZKButton *pButton) {
     return false;
 }
 
-static bool onButtonClick_ChangeButton(ZKButton *pButton) {
-#if 0
-    if (mVideoviewTTPtr->getPosition().mWidth == 480) {
-        mVideoviewTTPtr->setPosition(LayoutPosition(115, 15, 240, 138));
-    } else {
-        mVideoviewTTPtr->setPosition(LayoutPosition(0, 0, 480, 272));
-    }
-#endif
-    return false;
-}
-
 static bool onButtonClick_sys_back(ZKButton *pButton) {
     return false;
 }

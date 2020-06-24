@@ -81,18 +81,20 @@ int tmpindex = 0;
 int dirindex = 0;
 bool btest = 0;
 #define DIAGRAM_SIZE 30
-static SZKPoint sPoints[DIAGRAM_SIZE];
+//static SZKPoint sPoints[DIAGRAM_SIZE];
 
+#if 0
 static void movePoints(SZKPoint* p, int size) {
 	for (int i = 0; i < size - 1; i++) {
 		p[i].y = p[i + 1].y;
 	}
 	p[size - 1].y = 0;
 }
+#endif
 
 static void updateGUI() {
 	if (binc) {
-		if (++speedindex >= sizeof(SpeedTemp) / sizeof(int)) {
+		if (++speedindex >= (int)(sizeof(SpeedTemp) / sizeof(int))) {
 			binc = 0;
 			speedindex -= 1;
 		}
@@ -133,7 +135,7 @@ static void updateGUI() {
 }
 
 static void updateGUI_Tempture() {
-	if (++tmpindex >= sizeof(sCarTemp) / sizeof(int)) {
+	if (++tmpindex >= (int)(sizeof(sCarTemp) / sizeof(int))) {
 		tmpindex = 0;
 	}
 	char buff5[50];

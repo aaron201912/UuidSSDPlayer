@@ -18,7 +18,7 @@ static S_ACTIVITY_TIMEER REGISTER_ACTIVITY_TIMER_TAB[] = {
     //{0,  6000}, //定时器id=0, 时间间隔6秒
     //{1,  1000},
 };
-
+#if 0
 static void readHook(const BYTE* data, int len) {
     if (strcmp(EASYUICONTEXT->currentAppName(), "uartActivity") != 0) {
         return;
@@ -40,7 +40,7 @@ static void readHook(const BYTE* data, int len) {
     }
     mTextviewLogPtr->setText(s);
 }
-
+#endif
 static const char* getBaudRate(UINT baudRate) {
     struct {
         UINT baud;
@@ -91,6 +91,7 @@ static void onUI_intent(const Intent *intentPtr) {
     }
 }
 
+#if 0
 /*
  * 当界面显示时触发
  */
@@ -104,6 +105,7 @@ static void onUI_show() {
 static void onUI_hide() {
     UARTCONTEXT->removeReadHook();
 }
+#endif
 
 /*
  * 当界面完全退出时触发
@@ -177,6 +179,7 @@ static bool onButtonClick_ButtonSendType(ZKButton *pButton) {
 /**
 * 将16进制字符串转为字节数组， 遇到异常字符停止转换，返回转换成功的字节数
 */
+#if 0
 static int HexStr2Int(const char* data, unsigned char* out, int out_len) {
   int len = strlen(data);
   int offset = 0;
@@ -212,6 +215,7 @@ static int HexStr2Int(const char* data, unsigned char* out, int out_len) {
   }
   return index + 1;
 }
+#endif
 
 static bool onButtonClick_ButtonSend(ZKButton *pButton) {
     //mTextviewErrPtr->setVisible(false);

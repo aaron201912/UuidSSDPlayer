@@ -50,6 +50,7 @@ static char* strupr(char* src)
 	return src;
 }
 
+#if 0
 // lowercase
 static char* strlwr(char* src)
 {
@@ -64,6 +65,8 @@ static char* strlwr(char* src)
 
 	return src;
 }
+#endif
+
 #endif
 /**
  * 注册定时器

@@ -163,14 +163,14 @@ static int sstar_video_display(void *pData, bool bState)
         if (!bState) {
             for (int index = 0; index < stBufInfo.stFrameData.u16Height; index ++)
             {
-                memcpy(stBufInfo.stFrameData.pVirAddr[0] + index * stBufInfo.stFrameData.u32Stride[0], 
+                memcpy((char*)stBufInfo.stFrameData.pVirAddr[0] + index * stBufInfo.stFrameData.u32Stride[0],
                        pFrame->data[0] + index * stBufInfo.stFrameData.u16Width,
                        stBufInfo.stFrameData.u16Width);
             }
 
             for (int index = 0; index < stBufInfo.stFrameData.u16Height / 2; index ++)
             {
-                memcpy(stBufInfo.stFrameData.pVirAddr[1] + index * stBufInfo.stFrameData.u32Stride[1], 
+                memcpy((char*)stBufInfo.stFrameData.pVirAddr[1] + index * stBufInfo.stFrameData.u32Stride[1],
                        pFrame->data[1] + index * stBufInfo.stFrameData.u16Width,
                        stBufInfo.stFrameData.u16Width);    
             }

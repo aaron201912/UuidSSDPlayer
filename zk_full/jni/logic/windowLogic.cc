@@ -114,12 +114,6 @@ static bool onButtonClick_Button4(ZKButton *pButton) {
     return true;
 }
 
-static bool onButtonClick_Button3(ZKButton *pButton) {
-    //LOGD(" ButtonClick Button3 !!!\n");
-	mWindownormalPtr->hideWnd();
-    return true;
-}
-
 static bool onButtonClick_Button1(ZKButton *pButton) {
     //LOGD(" ButtonClick Button1 !!!\n");
     return false;

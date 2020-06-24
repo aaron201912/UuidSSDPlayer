@@ -72,7 +72,7 @@ int ImagePlayer_Deinit(ImagePlayer_t *pPlayer)
 	if (pPlayer->display_tid)
 	{
 		pthread_join(pPlayer->display_tid, NULL);
-		pPlayer->display_tid = NULL;
+		pPlayer->display_tid = (pthread_t)NULL;
 	}
 
 	pthread_mutex_destroy(&pPlayer->playPosMutex);

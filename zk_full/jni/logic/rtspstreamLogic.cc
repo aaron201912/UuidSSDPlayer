@@ -85,7 +85,7 @@ static void onUI_intent(const Intent *intentPtr) {
     	std::string strUrl = intentPtr->getExtra("url");
 
     	SetPlayerControlCallBack(&g_stPlayStat);
-		tp_player_open(strUrl.c_str(), 0, 0, 1024, 600, &g_stPlayStat);
+		tp_player_open((char*)strUrl.c_str(), 0, 0, 1024, 600, &g_stPlayStat);
     }
 }
 

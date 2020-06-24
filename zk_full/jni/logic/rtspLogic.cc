@@ -44,20 +44,6 @@ static S_ACTIVITY_TIMEER REGISTER_ACTIVITY_TIMER_TAB[] = {
 	//{1,  1000},
 };
 
-//static std::string g_strUrl= "^((https|http|ftp|rtsp|mms)?://)"
-//		+ "?(([0-9a-z_!~*'().&=+$%-]+: )?[0-9a-z_!~*'().&=+$%-]+@)?" //ftp的user@
-//		+ "(([0-9]{1,3}\.){3}[0-9]{1,3}" // IP形式的URL- 199.194.52.184
-//		+ "|" // 允许IP和DOMAIN（域名）
-//		+ "([0-9a-z_!~*'()-]+\.)*" // 域名- www.
-//		+ "([0-9a-z][0-9a-z-]{0,61})?[0-9a-z]\." // 二级域名
-//		+ "[a-z]{2,6})" // first level domain- .com or .museum
-//		+ "(:[0-9]{1,4})?" // 端口- :80
-//		+ "((/?)|" // a slash isn't required if there is no file name
-//		+ "(/[0-9a-z_!~*'().;?:@&=+$,%#-]+)+/?)$";
-
-//static std::string g_strUrl= "^((https|http|ftp|rtsp|mms)?://)?(([0-9a-z_!~*'().&=+$%-]+: )?[0-9a-z_!~*'().&=+$%-]+@)?(([0-9]{1,3}\.){3}[0-9]{1,3}"	\
-//							 "|([0-9a-z_!~*'()-]+\.)*([0-9a-z][0-9a-z-]{0,61})?[0-9a-z]\.[a-z]{2,6})(:[0-9]{1,4})?((/?)|(/[0-9a-z_!~*'().;?:@&=+$,%#-]+)+/?)$";
-
 static char g_strUrl[] = "^(rtsp://)([0-9]{1,3}\.){3}[0-9]{1,3}(:[0-9]{1,4})?(/[0-9a-z_!~*'().;?:@&=+$,%#-]+)+/?$";
 /* return: 0, match; else, not or error */
 int CheckInput(const char *strValue, char *strPattern)
@@ -67,7 +53,7 @@ int CheckInput(const char *strValue, char *strPattern)
     regex_t *p_re = NULL;
     char buf[256] = {0};
 
-    p_re = calloc(1, sizeof(regex_t));
+    p_re = (regex_t *)calloc(1, sizeof(regex_t));
     if (p_re == NULL)
     {
         //printf("error: calloc: %d\n", errno);

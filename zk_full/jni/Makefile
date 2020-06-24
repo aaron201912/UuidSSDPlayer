@@ -44,8 +44,8 @@ OBJS_2 = $(patsubst %.c,%.o,$(OBJS_1))
 OBJS   = $(addprefix $(OBJS_ROOT_DIR),$(OBJS_2))
 OBJS_DIR_TREE=$(addprefix $(OBJS_ROOT_DIR),$(PROJ_DIR_TREE))
 
-CFLAGS=-Os -pipe  -fno-caller-saves -Wno-unused-result -mfloat-abi=hard -mfpu=vfp -Wformat -Werror=return-type -Werror=format-security -fstack-protector -D_FORTIFY_SOURCE=1 -Wl,-z,now -Wl,-z,relro -Wl,--warn-common -Wl,--warn-once -Wl,-z,combreloc -Wl,-z,defs 
-CXXFLAGS=-Os -pipe  -fno-caller-saves -Wno-unused-result -mfloat-abi=hard -mfpu=vfp -Wformat -Werror=return-type -Werror=format-security -fstack-protector -D_FORTIFY_SOURCE=1 -Wl,-z,now -Wl,-z,relro -Wl,-z,defs 
+CFLAGS=-Os -pipe  -fno-caller-saves -Wno-unused-result -Wno-format-truncation -Wno-write-strings -mfloat-abi=hard -mfpu=vfp -Wformat -Werror=return-type -Werror=format-security -fstack-protector -D_FORTIFY_SOURCE=1 -Wl,-z,now -Wl,-z,relro -Wl,--warn-common -Wl,--warn-once -Wl,-z,combreloc -Wl,-z,defs 
+CXXFLAGS=-Os -pipe  -fno-caller-saves -Wno-unused-result -Wno-format-truncation -Wno-write-strings -mfloat-abi=hard -mfpu=vfp -Wformat -Werror=return-type -Werror=format-security -fstack-protector -D_FORTIFY_SOURCE=1 -Wl,-z,now -Wl,-z,relro -Wl,-z,defs 
 CXXFLAGS+= -fexceptions -fpermissive -Wall -O2
 
 INCLUDE_DIR := -I$(EASYUI_COMMON_INCLUDE) \

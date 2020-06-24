@@ -403,7 +403,7 @@ static void TTS_StopPlayCallback()
 
 static bool onButtonClick_Button_init(ZKButton *pButton) {
     LOGD(" ButtonClick Button_init !!!\n");
-    char *pText = mTextview_textPtr->getText().c_str();
+    char *pText = (char*)mTextview_textPtr->getText().c_str();
 
     if (g_hTts)
     {

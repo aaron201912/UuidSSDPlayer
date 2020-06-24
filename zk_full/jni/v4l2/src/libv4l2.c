@@ -59,6 +59,7 @@
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <linux/types.h>
 #include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
@@ -1301,8 +1302,8 @@ int v4l2_munmap(void *_start, size_t length)
 /* Misc utility functions */
 int v4l2_set_control(int fd, int cid, int value)
 {
-  struct v4l2_queryctrl qctrl = { .id = cid };
-  struct v4l2_control ctrl = { .id = cid };
+  struct v4l2_queryctrl qctrl = { .id = (__u32)cid };
+  struct v4l2_control ctrl = { .id = (__u32)cid };
   int index, result;
 
   if ((index = v4l2_get_index(fd)) == -1) {
@@ -1330,8 +1331,8 @@ int v4l2_set_control(int fd, int cid, int value)
 
 int v4l2_get_control(int fd, int cid)
 {
-  struct v4l2_queryctrl qctrl = { .id = cid };
-  struct v4l2_control ctrl = { .id = cid };
+  struct v4l2_queryctrl qctrl = { .id = (__u32)cid };
+  struct v4l2_control ctrl = { .id = (__u32)cid };
   int index;
 
   if ((index = v4l2_get_index(fd)) == -1) {

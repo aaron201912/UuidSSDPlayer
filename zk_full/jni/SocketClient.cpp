@@ -93,8 +93,8 @@ static int setDateTime(const char *pDate) {
 	LOGD("setDateTime pDate: %s\n", pDate);
 
 	struct tm _tm;
-	struct timeval tv;
-	time_t timep;
+//	struct timeval tv;
+//	time_t timep;
 
 	sscanf(pDate, "%d-%d-%d %d:%d:%d",
 			&_tm.tm_year, &_tm.tm_mon,
@@ -103,9 +103,9 @@ static int setDateTime(const char *pDate) {
 	_tm.tm_mon -= 1;
 	_tm.tm_year -= 1900;
 
-	timep = mktime(&_tm);
-	tv.tv_sec = timep;
-	tv.tv_usec = 0;
+//	timep = mktime(&_tm);
+//	tv.tv_sec = timep;
+//	tv.tv_usec = 0;
 
 	return setDateTime(&_tm);
 }
@@ -244,6 +244,7 @@ void Uploader::threadLoop() {
 	struct timeval timeout = { 1, 0 };     // 1s
 	int ret = setsockopt(mClientSocket, SOL_SOCKET, SO_RCVTIMEO,
 			(const char*)&timeout, sizeof(timeout));
+	printf("setsockopt, return value:%d\n", ret);
 
 	while (mClientSocket > 0) {
 		char fileType[10] = { 0 };

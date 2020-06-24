@@ -149,7 +149,6 @@ static void onProtocolDataUpdate(const SProtocolData &data) {
     // 串口数据回调接口
 }
 
-static bool bSocketConnect = false;
 static bool onUI_Timer(int id){
     //Tips:添加定时器响应的代码到这里,但是需要在本文件的 REGISTER_ACTIVITY_TIMER_TAB 数组中 注册
     //id 是定时器设置时候的标签,这里不要写耗时的操作，否则影响UI刷新,ruturn:[true] 继续运行定时器;[false] 停止运行当前定时器
@@ -162,23 +161,9 @@ static bool onadActivityTouchEvent(const MotionEvent &ev) {
     return false;
 }
 
-static bool onButtonClick_Button1(ZKButton *pButton) {
-    //LOGD(" ButtonClick Button1 !!!\n");
-	EASYUICONTEXT->openActivity("NetSettingActivity");
-    return true;
-}
-
-static bool onButtonClick_ButtonConnectSev(ZKButton *pButton) {
-    return true;
-}
-
 static bool onButtonClick_sys_back(ZKButton *pButton) {
     //LOGD(" ButtonClick sys_back !!!\n");
     return false;
-}
-
-static void onProgressChanged_DownloadSeekbar(ZKSeekBar *pSeekBar, int progress) {
-    //LOGD(" ProgressChanged DownloadSeekbar %d !!!\n", progress);
 }
 
 static int getListItemCount_WordListview(const ZKListView *pListView) {
