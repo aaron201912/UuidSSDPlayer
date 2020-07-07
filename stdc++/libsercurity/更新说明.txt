@@ -1,0 +1,17 @@
+更新时间：2020-07-03
+
+1. 支持鼠标事件 备注：无需配置，通过ioctl EVIOCGNAME判断是否为鼠标类型，支持热插拔
+2. setTouchPass 设置触摸事件透传到下一控件
+3. 修复.9图的图片，贴上去后，会比实际的淡问题
+4. 透明背景色使用gfx加速
+5. 增加状态背景色设置接口: ZKBase::setBgStatusColor
+6. 增加按键状态背景图设置接口: ZKButton::setButtonStatusPic
+7. 增加文本状态颜色设置接口: ZKTextView::setTextStatusColor
+8. 物理按键支持多节点监听，配置见EasyUI.cfg  "keyDev":"/dev/input/event4:/dev/input/event5"  以':'分割
+9. 支持多字体，配置见EasyUI.cfg  "font":"/mnt/extsd/ui/fzcircle.ttf:/mnt/extsd/ui/font.ttf"  以':'分割
+	备注：需更新IDE，文本控件增加“字体名称”设置，对应填的就是 EasyUI.cfg中"font"设置的字体名称，如：fzcircle、font，默认空为第一个字体
+10. 修改授权方式，仅支持uart0
+
+
+授权机升级：
+将update.img拷贝到tf卡根目录下，插卡升级授权机
