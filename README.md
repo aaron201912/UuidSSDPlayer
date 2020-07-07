@@ -7,6 +7,7 @@ stdc++/uclibc++:
 
     libsercurity：存放编译libzkgui.so所依赖的zk_sdk头文件和libeasyui.so，以及运行时依赖的libs。随zk_sdk发布来同步更新。
                   注：运行时依赖的libeasyui.so为加密版本的lib，与参与编译的libeasyui.so不同，不可混淆。
+                      运行时libeasyui.so分设备授权和手动授权版本，默认适用手动授权版本。
 
     app：编译zkgui bin的source code目录，根据使用panel类型和规格来替换屏参，编译适用于平台的zkgui bin。
 
