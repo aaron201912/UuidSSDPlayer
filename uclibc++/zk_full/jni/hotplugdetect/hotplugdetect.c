@@ -97,7 +97,7 @@ int SSTAR_InitHotplugDetect()
 {
 	Wifi_StartCheckHotplug();
 	USB_StartCheckHotplug();
-	WiredNetwork_StartCheckHotplug();
+	//WiredNetwork_StartCheckHotplug();
 
 	return 0;
 }
@@ -106,5 +106,5 @@ void SSTAR_DeinitHotPlugDetect()
 {
 	Wifi_StopCheckHotplug();
 	USB_StopCheckHotplug();
-	WiredNetwork_StopCheckHotplug();
+	//WiredNetwork_StopCheckHotplug();
 }
