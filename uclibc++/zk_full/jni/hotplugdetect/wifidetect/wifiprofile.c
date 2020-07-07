@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <vector>
 
 #ifdef SUPPORT_WLAN_MODULE
@@ -324,28 +325,22 @@ exit:
 
 int saveWifiConfig()
 {
-	FILE* fp = NULL;
 	char id[8];
 
 	DEBUG_ENTRY();
 	DEBUG_PRINT_JSON();
 
-	fp = fopen(WIFI_SETTING_CFG,"w+");
-	if (!fp)
+	int fd = open(WIFI_SETTING_CFG, O_RDWR | O_DSYNC | O_RSYNC);
+	if (fd < 0)
 	{
 		printf("should open json file first\n");
 		return -1;
 	}
 
-	fseek(fp, 0, SEEK_SET);
-
-	fwrite(cJSON_Print(g_pRoot),strlen(cJSON_Print(g_pRoot)),1,fp);
-	//fflush(fp);
-    fdatasync(fileno(fp));
-	//fsync(fileno(fp));
-	fclose(fp);
-	fp = NULL;
-	system("sync");
+	ftruncate(fd, strlen(cJSON_Print(g_pRoot)));
+	write(fd, cJSON_Print(g_pRoot),strlen(cJSON_Print(g_pRoot)));
+	fdatasync(fd);
+	close(fd);
 	
 	DEBUG_EXIT();
 	return 0;
