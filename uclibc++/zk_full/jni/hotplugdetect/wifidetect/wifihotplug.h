@@ -30,7 +30,7 @@ typedef struct
 	int signalSTR;
 } ScanResult_t;
 
-typedef void (*WifiConnCallback)(char *pSsid, int status);
+typedef void (*WifiConnCallback)(char *pSsid, int status, int quality);
 typedef void (*WifiScanCallback)(ScanResult_t *pstScanResult, int resCnt);
 
 int Wifi_StartCheckHotplug();

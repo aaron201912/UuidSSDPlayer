@@ -413,7 +413,7 @@ static void Ss_Pthread_Pcm(void)
 	if((pthread_create(&g_thid_pcm, NULL, Pcm_bufloop, &margs2))!= 0)
 	{
 		printf("pthread_create error.\n");
-		return -1;
+		return;
 	}
 }
 

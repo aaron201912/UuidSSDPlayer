@@ -84,9 +84,9 @@ static void updateAnimation() {
 }
 
 // 显示连接状态，已连接显示全信号，未连接显示无信号。在scanCallback中更新wifi信号强度
-void WifiConnStatusCallback(char *pSsid, int status)
+void WifiConnStatusCallback(char *pSsid, int status, int quality)
 {
-	printf("conn ssid: %s, status: %d\n", pSsid, status);
+//	printf("conn ssid: %s, status: %d, quality: %d\n", pSsid, status, quality);
 
 	g_scanResLock.lock();
 	g_connStatus = status;

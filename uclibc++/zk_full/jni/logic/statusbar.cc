@@ -42,14 +42,46 @@ void ShowWiredNetworkStatus(unsigned int index, int status, char *pstIfName)
 }
 
 // 显示连接状态，已连接显示全信号，未连接显示无信号。在scanCallback中更新wifi信号强度
-void ShowWifiConnStatus(char *pSsid, int status)
+// dBm:[-100, -50]  quality:[0, 100]
+// level_1:dBm > -50; level_2:dBm (-60, -50]; level_3:dBm (-70, -60]; level_4:dBm <= -70
+// quality = 2* (dBm + 100); dBm = (quality / 2) -100
+void ShowWifiConnStatus(char *pSsid, int status, int quality)
 {
-	printf("conn ssid: %s, status: %d\n", pSsid, status);
+//	printf("conn ssid: %s, status: %d, signalSTR: %d\n", pSsid, status, quality);
 
 	g_connStatus = status;
 
 	if (g_connStatus)
-		mTextView_wifiStatusPtr->setBackgroundPic("hotplugstatus/wifi_signal_4.png");
+	{
+		// quality to dBm
+		int dBm = 0;
+
+		if (quality <= 0)
+			dBm = -100;
+		else if (quality >= 100)
+			dBm = -50;
+		else
+			dBm = (quality / 2) - 100;
+
+		if (dBm >= -50)
+		{
+			mTextView_wifiStatusPtr->setBackgroundPic("hotplugstatus/wifi_signal_4.png");
+		}
+		else if (dBm > -60)
+		{
+			mTextView_wifiStatusPtr->setBackgroundPic("hotplugstatus/wifi_signal_3.png");
+		}
+		else if (dBm > -70)
+		{
+			mTextView_wifiStatusPtr->setBackgroundPic("hotplugstatus/wifi_signal_2.png");
+		}
+		else
+		{
+			mTextView_wifiStatusPtr->setBackgroundPic("hotplugstatus/wifi_signal_1.png");
+		}
+
+		//mTextView_wifiStatusPtr->setBackgroundPic("hotplugstatus/wifi_signal_4.png");
+	}
 	else
 		mTextView_wifiStatusPtr->setBackgroundPic("hotplugstatus/wifi_no_signal.png");
 }
@@ -95,7 +127,6 @@ static void onUI_init(){
 	SSTAR_InitHotplugDetect();
 //	SSTAR_RegisterWiredNetworkListener(ShowWiredNetworkStatus);
 	SSTAR_RegisterWifiStaConnListener(ShowWifiConnStatus);
-	SSTAR_RegisterWifiStaScanListener(ShowWifiSignalSTRStatus);
 	SSTAR_RegisterUsbListener(ShowUsbStatus);
 
 	mTextView_usbStatusPtr->setVisible(SSTAR_GetUsbCurrentStatus());
@@ -110,7 +141,6 @@ static void onUI_init(){
 
 static void onUI_quit() {
 	SSTAR_UnRegisterUsbListener(ShowUsbStatus);
-	SSTAR_UnRegisterWifiStaScanListener(ShowWifiSignalSTRStatus);
 	SSTAR_UnRegisterWifiStaConnListener(ShowWifiConnStatus);
 //	SSTAR_UnRegisterWiredNetworkListener(ShowWiredNetworkStatus);
 	SSTAR_DeinitHotPlugDetect();

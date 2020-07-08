@@ -243,6 +243,7 @@ static void *WifiConnectProc(void *pdata)
     MI_WLAN_Status_t stStatus;
     int lastConnStatus = 0;
     int currentConnStatus = 0;
+    int freshConnStatusCnt = 0;
     bool bFirstConnect = true;
 
     memset(&stConnParam, 0, sizeof(MI_WLAN_ConnectParam_t));
@@ -326,10 +327,12 @@ static void *WifiConnectProc(void *pdata)
 			else
 				currentConnStatus = 0;
 
-			if (lastConnStatus != currentConnStatus || registerListChanged)
+			// 状态变化或间隔超3s时刷新连接状态
+			if (lastConnStatus != currentConnStatus || registerListChanged || freshConnStatusCnt > 60)
 			{
 				WifiConnCallbackListData_t *pstWifiCallbackData = NULL;
 				list_t *pListPos = NULL;
+				freshConnStatusCnt = 0;
 
 				pthread_mutex_lock(&g_connCallbackListMutex);
 				list_for_each(pListPos, &g_connCallbackListHead)
@@ -337,12 +340,14 @@ static void *WifiConnectProc(void *pdata)
 					pstWifiCallbackData = list_entry(pListPos, WifiConnCallbackListData_t, callbackList);
 
 					// 如果连上，将界面列表第一项设为连上状态；如果断开，将界面列表第一项连上状态清除
-					pstWifiCallbackData->pfnCallback((char*)stStatus.stStaStatus.ssid, currentConnStatus);
+					pstWifiCallbackData->pfnCallback((char*)stStatus.stStaStatus.ssid, currentConnStatus, stStatus.stStaStatus.RSSI);
 				}
 				pthread_mutex_unlock(&g_connCallbackListMutex);
 
 				lastConnStatus = currentConnStatus;
 			}
+			else
+				freshConnStatusCnt++;
 		}
 
 		usleep(50000);
@@ -358,7 +363,8 @@ static void *WifiScanProc(void *pdata)
     int wifiEnabled = 0;
     MI_WLAN_ScanResult_t scanResult;
     MI_WLAN_ConnectParam_t stConnParam;
-
+	int registModuleCnt = 0;
+	
     while (g_scanThreadRun)
     {
     	pthread_mutex_lock(&g_connParamMutex);
@@ -366,7 +372,15 @@ static void *WifiScanProc(void *pdata)
 		memcpy(&stConnParam, &g_stConnParam, sizeof(MI_WLAN_ConnectParam_t));
 		pthread_mutex_unlock(&g_connParamMutex);
 
-		if (wifiEnabled)
+		registModuleCnt = 0;
+		pthread_mutex_lock(&g_scanCallbackListMutex);
+		list_for_each(pos, &g_scanCallbackListHead)
+		{
+			registModuleCnt++;
+		}
+		pthread_mutex_unlock(&g_scanCallbackListMutex);
+		
+		if (wifiEnabled && registModuleCnt > 0)
 		{
 			MI_WLAN_Scan(NULL, &scanResult);
 
