@@ -104,6 +104,16 @@ public:
 	 */
 	bool isTouchable() const;
 
+	/**
+	 * @brief 设置触摸穿透
+	 */
+	void setTouchPass(bool isPass);
+
+	/**
+	 * @brief 是否是触摸穿透状态
+	 */
+	bool isTouchPass() const;
+
 	bool isWndValid() const;
 
 	/**
@@ -118,6 +128,18 @@ public:
 	 * @param color 颜色值为0x ARGB
 	 */
 	void setBackgroundColor(uint32_t color);
+
+	/**
+	 * @brief 设置背景状态颜色
+	 * @param status 状态
+	 *    正常状态： ZK_CONTROL_STATUS_NORMAL
+	 *    按下状态： ZK_CONTROL_STATUS_PRESSED
+	 *    选中状态： ZK_CONTROL_STATUS_SELECTED
+	 *    选中按下状态： ZK_CONTROL_STATUS_PRESSED | ZK_CONTROL_STATUS_SELECTED
+	 *    无效状态： ZK_CONTROL_STATUS_INVALID
+	 * @param color 颜色值为0x ARGB
+	 */
+	void setBgStatusColor(int status, uint32_t color);
 
 	/**
 	 * @brief 设置控件透明度

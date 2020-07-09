@@ -61,6 +61,18 @@ public:
 	void setTextColor(int color);
 
 	/**
+	 * @brief 设置文本状态颜色
+	 * @param status 状态
+	 *    正常状态： ZK_CONTROL_STATUS_NORMAL
+	 *    按下状态： ZK_CONTROL_STATUS_PRESSED
+	 *    选中状态： ZK_CONTROL_STATUS_SELECTED
+	 *    选中按下状态： ZK_CONTROL_STATUS_PRESSED | ZK_CONTROL_STATUS_SELECTED
+	 *    无效状态： ZK_CONTROL_STATUS_INVALID
+	 * @param color 颜色值为0x ARGB
+	 */
+	void setTextStatusColor(int status, uint32_t color);
+
+	/**
 	 * @brief 获取文本内容宽高
 	 * @param text 文本内容
 	 * @param w 返回文本宽度

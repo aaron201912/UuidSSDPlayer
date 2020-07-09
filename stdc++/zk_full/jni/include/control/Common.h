@@ -60,6 +60,16 @@ struct _message_t;
 #define ZK_PAINTER		"zk_painter"
 /**************************************************/
 
+/**********************控件状态*********************/
+#define ZK_CONTROL_STATUS_NORMAL          0x00000000
+#define ZK_CONTROL_STATUS_PRESSED         0x00000001
+#define ZK_CONTROL_STATUS_SELECTED        0x00000002
+#define ZK_CONTROL_STATUS_INVALID         0x00000004
+#define ZK_CONTROL_STATUS_VISIBLE         0x00000008
+#define ZK_CONTROL_STATUS_TOUCHABLE       0x00000010
+#define ZK_CONTROL_STATUS_TOUCH_PASS      0x00000020
+/**************************************************/
+
 class MotionEvent {
 public:
 	typedef enum {

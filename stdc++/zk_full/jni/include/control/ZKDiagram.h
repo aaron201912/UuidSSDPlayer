@@ -72,6 +72,12 @@ public:
 	 */
 	void addData(int index, float data);
 
+	/**
+	 * @brief 清除波形图
+	 * @param index 波形索引值
+	 */
+	void clear(int index);
+
 	void addDiagramInfo(uint32_t width, uint32_t color, EDiagramStyle style,
 			float xScale, float yScale, float step, uint32_t eraseSpace, bool isAntialiasOn);
 
