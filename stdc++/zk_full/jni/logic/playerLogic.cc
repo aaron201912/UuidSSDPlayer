@@ -579,6 +579,20 @@ MI_S32 DisplayVideo(void *pData, bool bState)
     MI_SYS_BufInfo_t stBufInfo;
 
 	AVFrame *pFrame = (AVFrame *)pData;
+	SS_Vdec_BufInfo *stVdecBuf = NULL;
+	mi_vdec_DispFrame_t *pstVdecInfo = NULL;
+
+	if (pFrame->opaque) {
+		stVdecBuf = (SS_Vdec_BufInfo *)pFrame->opaque;
+		if (stVdecBuf->bType) {
+			pstVdecInfo = (mi_vdec_DispFrame_t *)stVdecBuf->stVdecBufInfo.stMetaData.pVirAddr;
+			pFrame->width  = pstVdecInfo->stFrmInfo.u16Width;
+			pFrame->height = pstVdecInfo->stFrmInfo.u16Height;
+		} else {
+			pFrame->width  = stVdecBuf->stVdecBufInfo.stFrameData.u16Width;
+			pFrame->height = stVdecBuf->stVdecBufInfo.stFrameData.u16Height;
+		}
+	}
 
     memset(&stInputChnPort, 0, sizeof(MI_SYS_ChnPort_t));
     stInputChnPort.eModId    = E_MI_MODULE_ID_DIVP;
@@ -621,45 +635,36 @@ MI_S32 DisplayVideo(void *pData, bool bState)
         }
         else
         {
-        	SS_Vdec_BufInfo *stVdecBuf = (SS_Vdec_BufInfo *)pFrame->opaque;
-    		MI_S32 s32Len = pFrame->width * pFrame->height;
-
             // bframe buf is meta data, inject function isn't supported, so using memory copy
             if (stVdecBuf->bType)
             {
-                mi_vdec_DispFrame_t *pstVdecInfo = (mi_vdec_DispFrame_t *)stVdecBuf->stVdecBufInfo.stMetaData.pVirAddr;
+    			for (int index = 0; index < pstVdecInfo->stFrmInfo.u16Height; index ++) {
+    				MI_SYS_MemcpyPa(stBufInfo.stFrameData.phyAddr[0] + index * stBufInfo.stFrameData.u32Stride[0],
+                                    pstVdecInfo->stFrmInfo.phyLumaAddr + index * pstVdecInfo->stFrmInfo.u16Stride,
+									pstVdecInfo->stFrmInfo.u16Width);
+    	        }
 
-                #if 1
-                MI_SYS_MemcpyPa(stBufInfo.stFrameData.phyAddr[0],
-                                pstVdecInfo->stFrmInfo.phyLumaAddr , 
-                                s32Len);
-                MI_SYS_MemcpyPa(stBufInfo.stFrameData.phyAddr[1],
-                                pstVdecInfo->stFrmInfo.phyChromaAddr, 
-                                s32Len / 2);
-                #else
-                void *vdec_vir_addr;
-                MI_SYS_Mmap(pstVdecInfo->stFrmInfo.phyLumaAddr, ALIGN_UP(s32Len + s32Len / 2, 4096), &vdec_vir_addr, FALSE);
-                memcpy(stBufInfo.stFrameData.pVirAddr[0], vdec_vir_addr, s32Len);
-                memcpy(stBufInfo.stFrameData.pVirAddr[1], vdec_vir_addr + s32Len, s32Len / 2);
-                MI_SYS_Munmap(vdec_vir_addr, ALIGN_UP(s32Len + s32Len / 2, 4096));
-                #endif
-
+    	        for (int index = 0; index < pstVdecInfo->stFrmInfo.u16Height / 2; index ++) {
+    	        	MI_SYS_MemcpyPa(stBufInfo.stFrameData.phyAddr[1] + index * stBufInfo.stFrameData.u32Stride[1],
+    	        					pstVdecInfo->stFrmInfo.phyChromaAddr + index * pstVdecInfo->stFrmInfo.u16Stride,
+									pstVdecInfo->stFrmInfo.u16Width);
+    	        }
                 VideoPutBufBack(pFrame);
             }
             else
             {
-                #if 0
-                if (MI_SUCCESS != MI_SYS_ChnPortInjectBuf(stVdecBuf->stVdecHandle, &stInputChnPort))
-                    av_log(NULL, AV_LOG_ERROR, "MI_SYS_ChnPortInjectBuf failed!\n");
-                #else
-                MI_SYS_MemcpyPa(stBufInfo.stFrameData.phyAddr[0],
-                                stVdecBuf->stVdecBufInfo.stFrameData.phyAddr[0],
-                                s32Len);
-                MI_SYS_MemcpyPa(stBufInfo.stFrameData.phyAddr[1],
-                                stVdecBuf->stVdecBufInfo.stFrameData.phyAddr[1],
-                                s32Len / 2);
+    			for (int index = 0; index < stVdecBuf->stVdecBufInfo.stFrameData.u16Height; index ++) {
+    				MI_SYS_MemcpyPa(stBufInfo.stFrameData.phyAddr[0] + index * stBufInfo.stFrameData.u32Stride[0],
+    								stVdecBuf->stVdecBufInfo.stFrameData.phyAddr[0] + index * stVdecBuf->stVdecBufInfo.stFrameData.u32Stride[0],
+									stVdecBuf->stVdecBufInfo.stFrameData.u16Width);
+    	        }
+
+    	        for (int index = 0; index < stVdecBuf->stVdecBufInfo.stFrameData.u16Height / 2; index ++) {
+    	        	MI_SYS_MemcpyPa(stBufInfo.stFrameData.phyAddr[1] + index * stBufInfo.stFrameData.u32Stride[1],
+    	        					stVdecBuf->stVdecBufInfo.stFrameData.phyAddr[1] + index * stVdecBuf->stVdecBufInfo.stFrameData.u32Stride[1],
+									stVdecBuf->stVdecBufInfo.stFrameData.u16Width);
+    	        }
                 VideoPutBufBack(pFrame);
-                #endif
             }
         }
 
