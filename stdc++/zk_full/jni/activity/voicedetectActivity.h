@@ -1,8 +1,8 @@
 /***********************************************
 /gen auto by zuitools
 ***********************************************/
-#ifndef __ADACTIVITY_H__
-#define __ADACTIVITY_H__
+#ifndef __VOICEDETECTACTIVITY_H__
+#define __VOICEDETECTACTIVITY_H__
 
 
 #include "app/Activity.h"
@@ -26,11 +26,15 @@
 #include "window/ZKSlideWindow.h"
 
 /*TAG:Macro宏ID*/
-#define ID_AD_WordListview    80001
-#define ID_AD_sys_back   100
+#define ID_VOICEDETECT_sys_back   100
+#define ID_VOICEDETECT_Buttonsw    20005
+#define ID_VOICEDETECT_TextView_status    50003
+#define ID_VOICEDETECT_TextView_tips    50002
+#define ID_VOICEDETECT_TextView_common    50001
+#define ID_VOICEDETECT_ListView_common    80001
 /*TAG:Macro宏ID END*/
 
-class adActivity : public Activity, 
+class voicedetectActivity : public Activity, 
                      public ZKSeekBar::ISeekBarChangeListener, 
                      public ZKListView::IItemClickListener,
                      public ZKListView::AbsListAdapter,
@@ -40,8 +44,8 @@ class adActivity : public Activity,
                      public ZKVideoView::IVideoPlayerMessageListener
 {
 public:
-    adActivity();
-    virtual ~adActivity();
+    voicedetectActivity();
+    virtual ~voicedetectActivity();
 
     /**
      * 注册定时器
@@ -81,7 +85,7 @@ protected:
     void rigesterActivityTimer();
 
     virtual void onVideoPlayerMessage(ZKVideoView *pVideoView, int msg);
-    void videoLoopPlayback(ZKVideoView *pVideoView, int msg, int callbackTabIndex);
+    void videoLoopPlayback(ZKVideoView *pVideoView, int msg, size_t callbackTabIndex);
     void startVideoLoopPlayback();
     void stopVideoLoopPlayback();
     bool parseVideoFileList(const char *pFileListPath, std::vector<string>& mediaFileList);

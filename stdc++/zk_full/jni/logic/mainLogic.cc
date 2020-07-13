@@ -103,7 +103,7 @@ const char* IconTab[]={
 		"windowActivity",
 		"video2Activity",
 		"tesListActivity",
-		"adActivity",
+		"voicedetectActivity",
 		"qrcodeActivity",
 		"animationActivity",
 		"sliderwindowActivity",

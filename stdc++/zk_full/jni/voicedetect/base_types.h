@@ -37,7 +37,7 @@
 	typedef unsigned short WORD;
 	typedef unsigned short USHORT;
 	typedef signed long LONG;
-	//typedef unsigned int DWORD;
+	typedef unsigned int DWORD;
 	typedef unsigned long ULONG;
 	typedef signed int INT;
 	typedef unsigned int UINT;
@@ -103,8 +103,8 @@
 #endif
 
 //#if !defined(_WIN32)
+//#include "SubName.h"
 //#endif
-
 #if defined(_WIN32) && defined(_DEBUG)
 #include "DMemory.h"
 #endif

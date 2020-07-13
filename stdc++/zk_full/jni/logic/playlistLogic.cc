@@ -76,6 +76,8 @@ typedef enum _FileFilter_e
 	WMV_FTLTER,
 	VOB_FILTER,
 	MPG_FILTER,
+	MPEG_FILTER,
+	M4V_FILTER,
 	TS_FILTER,
 	DAT_FILTER,
 	M4A_FILTER,
@@ -117,6 +119,8 @@ static char *g_pFileFilter[FILE_FILTER_NUM] = {
 		".wmv",
 		".vob",
 		".mpg",
+		".mpeg",
+		".m4v",
 		".ts",
 		".dat",
 		".m4a",
@@ -218,7 +222,8 @@ static int FilterFiles(char *pFileName, char **pFilter, int filterCnt)
 
         if (fileNameLen > filterLen)
         {
-            if (!strncmp(pFileName+(fileNameLen-filterLen), pFilter[i], filterLen))
+            //if (!strncmp(pFileName+(fileNameLen-filterLen), pFilter[i], filterLen))
+        	if (!strcasecmp (pFileName+(fileNameLen-filterLen), pFilter[i]))
                 return 0;
         }
     }

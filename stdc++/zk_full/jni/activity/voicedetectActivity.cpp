@@ -1,22 +1,26 @@
 /***********************************************
 /gen auto by zuitools
 ***********************************************/
-#include "adActivity.h"
+#include "voicedetectActivity.h"
 
 /*TAG:GlobalVariable全局变量*/
-static ZKListView* mWordListviewPtr;
 static ZKButton* msys_backPtr;
-static adActivity* mActivityPtr;
+static ZKButton* mButtonswPtr;
+static ZKTextView* mTextView_statusPtr;
+static ZKTextView* mTextView_tipsPtr;
+static ZKTextView* mTextView_commonPtr;
+static ZKListView* mListView_commonPtr;
+static voicedetectActivity* mActivityPtr;
 
 /*register activity*/
-REGISTER_ACTIVITY(adActivity);
+REGISTER_ACTIVITY(voicedetectActivity);
 
 typedef struct {
 	int id; // 定时器ID ， 不能重复
 	int time; // 定时器  时间间隔  单位 毫秒
 }S_ACTIVITY_TIMEER;
 
-#include "logic/adLogic.cc"
+#include "logic/voicedetectLogic.cc"
 
 /***********/
 typedef struct {
@@ -43,7 +47,8 @@ typedef struct {
 
 /*TAG:ButtonCallbackTab按键映射表*/
 static S_ButtonCallback sButtonCallbackTab[] = {
-    ID_AD_sys_back, onButtonClick_sys_back,
+    ID_VOICEDETECT_sys_back, onButtonClick_sys_back,
+    ID_VOICEDETECT_Buttonsw, onButtonClick_Buttonsw,
 };
 /***************/
 
@@ -69,7 +74,7 @@ typedef struct {
 }S_ListViewFunctionsCallback;
 /*TAG:ListViewFunctionsCallback*/
 static S_ListViewFunctionsCallback SListViewFunctionsCallbackTab[] = {
-    ID_AD_WordListview, getListItemCount_WordListview, obtainListItemData_WordListview, onListItemClick_WordListview,
+    ID_VOICEDETECT_ListView_common, getListItemCount_ListView_common, obtainListItemData_ListView_common, onListItemClick_ListView_common,
 };
 
 
@@ -104,36 +109,40 @@ static S_VideoViewCallback SVideoViewCallbackTab[] = {
 };
 
 
-adActivity::adActivity() {
+voicedetectActivity::voicedetectActivity() {
 	//todo add init code here
-	mVideoLoopIndex = 0;
+	mVideoLoopIndex = -1;
 	mVideoLoopErrorCount = 0;
 }
 
-adActivity::~adActivity() {
-	//todo add init file here
-    // 退出应用时需要反注册
+voicedetectActivity::~voicedetectActivity() {
+  //todo add init file here
+  // 退出应用时需要反注册
     EASYUICONTEXT->unregisterGlobalTouchListener(this);
     onUI_quit();
     unregisterProtocolDataUpdateListener(onProtocolDataUpdate);
 }
 
-const char* adActivity::getAppName() const{
-	return "ad.ftu";
+const char* voicedetectActivity::getAppName() const{
+	return "voicedetect.ftu";
 }
 
 //TAG:onCreate
-void adActivity::onCreate() {
+void voicedetectActivity::onCreate() {
 	Activity::onCreate();
-    mWordListviewPtr = (ZKListView*)findControlByID(ID_AD_WordListview);if(mWordListviewPtr!= NULL){mWordListviewPtr->setListAdapter(this);mWordListviewPtr->setItemClickListener(this);}
-    msys_backPtr = (ZKButton*)findControlByID(ID_AD_sys_back);
+    msys_backPtr = (ZKButton*)findControlByID(ID_VOICEDETECT_sys_back);
+    mButtonswPtr = (ZKButton*)findControlByID(ID_VOICEDETECT_Buttonsw);
+    mTextView_statusPtr = (ZKTextView*)findControlByID(ID_VOICEDETECT_TextView_status);
+    mTextView_tipsPtr = (ZKTextView*)findControlByID(ID_VOICEDETECT_TextView_tips);
+    mTextView_commonPtr = (ZKTextView*)findControlByID(ID_VOICEDETECT_TextView_common);
+    mListView_commonPtr = (ZKListView*)findControlByID(ID_VOICEDETECT_ListView_common);if(mListView_commonPtr!= NULL){mListView_commonPtr->setListAdapter(this);mListView_commonPtr->setItemClickListener(this);}
 	mActivityPtr = this;
 	onUI_init();
     registerProtocolDataUpdateListener(onProtocolDataUpdate); 
     rigesterActivityTimer();
 }
 
-void adActivity::onClick(ZKBase *pBase) {
+void voicedetectActivity::onClick(ZKBase *pBase) {
 	//TODO: add widget onClik code 
     int buttonTablen = sizeof(sButtonCallbackTab) / sizeof(S_ButtonCallback);
     for (int i = 0; i < buttonTablen; ++i) {
@@ -157,30 +166,30 @@ void adActivity::onClick(ZKBase *pBase) {
 	Activity::onClick(pBase);
 }
 
-void adActivity::onResume() {
+void voicedetectActivity::onResume() {
 	Activity::onResume();
 	EASYUICONTEXT->registerGlobalTouchListener(this);
 	startVideoLoopPlayback();
-//	onUI_show();
+	onUI_show();
 }
 
-void adActivity::onPause() {
+void voicedetectActivity::onPause() {
 	Activity::onPause();
 	EASYUICONTEXT->unregisterGlobalTouchListener(this);
 	stopVideoLoopPlayback();
-//	onUI_hide();
+	onUI_hide();
 }
 
-void adActivity::onIntent(const Intent *intentPtr) {
+void voicedetectActivity::onIntent(const Intent *intentPtr) {
 	Activity::onIntent(intentPtr);
-//	onUI_intent(intentPtr);
+	onUI_intent(intentPtr);
 }
 
-bool adActivity::onTimer(int id) {
+bool voicedetectActivity::onTimer(int id) {
 	return onUI_Timer(id);
 }
 
-void adActivity::onProgressChanged(ZKSeekBar *pSeekBar, int progress){
+void voicedetectActivity::onProgressChanged(ZKSeekBar *pSeekBar, int progress){
 
     int seekBarTablen = sizeof(SZKSeekBarCallbackTab) / sizeof(S_ZKSeekBarCallback);
     for (int i = 0; i < seekBarTablen; ++i) {
@@ -191,7 +200,7 @@ void adActivity::onProgressChanged(ZKSeekBar *pSeekBar, int progress){
     }
 }
 
-int adActivity::getListItemCount(const ZKListView *pListView) const{
+int voicedetectActivity::getListItemCount(const ZKListView *pListView) const{
     int tablen = sizeof(SListViewFunctionsCallbackTab) / sizeof(S_ListViewFunctionsCallback);
     for (int i = 0; i < tablen; ++i) {
         if (SListViewFunctionsCallbackTab[i].id == pListView->getID()) {
@@ -202,7 +211,7 @@ int adActivity::getListItemCount(const ZKListView *pListView) const{
     return 0;
 }
 
-void adActivity::obtainListItemData(ZKListView *pListView,ZKListView::ZKListItem *pListItem, int index){
+void voicedetectActivity::obtainListItemData(ZKListView *pListView,ZKListView::ZKListItem *pListItem, int index){
     int tablen = sizeof(SListViewFunctionsCallbackTab) / sizeof(S_ListViewFunctionsCallback);
     for (int i = 0; i < tablen; ++i) {
         if (SListViewFunctionsCallbackTab[i].id == pListView->getID()) {
@@ -212,7 +221,7 @@ void adActivity::obtainListItemData(ZKListView *pListView,ZKListView::ZKListItem
     }
 }
 
-void adActivity::onItemClick(ZKListView *pListView, int index, int id){
+void voicedetectActivity::onItemClick(ZKListView *pListView, int index, int id){
     int tablen = sizeof(SListViewFunctionsCallbackTab) / sizeof(S_ListViewFunctionsCallback);
     for (int i = 0; i < tablen; ++i) {
         if (SListViewFunctionsCallbackTab[i].id == pListView->getID()) {
@@ -222,7 +231,7 @@ void adActivity::onItemClick(ZKListView *pListView, int index, int id){
     }
 }
 
-void adActivity::onSlideItemClick(ZKSlideWindow *pSlideWindow, int index) {
+void voicedetectActivity::onSlideItemClick(ZKSlideWindow *pSlideWindow, int index) {
     int tablen = sizeof(SSlideWindowItemClickCallbackTab) / sizeof(S_SlideWindowItemClickCallback);
     for (int i = 0; i < tablen; ++i) {
         if (SSlideWindowItemClickCallbackTab[i].id == pSlideWindow->getID()) {
@@ -232,11 +241,11 @@ void adActivity::onSlideItemClick(ZKSlideWindow *pSlideWindow, int index) {
     }
 }
 
-bool adActivity::onTouchEvent(const MotionEvent &ev) {
-    return onadActivityTouchEvent(ev);
+bool voicedetectActivity::onTouchEvent(const MotionEvent &ev) {
+    return onvoicedetectActivityTouchEvent(ev);
 }
 
-void adActivity::onTextChanged(ZKTextView *pTextView, const std::string &text) {
+void voicedetectActivity::onTextChanged(ZKTextView *pTextView, const std::string &text) {
     int tablen = sizeof(SEditTextInputCallbackTab) / sizeof(S_EditTextInputCallback);
     for (int i = 0; i < tablen; ++i) {
         if (SEditTextInputCallbackTab[i].id == pTextView->getID()) {
@@ -246,7 +255,7 @@ void adActivity::onTextChanged(ZKTextView *pTextView, const std::string &text) {
     }
 }
 
-void adActivity::rigesterActivityTimer() {
+void voicedetectActivity::rigesterActivityTimer() {
     int tablen = sizeof(REGISTER_ACTIVITY_TIMER_TAB) / sizeof(S_ACTIVITY_TIMEER);
     for (int i = 0; i < tablen; ++i) {
         S_ACTIVITY_TIMEER temp = REGISTER_ACTIVITY_TIMER_TAB[i];
@@ -255,7 +264,7 @@ void adActivity::rigesterActivityTimer() {
 }
 
 
-void adActivity::onVideoPlayerMessage(ZKVideoView *pVideoView, int msg) {
+void voicedetectActivity::onVideoPlayerMessage(ZKVideoView *pVideoView, int msg) {
     int tablen = sizeof(SVideoViewCallbackTab) / sizeof(S_VideoViewCallback);
     for (int i = 0; i < tablen; ++i) {
         if (SVideoViewCallbackTab[i].id == pVideoView->getID()) {
@@ -270,11 +279,14 @@ void adActivity::onVideoPlayerMessage(ZKVideoView *pVideoView, int msg) {
     }
 }
 
-void adActivity::videoLoopPlayback(ZKVideoView *pVideoView, int msg, int callbackTabIndex) {
+void voicedetectActivity::videoLoopPlayback(ZKVideoView *pVideoView, int msg, size_t callbackTabIndex) {
 
 	switch (msg) {
 	case ZKVideoView::E_MSGTYPE_VIDEO_PLAY_STARTED:
 		LOGD("ZKVideoView::E_MSGTYPE_VIDEO_PLAY_STARTED\n");
+    if (callbackTabIndex >= (sizeof(SVideoViewCallbackTab)/sizeof(S_VideoViewCallback))) {
+      break;
+    }
 		pVideoView->setVolume(SVideoViewCallbackTab[callbackTabIndex].defaultvolume / 10.0);
 		mVideoLoopErrorCount = 0;
 		break;
@@ -307,7 +319,7 @@ void adActivity::videoLoopPlayback(ZKVideoView *pVideoView, int msg, int callbac
 	}
 }
 
-void adActivity::startVideoLoopPlayback() {
+void voicedetectActivity::startVideoLoopPlayback() {
     int tablen = sizeof(SVideoViewCallbackTab) / sizeof(S_VideoViewCallback);
     for (int i = 0; i < tablen; ++i) {
     	if (SVideoViewCallbackTab[i].loop) {
@@ -322,7 +334,7 @@ void adActivity::startVideoLoopPlayback() {
     }
 }
 
-void adActivity::stopVideoLoopPlayback() {
+void voicedetectActivity::stopVideoLoopPlayback() {
     int tablen = sizeof(SVideoViewCallbackTab) / sizeof(S_VideoViewCallback);
     for (int i = 0; i < tablen; ++i) {
     	if (SVideoViewCallbackTab[i].loop) {
@@ -338,7 +350,7 @@ void adActivity::stopVideoLoopPlayback() {
     }
 }
 
-bool adActivity::parseVideoFileList(const char *pFileListPath, std::vector<string>& mediaFileList) {
+bool voicedetectActivity::parseVideoFileList(const char *pFileListPath, std::vector<string>& mediaFileList) {
 	mediaFileList.clear();
 	if (NULL == pFileListPath || 0 == strlen(pFileListPath)) {
         LOGD("video file list is null!");
@@ -370,7 +382,7 @@ bool adActivity::parseVideoFileList(const char *pFileListPath, std::vector<strin
 	return true;
 }
 
-int adActivity::removeCharFromString(string& nString, char c) {
+int voicedetectActivity::removeCharFromString(string& nString, char c) {
     string::size_type   pos;
     while(1) {
         pos = nString.find(c);
@@ -383,14 +395,14 @@ int adActivity::removeCharFromString(string& nString, char c) {
     return (int)nString.size();
 }
 
-void adActivity::registerUserTimer(int id, int time) {
+void voicedetectActivity::registerUserTimer(int id, int time) {
 	registerTimer(id, time);
 }
 
-void adActivity::unregisterUserTimer(int id) {
+void voicedetectActivity::unregisterUserTimer(int id) {
 	unregisterTimer(id);
 }
 
-void adActivity::resetUserTimer(int id, int time) {
+void voicedetectActivity::resetUserTimer(int id, int time) {
 	resetTimer(id, time);
 }

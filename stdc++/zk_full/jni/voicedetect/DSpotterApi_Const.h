@@ -20,15 +20,6 @@
 /************************************************************************/
 // SD
 /************************************************************************/
-#define DSPOTTERSD_DIFFCHK_TIGHT				(0)
-#define DSPOTTERSD_DIFFCHK_NORMAL				(1)
-#define DSPOTTERSD_DIFFCHK_LOOSE				(2)
-#define DSPOTTERSD_DIFFCHK_IGNORE				(3)
-
-#define DSPOTTERSD_SIMCHK_TIGHT					(0)
-#define DSPOTTERSD_SIMCHK_NORMAL				(1)
-#define DSPOTTERSD_SIMCHK_LOOSE					(2)
-#define DSPOTTERSD_SIMCHK_IGNORE				(3)
 
 /************************************************************************/
 // Error code                                                                  
@@ -57,13 +48,16 @@
 #define DSPOTTER_ERR_NoVoiceDetect		        ( DSPOTTER_ERR_SDKError -  21 )
 #define DSPOTTER_ERR_Expired					( DSPOTTER_ERR_SDKError - 100 )
 #define DSPOTTER_ERR_LicenseFailed				( DSPOTTER_ERR_SDKError - 200 )
+#define DSPOTTER_ERR_LoadLicenseFailed			( DSPOTTER_ERR_SDKError - 201 )
+#define DSPOTTER_ERR_SDKNotSupport				( DSPOTTER_ERR_SDKError - 202 )
+#define DSPOTTER_ERR_LicenseCountExceeded		( DSPOTTER_ERR_SDKError - 203 )
 
 #define DSPOTTER_ERR_CreateModelFailed			( DSPOTTER_ERR_SDKError - 500 )
 #define DSPOTTER_ERR_WriteFailed				( DSPOTTER_ERR_SDKError - 501 )
-#define DSPOTTER_ERR_IDExists					( DSPOTTER_ERR_SDKError - 502 )
-#define DSPOTTER_ERR_NotEnoughStorage			( DSPOTTER_ERR_SDKError - 503 )
-#define DSPOTTER_ERR_TrainSpeakerModelFirst		( DSPOTTER_ERR_SDKError - 504 )
-#define DSPOTTER_ERR_NoisyEnvironment			( DSPOTTER_ERR_SDKError - 505 )
+#define DSPOTTER_ERR_NotEnoughStorage			( DSPOTTER_ERR_SDKError - 502 )
+#define DSPOTTER_ERR_NoisyEnvironment			( DSPOTTER_ERR_SDKError - 503 )
+#define DSPOTTER_ERR_VoiceTooShort		        ( DSPOTTER_ERR_SDKError - 504 )
+#define DSPOTTER_ERR_VoiceTooLong		        ( DSPOTTER_ERR_SDKError - 505 )
 
 #endif //__DSPOTTER_API_CONST_H__
 

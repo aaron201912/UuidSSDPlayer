@@ -221,15 +221,23 @@ int initWifiConfig()
 
 	// check json config valid
 	fp = fopen(WIFI_SETTING_CFG,"r+");
-	if (!fp || feof(fp))
+	if (!fp)
 	{
-		if (fp)
-		{
-			fclose(fp);
-			fp = NULL;
-		}
-
 		createWifiDefaultConfig();
+	}
+	else
+	{
+		int isBlank = 0;
+		getc(fp);
+
+		if (feof(fp))
+			isBlank = 1;
+
+		fclose(fp);
+		fp = NULL;
+
+		if (isBlank)
+			createWifiDefaultConfig();
 	}
 
 	// read config param

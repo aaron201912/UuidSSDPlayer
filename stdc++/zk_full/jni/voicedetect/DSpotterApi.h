@@ -18,104 +18,89 @@
 extern "C"{
 #endif
 
-// Purpose: Get number of group from pack bin.
-// lpchPackBin(IN): The packed model, contents of CYBase.mod + Group_X.mod.
-// Return: The number of group or error code.
-DSPDLL_API INT DSpotterGetNumGroup(char *lpchPackBin);
+typedef struct _VerInfo
+{
+	const char *pchSDKName;
+	const char *pchSDKVersion;
+	const char *pchSDKType;
+	const char *pchReleaseDate;
+	const char *pchLicenseType;
+	BOOL  bTrialVersion;
+} VerInfo;
 
-// Purpose: Create a recognizer.
-// lpchPackBin(IN): The packed model, contents of CYBase.mod + Group_X.mod.
-// lpbEnableGroup(IN): Enable which group. The size must be same as number of group packed in pack bin. Assign NULL will enable all the group.
-// nMaxTime(IN): The maximum buffer length in number of frames for keeping the status of commands.
-// lpbyState(IN/OUT): State buffer for recognizer.
-// nStateSize(IN): Size in bytes of the state buffer lpbyState.
-// lpnErr(OUT): DSPOTTER_SUCCESS indicates success, else error code. It can be NULL.
-// lpchLicenseFile(IN): The license file.
-// Return: A recognizer handle or NULL.
-DSPDLL_API HANDLE DSpotterInitMultiWithPackBin(char *lpchPackBin, BOOL *lpbEnableGroup, INT nMaxTime, BYTE *lpbyState, INT nStateSize, INT *lpnErr, char *lpchLicenseFile);
+/** Main API */
+DSPDLL_API HANDLE DSpotterInitMultiWithPackBin(char *lpchPackBin, BOOL *lpbEnableGroup, INT nMaxTime, BYTE *lpbyState, INT nStateSize, INT *lpnErr, char *lpchLicenseFile, char *lpchServerFile);
 
-// Purpose: Create a recognizer.
-// lpchCYBaseFile(IN): The background model, contents of CYBase.mod.
-// lppchGroupFile(IN): The group model, contents of Group_X.mod.
-// nNumGroupFile(IN): The number of group model.
-// nMaxTime(IN): The maximum buffer length in number of frames for keeping the status of commands.
-// lpbyState(IN/OUT): State buffer for recognizer.
-// nStateSize(IN): Size in bytes of the state buffer lpbyState.
-// lpnErr(OUT): DSPOTTER_SUCCESS indicates success, else error code. It can be NULL.
-// lpchLicenseFile(IN): The license file.
-// Return: A recognizer handle or NULL.
-DSPDLL_API HANDLE DSpotterInitMultiWithMod(char *lpchCYBaseFile, char *lppchGroupFile[], INT nNumGroupFile, INT nMaxTime, BYTE *lpbyState, INT nStateSize, INT *lpnErr, char *lpchLicenseFile);
+DSPDLL_API HANDLE DSpotterInitMultiWithMod(char *lpchCYBaseFile, char **lppchGroupFile, INT nNumGroupFile, INT nMaxTime, BYTE *lpbyState, INT nStateSize, INT *lpnErr, char *lpchLicenseFile, char *lpchServerFile);
 
-// Purpose: Destroy a recognizer (free resources).
-// hDSpotter(IN): A handle of the recognizer.
-// Return: Success or error code.
-DSPDLL_API INT DSpotterRelease(HANDLE hDSpotter);
-
-// Purpose: Reset recognizer.
-// hDSpotter(IN): A handle of the recognizer.
-// Return: Success or error code.
 DSPDLL_API INT DSpotterReset(HANDLE hDSpotter);
 
-// Purpose: Transfer voice samples to the recognizer for recognizing.
-// hDSpotter(IN): A handle of the recognizer.
-// lpsSample(IN):  The pointer of voice data buffer.
-// nNumSample(IN): The number of voice data (a unit is a short, we prefer to add 480 samples per call).
-// Return: "DSPOTTER_ERR_NeedMoreSample" indicates call this function again, else call DSpotterGetResult(...).
+DSPDLL_API INT DSpotterRelease(HANDLE hDSpotter);
+
+DSPDLL_API INT DSpotterGetCommandNumber(HANDLE hDSpotter);
+
+DSPDLL_API INT DSpotterGetUTF8Command(HANDLE hDSpotter, INT nCmdIdx, BYTE *lpbyCommand);
+
+DSPDLL_API INT DSpotterGetUTF16Command(HANDLE hDSpotter, INT nCmdIdx, UNICODE *lpwcCommand);
+
+DSPDLL_API INT DSpotterGetSampleRate(HANDLE hDSpotter);
+
+DSPDLL_API INT DSpotterGetNumGroup(char *lpchPackBin);
+
+DSPDLL_API const char *DSpotterVerInfo(char *lpchLicenseFile, VerInfo *lpVerInfo, INT *lpnErr);
+
 DSPDLL_API INT DSpotterAddSample(HANDLE hDSpotter, SHORT *lpsSample, INT nNumSample);
 
-// Purpose: Get recognition results.
-// hDSpotter(IN): A handle of the recognizer.
-// Return: The command ID. It is 0 based.
-DSPDLL_API INT DSpotterGetResult(HANDLE hDSpotter);
-DSPDLL_API INT DSpotterGetResultEPD(HANDLE hDSpotter, INT *lpnWordDura, INT *lpnEndDelay);
-DSPDLL_API INT DSpotterGetResultScore(HANDLE hDSpotter, INT *lpnGMM, INT *lpnSG, INT *lpnFIL);
-DSPDLL_API INT DSpotterGetResultCmdModel(HANDLE hDSpotter, INT *lpnModelID, INT *lpnTagID);
-DSPDLL_API INT DSpotterGetResultMapID(HANDLE hDSpotter);
+DSPDLL_API BOOL DSpotterIsKeywordAlive(HANDLE hDSpotter, INT *lpnErr);
 
-DSPDLL_API INT DSpotterSetResultMapID_Sep(HANDLE hDSpotter, USHORT *lpnMapID);
-DSPDLL_API INT DSpotterSetResultMapID_Multi(HANDLE hDSpotter, USHORT **lppnMapID, INT nNumMapID);
+DSPDLL_API INT DSpotterGetUTF8Result(HANDLE hDSpotter, INT *lpnCmdIdx, BYTE *lpbyResult, INT *lpnWordDura, INT *lpnEndSilDura, INT *lpnNetworkLatency, INT *lpnGMM, INT *lpnSG, INT *lpnFIL);
 
-DSPDLL_API INT DSpotterSetEnableNBest(HANDLE hDSpotter, INT bEnable);
-DSPDLL_API INT DSpotterGetNBestScore(HANDLE hDSpotter, INT lpnCmdIdx[], INT lpnScore[], INT nMaxNBest);
+DSPDLL_API INT DSpotterGetUTF16Result(HANDLE hDSpotter, INT *lpnCmdIdx, UNICODE *lpwcResult, INT *lpnWordDura, INT *lpnEndSilDura, INT *lpnNetworkLatency, INT *lpnGMM, INT *lpnSG, INT *lpnFIL);
 
-DSPDLL_API INT DSpotterGetNumWordWithPackBin(char *lpchPackBin, INT lpnNumWord[]);
-DSPDLL_API INT DSpotterGetNumWordWithMod(char *lpchGroupFile);
+DSPDLL_API INT DSpotterGetUTF8ResultNoWait(HANDLE hDSpotter, INT *lpnCmdIdx, BYTE *lpbyResult, INT *lpnWordDura, INT *lpnEndSilDura, INT *lpnNetworkLatency, INT *lpnGMM, INT *lpnSG, INT *lpnFIL);
 
-DSPDLL_API const char *DSpotterVerInfo(void);
+DSPDLL_API INT DSpotterGetUTF16ResultNoWait(HANDLE hDSpotter, INT *lpnCmdIdx, UNICODE *lpwcResult, INT *lpnWordDura, INT *lpnEndSilDura, INT *lpnNetworkLatency, INT *lpnGMM, INT *lpnSG, INT *lpnFIL);
 
-/************************************************************************/
-//  Threshold Adjust API                                                                   
-/************************************************************************/
-// Purpose: Set model rejection level.
-// hDSpotter(IN): A handle of the recognizer.
-// nRejectionLevel(IN): The rejection level.
-// Return: Success or error code.
+DSPDLL_API INT DSpotterSetEnableNBest(HANDLE hDSpotter, BOOL bEnable);
+
+DSPDLL_API INT DSpotterGetNBestUTF8ResultScore(HANDLE hDSpotter, INT *lpnCmdIdx, BYTE **lppbyResult, INT *lpnResultLength, INT *lpnScore, INT nMaxNBest);
+
+DSPDLL_API INT DSpotterGetNBestUTF16ResultScore(HANDLE hDSpotter, INT *lpnCmdIdx, UNICODE **lppwcResult, INT *lpnResultLength, INT *lpnScore, INT nMaxNBest);
+
+DSPDLL_API INT DSpotterGetCmdEnergy(HANDLE hDSpotter);
+
+/** Threshold API */
 DSPDLL_API INT DSpotterSetRejectionLevel(HANDLE hDSpotter, INT nRejectionLevel);
 
-// Purpose: Set model SG rejection level.
-// hDSpotter(IN): A handle of the recognizer.
-// nRejectionLevel(IN): The rejection level.
-// Return: Success or error code.
 DSPDLL_API INT DSpotterSetSgLevel(HANDLE hDSpotter, INT nSgLevel);
 
-// Purpose: Set model FIL rejection level
-// hDSpotter(IN): a handle of the recognizer
-// nRejectionLevel(IN): rejection level
-// Return: Success or error code
 DSPDLL_API INT DSpotterSetFilLevel(HANDLE hDSpotter, INT nFilLevel);
 
-// Purpose: Set engine response time.
-// hDSpotter(IN): A handle of the recognizer.
-// nResponseTime(IN): The response time.
-// Return: Success or error code.
 DSPDLL_API INT DSpotterSetResponseTime(HANDLE hDSpotter, INT nResponseTime);
 
-// Purpose: Set Cmd response time.
-// hDSpotter(IN): A handle of the recognizer.
-// nCmdIdx(IN): The command ID. It is 0 based.
-// nOffset(IN): The response time.
-// Return: Success or error code.
 DSPDLL_API INT DSpotterSetCmdResponseTime(HANDLE hDSpotter, INT nCmdIdx, INT nResponseTime);
+
+DSPDLL_API INT DSpotterSetEnergyTH(HANDLE hDSpotter, INT nEnergyTH);
+
+DSPDLL_API INT DSpotterSetCmdReward(HANDLE hDSpotter, INT nCmdIdx, INT nReward);
+
+DSPDLL_API INT DSpotterGetRejectionLevel(HANDLE hDSpotter, INT *lpnErr);
+
+DSPDLL_API INT DSpotterGetSgLevel(HANDLE hDSpotter, INT *lpnErr);
+
+DSPDLL_API INT DSpotterGetFilLevel(HANDLE hDSpotter, INT *lpnErr);
+
+DSPDLL_API INT DSpotterGetCmdResponseTime(HANDLE hDSpotter, INT nCmdIdx, INT *lpnErr);
+
+DSPDLL_API INT DSpotterGetEnergyTH(HANDLE hDSpotter, INT *lpnErr);
+
+DSPDLL_API INT DSpotterGetCmdReward(HANDLE hDSpotter, INT nCmdIdx, INT *lpnErr);
+
+DSPDLL_API INT DSpotterGetModelRejectionLevel(HANDLE hDSpotter, INT *lpnErr);
+
+DSPDLL_API INT DSpotterGetModelSgLevel(HANDLE hDSpotter, INT *lpnErr);
+
+DSPDLL_API INT DSpotterGetModelFilLevel(HANDLE hDSpotter, INT *lpnErr);
 
 #ifdef __cplusplus
 }

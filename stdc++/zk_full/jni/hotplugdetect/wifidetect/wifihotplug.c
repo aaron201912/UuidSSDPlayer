@@ -276,7 +276,9 @@ static void *WifiConnectProc(void *pdata)
 				g_userConnect = 0;
 				pthread_mutex_unlock(&g_connParamMutex);
 
-				newConnect = 1;
+				// 仅手动连接才更新wifisetting.json
+				if (manuaConnect)
+					newConnect = 1;
 			}
 
 			MI_WLAN_GetStatus(&stStatus);

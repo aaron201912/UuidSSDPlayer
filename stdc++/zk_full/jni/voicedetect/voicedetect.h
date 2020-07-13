@@ -8,19 +8,24 @@ extern "C" {
 #endif
 
 
-#define COMMAND_LEN					40
+#define COMMAND_LEN					64
+
+typedef enum
+{
+	E_TRIGGER_CMD = 0,
+	E_COMMON_CMD
+} CommandType_e;
 
 typedef struct
 {
-	char cmd[COMMAND_LEN];
+	unsigned char cmd[COMMAND_LEN];
 } TrainedWord_t;
 
-typedef void* (*VoiceAnalyzeCallback)(int);
+typedef void* (*VoiceAnalyzeCallback)(CommandType_e, int);
 
-int SSTAR_VoiceDetectGetWordList(TrainedWord_t *pWordList, int nWordCnt);
-HANDLE SSTAR_VoiceDetectInit();
-int SSTAR_VoiceDetectDeinit(HANDLE hDSpotter);
-int SSTAR_VoiceDetectStart(HANDLE hDSpotter, VoiceAnalyzeCallback pfnCallback);
+int SSTAR_VoiceDetectInit(TrainedWord_t **ppTriggerCmdList, int *pnTriggerCmdCnt, TrainedWord_t **ppCommonCmdList, int *pnCommonCmdCnt);
+int SSTAR_VoiceDetectDeinit();
+int SSTAR_VoiceDetectStart(VoiceAnalyzeCallback pfnCallback);
 void SSTAR_VoiceDetectStop();
 
 #ifdef __cplusplus

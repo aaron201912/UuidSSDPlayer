@@ -1,5 +1,3 @@
-#include "voicedetect.h"
-
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
@@ -16,18 +14,19 @@
 #include "DSpotterApi.h"
 #include "DSpotterApi_Const.h"
 #include "appconfig.h"
+#include "voicedetect.h"
 
 
 #define AUDIO_PT_NUMBER_FRAME (1024)
 #define AUDIO_SAMPLE_RATE (E_MI_AUDIO_SAMPLE_RATE_16000)
 #define AUDIO_SOUND_MODE (E_MI_AUDIO_SOUND_MODE_MONO)
 
-#define AUDIO_AO_DEV_ID_LINE_OUT 0
-#define AUDIO_AO_DEV_ID_I2S_OUT  1
+#define AUDIO_AO_DEV_ID_LINE_OUT 	0
+#define AUDIO_AO_DEV_ID_I2S_OUT  	1
 
-#define AUDIO_AI_DEV_ID_AMIC_IN   0
-#define AUDIO_AI_DEV_ID_DMIC_IN   1
-#define AUDIO_AI_DEV_ID_I2S_IN    2
+#define AUDIO_AI_DEV_ID_AMIC_IN   	0
+#define AUDIO_AI_DEV_ID_DMIC_IN   	1
+#define AUDIO_AI_DEV_ID_I2S_IN    	2
 
 #if USE_AMIC
 #define AI_DEV_ID (AUDIO_AI_DEV_ID_AMIC_IN)
@@ -75,8 +74,10 @@
 	}while(0)
 #define AD_LOG(fmt, args...) {printf("\033[1;34m");printf("%s[%d]:", __FUNCTION__, __LINE__);printf(fmt, ##args);printf("\033[0m");}
 
+#define MAX_LINE_LEN				1024
 #define MAX_BUF_LEN					256
 #define MAX_FRAME_QUEUE_DEPTH       64
+#define SAMPLE_RATE					16000
 
 typedef struct
 {
@@ -94,65 +95,29 @@ typedef struct
 
 typedef struct
 {
+	int exitWordNum;
+	unsigned char **ppExitWord;
+	int timeout;
+	int result;
+} ConfigSettings_t;
+
+typedef struct
+{
 	bool bExit;
 	pthread_t pt;
 } ThreadData_t;
 
 typedef struct
 {
-	HANDLE hDSpotter;
+	HANDLE hDSpotter[2];
 	VoiceAnalyzeCallback pfnCallback;
 } UsrData_t;
 
-static TrainedWord_t g_command[] = {
-//static char g_command[][COMMAND_LEN] = {
-	"嗨,小星星",
-	"打开电灯",
-	"关掉电灯",
-	"打开窗帘",
-	"关闭窗帘",
-	"播放音乐",
-	"后一首",
-	"前一首",
-	"停止音乐",
-	"打开空调",
-	"关闭空调",
-	"空调温度调高",
-	"空调温度调低",
-	"清新模式",
-	"睡眠模式",
-	"开始煮饭",
-	"风大一点",
-	"风小一点",
-	"音量调大",
-	"音量调小",
-	"接通电话",
-	"开门",
-	"挂断电话",
-	"查看门口情况",
-	"打开客厅的灯",
-	"关闭客厅的灯",
-	"离家场景",
-	"降低速度",
-	"降低坡度",
-	"提高速度",
-	"提高坡度",
-	"拍照",
-	"今天天气",
-	"现在几点",
-	"开始",
-	"暂停",
-	"洗涤模式",
-	"脱水模式",
-	"侵泡洗衣",
-	"轻柔模式",
-	"强力模式",
-	"摩卡咖啡",
-	"拿铁咖啡",
-	"美式咖啡",
-	"意式咖啡",
-	"卡布奇诺"
-};
+typedef enum
+{
+	MODE_TRIGGER_WORD = 0,
+	MODE_COMMAND
+} CommandMode_e;
 
 static int g_voiceFrameCnt = 0;
 static list_t g_wordListHead;
@@ -160,22 +125,9 @@ static list_t g_voiceFrameListHead;
 static pthread_mutex_t g_frameMutex;
 static ThreadData_t g_stRecogThreadData;
 static ThreadData_t g_stAudioInThreadData;
-static UsrData_t g_stUsrData;
-
-// print comman list
-void PrintCommanList()
-{
-	int i = 0;
-	//int commandNum = sizeof(g_command)/COMMAND_LEN;
-	int commandNum = sizeof(g_command)/sizeof(TrainedWord_t);
-
-	printf("Recognized commands:\n");
-	for (i = 0; i < commandNum; i++)
-	{
-		printf("%d: %s\n", i, g_command[i].cmd);
-	}
-	printf("\n");
-}
+static ConfigSettings_t g_configSetting = {0};
+static UsrData_t* g_pstUsrData = NULL;
+//static int g_nSampleRate = SAMPLE_RATE;
 
 // training word list opt
 void InitTrainingWordList(list_t *listHead)
@@ -268,6 +220,8 @@ void DeinitVoiceFrameQueue(void)
 		free(pstVoiceFrame);
 	}
     pthread_mutex_unlock(&g_frameMutex);
+
+    pthread_mutex_destroy(&g_frameMutex);
 }
 
 VoiceFrame_t* PopVoiceFrameFromQueue(void)
@@ -595,80 +549,294 @@ static MI_S32 SSTAR_AudioInStop()
     return MI_SUCCESS;
 }
 
-// get trained word list
-int SSTAR_VoiceDetectGetWordList(TrainedWord_t *pWordList, int nWordCnt)
+static BOOL ReadConfigSettingINI(char *lpchFilePath, ConfigSettings_t *lpSettingArg)
 {
-	int nCount = sizeof(g_command)/sizeof(TrainedWord_t);
+	FILE *fp = NULL;
+	char *pchTokenStr;
+	char pchLineStr[MAX_LINE_LEN];
+	unsigned char **ppbyExitWord = NULL;
+	int nNumExitWord = 0, i;
 
-	if (nCount > nWordCnt)
-		nCount = nWordCnt;
-
-	memset(pWordList, 0, sizeof(pWordList)*nWordCnt);
-
-	for (int i = 0; i < nCount; i ++)
+	fp = fopen(lpchFilePath, "r");
+	if(fp == NULL)
 	{
-		memcpy(&pWordList[i], &g_command[i], sizeof(TrainedWord_t));
+		printf("ReadConfigSettingINI():: Fail to open file!\n");
+		goto ERR_READ_DEMO_SETTING_INI;
 	}
 
-	return nCount;
-}
-
-// get command from commanBin, save command list
-HANDLE SSTAR_VoiceDetectInit()
-{
-	INT nErr = 0;
-
-	HANDLE hDSpotter = NULL;
-	char szBaseBinFile[MAX_BUF_LEN];
-	char szCommandBinFile[MAX_BUF_LEN];
-	char szLicenseBinFile[MAX_BUF_LEN];
-	char *pModelFile[1];
-
-	//InitTrainingWordList(&g_wordListHead);
-	PrintCommanList();
-
-	sprintf(szBaseBinFile, "%s/CYBase.mod", DSPOTTER_DATA_PATH);
-	sprintf(szCommandBinFile, "%s/Group_1.mod", DSPOTTER_DATA_PATH);
-	sprintf(szLicenseBinFile, "%s/CybLicense.bin", DSPOTTER_DATA_PATH);
-
-    printf("baseBin path: %s\n", szBaseBinFile);
-    printf("commandBin path: %s\n", szCommandBinFile);
-    printf("licenseBin path: %s\n", szLicenseBinFile);
-
-	pModelFile[0] = szCommandBinFile;
-
-	hDSpotter = DSpotterInitMultiWithMod(szBaseBinFile, pModelFile, 1, 1000, NULL, 0, &nErr, szLicenseBinFile);
-	if (!hDSpotter)
+	while(NULL != fgets(pchLineStr, MAX_LINE_LEN, fp))
 	{
-		printf("%s[%d]: failed to initialize DSpotter, nErr=%d\n", __FUNCTION__, __LINE__, nErr);
-		return NULL;
+		pchTokenStr = strtok(pchLineStr, "\r\n");
+		if(pchTokenStr == NULL || strlen(pchTokenStr) == 0)
+					continue;
+
+		if(strstr(pchTokenStr, "//Timeout value(millisecond)"))
+		{
+			fgets(pchLineStr, MAX_LINE_LEN, fp);
+			pchTokenStr = strtok(pchLineStr, "\r\n");
+			lpSettingArg->timeout = atoi(pchTokenStr);
+		}
+		else if(strstr(pchTokenStr, "//Exit word"))
+		{
+			while(NULL != fgets(pchLineStr, MAX_LINE_LEN, fp))
+			{
+				pchTokenStr = strtok(pchLineStr, "\r\n");
+				if(pchTokenStr == NULL || strlen(pchTokenStr) == 0)
+					break;
+				nNumExitWord++;
+			}
+		}
+		else
+		{
+			continue;
+		}
 	}
 
-    return hDSpotter;
+	if(nNumExitWord == 0)
+	{
+		fclose(fp);
+		return TRUE;
+	}
+
+	ppbyExitWord = (BYTE **)malloc(sizeof(BYTE *) * nNumExitWord);
+	if(ppbyExitWord == NULL)
+	{
+		printf("ReadConfigSettingINI():: Leave no memory!");
+		goto ERR_READ_DEMO_SETTING_INI;
+	}
+	memset(ppbyExitWord, 0, sizeof(BYTE *) * nNumExitWord);
+
+	for(i = 0; i < nNumExitWord; i++)
+	{
+		ppbyExitWord[i] = (BYTE *)malloc(sizeof(BYTE) * COMMAND_LEN);
+		if(ppbyExitWord[i] == NULL)
+		{
+			printf("ReadConfigSettingINI():: Leave no memory!");
+			goto ERR_READ_DEMO_SETTING_INI;
+		}
+	}
+
+	nNumExitWord = 0;
+	fseek(fp, 0, SEEK_SET);
+	while( NULL != fgets(pchLineStr, MAX_LINE_LEN, fp))
+	{
+		pchTokenStr = strtok(pchLineStr, "\r\n");
+		if(pchTokenStr == NULL || strlen(pchTokenStr) == 0)
+			continue;
+		if(strstr(pchTokenStr, "//Exit word"))
+		{
+			while(NULL != fgets(pchLineStr, MAX_LINE_LEN, fp))
+			{
+				pchTokenStr = strtok(pchLineStr, "\r\n");
+				if(pchTokenStr == NULL || strlen(pchTokenStr) == 0)
+					break;
+
+				strcpy((char*)ppbyExitWord[nNumExitWord++], pchTokenStr);
+			}
+		}
+		else
+		{
+			continue;
+		}
+	}
+
+	fclose(fp);
+	lpSettingArg->ppExitWord = ppbyExitWord;
+	lpSettingArg->exitWordNum = nNumExitWord;
+
+	return TRUE;
+
+
+ERR_READ_DEMO_SETTING_INI:
+	if(fp)
+		fclose(fp);
+	if(ppbyExitWord)
+	{
+		for(i = 0; i < nNumExitWord; i++)
+			SAFE_FREE(ppbyExitWord[i]);
+		free(ppbyExitWord);
+	}
+
+	return FALSE;
 }
 
-int SSTAR_VoiceDetectDeinit(HANDLE hDSpotter)
+static void ReleaseConfigSettingData()
 {
-	DSpotterRelease(hDSpotter);
+	int i;
 
+	if(g_configSetting.ppExitWord != NULL)
+	{
+		for(i = 0; i < g_configSetting.exitWordNum; i++)
+		{
+			free(g_configSetting.ppExitWord[i]);
+		}
+		free(g_configSetting.ppExitWord);
+		g_configSetting.ppExitWord = NULL;
+	}
+}
+
+static BOOL IsExitWord(unsigned char *lpbyResult)
+{
+	int i;
+
+	for(i = 0; i < g_configSetting.exitWordNum; i++)
+	{
+		if(strcmp((const char*)lpbyResult, (const char*)g_configSetting.ppExitWord[i]) == 0)
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+int SSTAR_VoiceDetectDeinit()
+{
+	if (g_pstUsrData)
+	{
+		DSpotterRelease(g_pstUsrData->hDSpotter[0]);
+		DSpotterRelease(g_pstUsrData->hDSpotter[1]);
+		free(g_pstUsrData);
+		g_pstUsrData = NULL;
+	}
+
+	ReleaseConfigSettingData();
 	return 0;
 }
 
-static void *_SSTAR_VoiceAnalyzeProc_(void *pData)
+// init时会获取唤醒词条列表和指令词条列表，不再需要预先设置词条列表数组
+int SSTAR_VoiceDetectInit(TrainedWord_t **ppTriggerCmdList, int *pnTriggerCmdCnt,
+						  TrainedWord_t **ppCommonCmdList, int *pnCommonCmdCnt)
+{
+	int nErr = 0;
+	HANDLE hDSpotter[2] = {0};
+	char pchDataPath[] = "./Data";
+	char pchPackBinFile[MAX_BUF_LEN];
+	char pchLicenseBinFile[MAX_BUF_LEN];
+	char pchDemoSettingIniFile[MAX_BUF_LEN];
+	unsigned char pLastCmd[COMMAND_LEN];
+	int i;
+	BOOL *pbEnableGroup = NULL;
+
+	sprintf(pchPackBinFile, "%s/DefCmd_pack_withTxt_0804", DSPOTTER_DATA_PATH);
+	sprintf(pchLicenseBinFile, "%s/CybLicense.bin", DSPOTTER_DATA_PATH);
+	sprintf(pchDemoSettingIniFile, "%s/DemoSettings_0804.ini", DSPOTTER_DATA_PATH);
+
+	printf("PackBinFile:%s\n", pchPackBinFile);
+	printf("LicenseFile:%s\n", pchLicenseBinFile);
+	printf("DemoSettingIniFile:%s\n", pchDemoSettingIniFile);
+
+	memset(&g_configSetting, 0, sizeof(ConfigSettings_t));
+	ReadConfigSettingINI(pchDemoSettingIniFile, &g_configSetting);
+
+	pbEnableGroup = (BOOL *)malloc(sizeof(BOOL) * DSpotterGetNumGroup(pchPackBinFile));
+	if(!pbEnableGroup)
+	{
+		printf("main():: Leave no memory!\n");
+		goto exit_init;
+	}
+
+	pbEnableGroup[0] = TRUE;
+	pbEnableGroup[1] = FALSE;
+	hDSpotter[0] = DSpotterInitMultiWithPackBin(pchPackBinFile, pbEnableGroup, 500, NULL, 0, &nErr, pchLicenseBinFile, NULL);
+	if(hDSpotter[0] == NULL)
+	{
+		printf("main():: Fail to initialize DSpotter ( %d )!\n", nErr);
+		goto exit_init;
+	}
+
+	pbEnableGroup[0] = FALSE;
+	pbEnableGroup[1] = TRUE;
+	hDSpotter[1] = DSpotterInitMultiWithPackBin(pchPackBinFile, pbEnableGroup, 500, NULL, 0, &nErr, pchLicenseBinFile, NULL);
+	if(hDSpotter[1] == NULL)
+	{
+		printf("main():: Fail to initialize DSpotter ( %d )!\n", nErr);
+		goto exit_init;
+	}
+
+	*pnTriggerCmdCnt = DSpotterGetCommandNumber(hDSpotter[0]);
+	*ppTriggerCmdList = (TrainedWord_t*)malloc(sizeof(TrainedWord_t) * (*pnTriggerCmdCnt));
+	memset(*ppTriggerCmdList, 0, sizeof(TrainedWord_t) * (*pnTriggerCmdCnt));
+
+	// filter repeat commands
+	pLastCmd[0] = 0;
+	printf("========== Trigger Word ==========\n");
+	for(i = 0; i < (*pnTriggerCmdCnt); i++)
+	{
+		DSpotterGetUTF8Command(hDSpotter[0], i, (*ppTriggerCmdList)[i].cmd);
+		if(strcmp((const char*)pLastCmd, (const char*)(*ppTriggerCmdList)[i].cmd) != 0)
+		{
+			printf("%s\n", (*ppTriggerCmdList)[i].cmd);
+			strcpy((char*)pLastCmd, (const char*)(*ppTriggerCmdList)[i].cmd);
+		}
+	}
+	printf("==================================\n");
+
+	*pnCommonCmdCnt = DSpotterGetCommandNumber(hDSpotter[1]);
+	*ppCommonCmdList = (TrainedWord_t*)malloc(sizeof(TrainedWord_t) * (*pnCommonCmdCnt));
+	pLastCmd[0] = 0;
+	printf("========== Command List ==========\n");
+	for(i = 0; i < (*pnCommonCmdCnt); i++)
+	{
+		DSpotterGetUTF8Command(hDSpotter[1], i, (*ppCommonCmdList)[i].cmd);
+		if(strcmp((const char*)pLastCmd, (const char*)(*ppCommonCmdList)[i].cmd) != 0)
+		{
+			printf("%s\n", (*ppCommonCmdList)[i].cmd);
+			strcpy((char*)pLastCmd, (const char*)(*ppCommonCmdList)[i].cmd);
+		}
+	}
+	printf("==================================\n");
+
+	//g_nSampleRate = DSpotterGetSampleRate(hDSpotter[0]);
+
+	g_pstUsrData = (UsrData_t*)malloc(sizeof(UsrData_t));
+	if(g_pstUsrData == NULL)
+	{
+		printf("main():: Leave no memory!\n");
+		goto exit_init;
+	}
+
+	memset(g_pstUsrData, 0, sizeof(UsrData_t));
+	g_pstUsrData->hDSpotter[0] = hDSpotter[0];
+	g_pstUsrData->hDSpotter[1] = hDSpotter[1];
+
+	SAFE_FREE(pbEnableGroup);
+
+	return 0;
+
+exit_init:
+	DSpotterRelease(hDSpotter[0]);
+	DSpotterRelease(hDSpotter[1]);
+	SAFE_FREE(g_pstUsrData);
+	ReleaseConfigSettingData();
+	SAFE_FREE(pbEnableGroup);
+	SAFE_FREE(*ppCommonCmdList);
+	SAFE_FREE(*ppTriggerCmdList);
+	return -1;
+}
+
+static void *_SSTAR_VoiceAnalyzeProc(void *pData)
 {
     VoiceFrame_t *pstVoiceFrame = NULL;
-	//HANDLE hDSpotter = (HANDLE)pdata;
 	UsrData_t *pUsrData = (UsrData_t*)pData;
-    MI_S32 s32Ret = 0;
-    INT nResultID;
+    int ret = 0;
+	int nCmdIdx, nWordDura, nEndSilDura, nNetworkLatency;
+	int nGMM, nSG, nFIL;
+	unsigned char pbyResult[COMMAND_LEN];
+	CommandMode_e eMode = MODE_TRIGGER_WORD;
+	struct timespec recogTime, curTime;
 
     AD_LOG("Enter _SSTAR_VoiceAnalyzeProc_\n");
 
-    if ((s32Ret = DSpotterReset(pUsrData->hDSpotter)) != DSPOTTER_SUCCESS)
+    if ((ret = DSpotterReset(pUsrData->hDSpotter[0])) != DSPOTTER_SUCCESS)
     {
-        printf("DSpotterReset:: Fail to start recognition (%d)\n", s32Ret);
+        printf("DSpotter0 Reset: Fail to start recognition (%d)\n", ret);
         return NULL;
     }
+
+    if((ret = DSpotterReset(pUsrData->hDSpotter[1])) != DSPOTTER_SUCCESS)
+	{
+		printf("DSpotter1 Reset: Fail to start recognition ( %d )!\n", ret);
+		return NULL;
+	}
 
     InitVoiceFrameQueue();
 
@@ -682,18 +850,73 @@ static void *_SSTAR_VoiceAnalyzeProc_(void *pData)
             continue;
         }
 
-       s32Ret = DSpotterAddSample(pUsrData->hDSpotter, (short*)pstVoiceFrame->pFrameData, pstVoiceFrame->frameLen/sizeof(short));
-       if (s32Ret == DSPOTTER_SUCCESS)
-       {
-            //printf("Get result\n");
+        if(eMode == MODE_COMMAND)
+		{
+			unsigned long long timeInterval = 0;
+			memset(&curTime, 0, sizeof(curTime));
+			clock_gettime(CLOCK_MONOTONIC, &curTime);
+			timeInterval = (unsigned long long)((curTime.tv_sec - recogTime.tv_sec) * 1000)
+						   + (unsigned long long)((curTime.tv_nsec - recogTime.tv_nsec) / 1000000);
+//			printf("curTime: %ld s, %ld ns\n", curTime.tv_sec, curTime.tv_nsec);
+//			printf("recogTime: %ld s, %ld ns\n", recogTime.tv_sec, recogTime.tv_nsec);
+//			printf("tmInterval:%lld, timeout:%d\n", timeInterval, g_configSetting.timeout);
 
-            if ((nResultID = DSpotterGetResult(pUsrData->hDSpotter)) >= 0)
-            {
-                printf("Get command: id=%d, %s\n", nResultID, g_command[nResultID].cmd);
+			if (timeInterval >=  g_configSetting.timeout)
+			{
+				printf("Timeout!\n");
+				eMode = MODE_TRIGGER_WORD;
+				memset(&recogTime, 0, sizeof(recogTime));
+				clock_gettime(CLOCK_MONOTONIC, &recogTime);
+				pUsrData->pfnCallback(E_TRIGGER_CMD, -1);	// timeout
+			}
+		}
 
-                pUsrData->pfnCallback(nResultID);
-            }
-       }
+		if(eMode == MODE_TRIGGER_WORD)
+		{
+			ret = DSpotterAddSample(pUsrData->hDSpotter[0], (short*)pstVoiceFrame->pFrameData, pstVoiceFrame->frameLen/sizeof(short));
+
+			if(ret == DSPOTTER_SUCCESS)
+			{
+				printf("Get trigger word!\n");
+
+				DSpotterGetUTF8Result(pUsrData->hDSpotter[0], &nCmdIdx, pbyResult, &nWordDura, &nEndSilDura, &nNetworkLatency, &nGMM, &nSG, &nFIL);
+				printf("Trigger word: %s \n", pbyResult);
+				printf("Command index: %d\n", nCmdIdx);
+				printf("Word duration: %d, End silence duration: %d, Network latency: %d\n", nWordDura, nEndSilDura, nNetworkLatency);
+				printf("Score: %d\n", nGMM);
+				pUsrData->pfnCallback(E_TRIGGER_CMD, nCmdIdx);
+
+				DSpotterReset(pUsrData->hDSpotter[0]);
+
+				eMode = MODE_COMMAND;
+				memset(&recogTime, 0, sizeof(recogTime));
+				clock_gettime(CLOCK_MONOTONIC, &recogTime);
+			}
+		}
+		else
+		{
+			ret = DSpotterAddSample(pUsrData->hDSpotter[1], (short*)pstVoiceFrame->pFrameData, pstVoiceFrame->frameLen/sizeof(short));
+
+			if(ret == DSPOTTER_SUCCESS)
+			{
+				printf("Get command!\n");
+
+				DSpotterGetUTF8Result(pUsrData->hDSpotter[1], &nCmdIdx, pbyResult, &nWordDura, &nEndSilDura, &nNetworkLatency, &nGMM, &nSG, &nFIL);
+				printf("Command: %s \n", pbyResult);
+				printf("Command index: %d\n", nCmdIdx);
+				printf("Word duration: %d, End silence duration: %d, Network latency: %d\n", nWordDura, nEndSilDura, nNetworkLatency);
+				printf("Score: %d\n", nGMM);
+				pUsrData->pfnCallback(E_COMMON_CMD, nCmdIdx);
+
+				DSpotterReset(pUsrData->hDSpotter[1]);
+
+				if(IsExitWord(pbyResult))
+					eMode = MODE_TRIGGER_WORD;
+
+				memset(&recogTime, 0, sizeof(recogTime));
+				clock_gettime(CLOCK_MONOTONIC, &recogTime);
+			}
+		}
 
         if (pstVoiceFrame != NULL)
         {
@@ -706,7 +929,6 @@ static void *_SSTAR_VoiceAnalyzeProc_(void *pData)
             free(pstVoiceFrame);
             pstVoiceFrame = NULL;
         }
-
     }
 
     DeinitVoiceFrameQueue();
@@ -714,7 +936,7 @@ static void *_SSTAR_VoiceAnalyzeProc_(void *pData)
     return NULL;
 }
 
-int SSTAR_VoiceDetectStart(HANDLE hDSpotter, VoiceAnalyzeCallback pfnCallback)
+int SSTAR_VoiceDetectStart(VoiceAnalyzeCallback pfnCallback)
 {
 	if (MI_SUCCESS != SSTAR_AudioInStart())
 	{
@@ -722,11 +944,15 @@ int SSTAR_VoiceDetectStart(HANDLE hDSpotter, VoiceAnalyzeCallback pfnCallback)
 		return -1;
 	}
 
+	if (!g_pstUsrData)
+	{
+		printf("DSpotter has not inited\n");
+		return -1;
+	}
+
 	g_stRecogThreadData.bExit = false;
-	g_stUsrData.hDSpotter = hDSpotter;
-	g_stUsrData.pfnCallback = pfnCallback;
-	//pthread_create(&g_stRecogThreadData.pt, NULL, _SSTAR_VoiceAnalyzeProc_, (void*)hDSpotter);
-	pthread_create(&g_stRecogThreadData.pt, NULL, _SSTAR_VoiceAnalyzeProc_, (void*)&g_stUsrData);
+	g_pstUsrData->pfnCallback = pfnCallback;
+	pthread_create(&g_stRecogThreadData.pt, NULL, _SSTAR_VoiceAnalyzeProc, (void*)g_pstUsrData);
 
 	return 0;
 }
