@@ -1,7 +1,6 @@
-﻿#ifdef SUPPORT_PLAYER_MODULE
-#include "packet.h"
+﻿#include "packet.h"
+#include "player.h"
 
-#ifndef SUPPORT_PLAYER_PROCESS
 int packet_queue_init(packet_queue_t *q)
 {
     memset(q, 0, sizeof(packet_queue_t));
@@ -85,6 +84,7 @@ int packet_queue_get(packet_queue_t *q, AVPacket *pkt, int block)
             *pkt = p_pkt_node->pkt;
             av_free(p_pkt_node);
             ret = 1;
+
             break;
         }
         else if (!block)            // 队列空且阻塞标志无效，则立即退出
@@ -94,7 +94,7 @@ int packet_queue_get(packet_queue_t *q, AVPacket *pkt, int block)
         }
         else                        // 队列空且阻塞标志有效，则等待
         {
-            printf("no pkt wait pktnb: %d\n",q->nb_packets);
+            //printf("\033[33;2mno pkt wait pktnb: %d\033[0m\n",q->nb_packets);
             pthread_cond_wait(&q->cond, &q->mutex);
         }
     }
@@ -147,5 +147,4 @@ void packet_queue_abort(packet_queue_t *q)
 
     pthread_mutex_unlock(&q->mutex);
 }
-#endif
-#endif
+

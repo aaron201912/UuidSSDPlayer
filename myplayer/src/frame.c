@@ -1,8 +1,6 @@
-﻿#ifdef SUPPORT_PLAYER_MODULE
-#include "frame.h"
+﻿#include "frame.h"
 #include "player.h"
 
-#ifndef SUPPORT_PLAYER_PROCESS
 void frame_queue_putbuf(AVFrame *frame)
 {
     if (frame->width > 0 && frame->opaque) {
@@ -189,5 +187,4 @@ int64_t frame_queue_last_pos(frame_queue_t *f)
     else
         return -1;
 }
-#endif
-#endif
+

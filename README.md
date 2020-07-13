@@ -22,3 +22,10 @@ tool:
 	用来改变触屏分辨率配置的文件：
 	echo 1024x600.bin > /sys/bus/i2c/devices/1-005d/gtcfg
 	echo 800x480.bin > /sys/bus/i2c/devices/1-005d/gtcfg
+
+myplayer:
+    播放器源码, 使能多进程模式时, 需要单独编译生成bin文件. 先运行MyPlayer再运行zkgui.
+    编译方法:
+    1. cd myplayer/stdc++
+    2. make clean;make
+    3. 将生成的MyPlayer文件拷贝到sdk/verify/application/zk_full_sercurity/bin下

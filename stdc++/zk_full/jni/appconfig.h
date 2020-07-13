@@ -11,6 +11,7 @@
 #define USE_PANEL_1024_600		1
 #define USE_AMIC				1
 #define ENABLE_BF				0
+#define ENABLE_ROTATE			0
 
 #define DSPOTTER_DATA_PATH			"/customer/res/DSpotter/data"
 

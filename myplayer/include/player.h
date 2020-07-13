@@ -2,10 +2,10 @@
 #define __PLAYER_H__
 
 #ifdef __cplusplus
-extern "C" {               // 告诉编译器下列代码要以C链接约定的模式进行链接
-#endif
+extern "C"{
+#endif // __cplusplus
 
-#ifdef SUPPORT_PLAYER_MODULE
+
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
@@ -34,6 +34,7 @@ extern "C" {               // 告诉编译器下列代码要以C链接约定的�
 #include "mi_ao.h"
 #include "mi_vdec_extra.h"
 
+
 #define     SUCCESS         0
 #define     FAIL            1
 
@@ -41,9 +42,7 @@ extern "C" {               // 告诉编译器下列代码要以C链接约定的�
     if (result != SUCCESS)\
     {\
         printf("[%s %d]exec function failed\n", __FUNCTION__, __LINE__);\
-        return FAIL;\
     }\
-
 
 /* no AV sync correction is done if below the minimum AV sync threshold */
 #define AV_SYNC_THRESHOLD_MIN 0.04
@@ -56,7 +55,6 @@ extern "C" {               // 告诉编译器下列代码要以C链接约定的�
 
 #define SAMPLE_CORRECTION_PERCENT_MAX 10
 #define AUDIO_DIFF_AVG_NB   20
-
 /* polls for possible required screen refresh at least this often, should be less than 1/fps */
 #define REFRESH_RATE 0.01
 
@@ -64,8 +62,9 @@ extern "C" {               // 告诉编译器下列代码要以C链接约定的�
 #define MAX_AUDIO_FRAME_SIZE 192000
 
 #define MIN_QUEUE_SIZE      (50 * 1024)
-#define MAX_QUEUE_SIZE      (5 * 1024 * 1024)
-#define MIN_FRAMES 25
+#define MAX_QUEUE_SIZE      (6 * 1024 * 1024)
+#define MIN_VIDEO_FRAMES    30
+#define MIN_AUDIO_FRAMES    30
 
 /* Minimum SDL audio buffer size, in samples. */
 #define SDL_AUDIO_MIN_BUFFER_SIZE 512
@@ -77,9 +76,12 @@ extern "C" {               // 告诉编译器下列代码要以C链接约定的�
 #define SAMPLE_QUEUE_SIZE 9
 #define FRAME_QUEUE_SIZE FFMAX(SAMPLE_QUEUE_SIZE, FFMAX(VIDEO_PICTURE_QUEUE_SIZE, SUBPICTURE_QUEUE_SIZE))
 
-#define PLAY_INIT_POS	-1
 
-#define FF_QUIT_EVENT    (SDL_USEREVENT + 2)
+#define FF_QUIT_EVENT   (SDL_USEREVENT + 2)
+#define NANOX_MARK      printf
+#define NANOX_LOG       printf
+#define NANOX_ERR       printf
+
 
 enum {
     AV_SYNC_AUDIO_MASTER, /* default choice */
@@ -149,28 +151,13 @@ typedef struct {
     packet_queue_t *pktq;           // 指向对应的packet_queue
 }   frame_queue_t;
 
-typedef struct {
-    MI_S32 (*fpGetMediaInfo)();
-    MI_S32 (*fpGetDuration)(long long duration);
-    MI_S32 (*fpGetCurrentPlayPos)(long long currentPos, long long frame_duration);
-    MI_S32 (*fpGetCurrentPlayPosFromVideo)(long long currentPos, long long frame_duration);
-    MI_S32 (*fpGetCurrentPlayPosFromAudio)(long long currentPos, long long frame_duration);
-    MI_S32 (*fpDisplayVideo)(void *pData, bool bState);
-    MI_S32 (*fpVideoPutBufBack)(void *pData);
-    MI_S32 (*fpPlayAudio)(MI_U8 *pu8AudioData, MI_U32 u32DataLen, MI_S32 *s32BusyNum);
-    MI_S32 (*fpPauseAudio)();
-    MI_S32 (*fpResumeAudio)();
-    MI_S32 (*fpPlayComplete)();
-    MI_S32 (*fpPlayError)(int error);
-    MI_S32 (*fpSetVideoDisplay)(void);
-    MI_S32 (*fpResetVideoDisplay)(void);
-}   player_control_t;
 
 typedef struct {
     char *filename;
     AVDictionary *p_dict;
     AVFormatContext *p_fmt_ctx;
     AVInputFormat *p_iformat;
+    AVIOContext * p_avio_ctx;
     AVStream *p_audio_stream;
     AVStream *p_video_stream;
     AVCodecContext *p_acodec_ctx;
@@ -178,7 +165,6 @@ typedef struct {
 
     int audio_idx;
     int video_idx;
-    //sdl_video_t sdl_video;
 
     play_clock_t audio_clk;                   // 音频时钟
     play_clock_t video_clk;                   // 视频时钟
@@ -204,12 +190,12 @@ typedef struct {
     int audio_cp_index;                 // 当前音频帧中已拷入SDL音频缓冲区的位置索引(指向第一个待拷贝字节)
     int audio_write_buf_size;           // 当前音频帧中尚未拷入SDL音频缓冲区的数据量，audio_frm_size = audio_cp_index + audio_write_buf_size
     double audio_clock;
-    int audio_clock_serial;
     double audio_diff_cum;
     double audio_diff_avg_coef;
     double audio_diff_threshold;
     int audio_diff_avg_count;
-
+    int audio_clock_serial;
+    
     int abort_request;
     int paused;
     int last_paused;
@@ -218,7 +204,7 @@ typedef struct {
     int eof, no_pkt_buf;
     int audio_complete, video_complete;
     int seek_req;
-    int seek_flags, seek_by_bytes;
+    int seek_flags;
     int av_sync_type;
     int64_t seek_pos;
     int64_t seek_rel;
@@ -232,46 +218,39 @@ typedef struct {
     int out_width, out_height;  // 保存视频最终显示的宽高
     int in_width, in_height;    // 保存外部输入的显示宽高
     int pos_x, pos_y;
-    long long duration;
-    long long curPos;
-    bool flush, start_play, enable_audio, enable_video;
+    bool flush, start_play, enable_video, enable_audio;
 
     pthread_cond_t continue_read_thread;
-    pthread_t read_tid;         //demux解复用线程
-    pthread_t idle_tid;         //空闲线程用于处理特殊事件
+    pthread_t read_tid;          //demux解复用线程
+    
+    pthread_t audio_decode_tid;  //audio解码线程
+    pthread_t audio_play_tid;    //audio播放线程
+    pthread_t video_decode_tid;  //video解码线程
+    pthread_t video_play_tid;    //video播放线程
 
-    pthread_t audioDecode_tid;  //audio解码线程
-    pthread_t audioPlay_tid;    //audio播放线程
-    pthread_t videoDecode_tid;  //video解码线程
-    pthread_t videoPlay_tid;    //video播放线程
+    int decoder_type, play_status;
+    bool demux_status, time_out;
 
-    int decode_type;
-    int play_error;
-    bool demux_status;
-
-    player_control_t playerController;
-
+    struct timeval start, now;
     pthread_mutex_t audio_mutex, video_mutex;
-    pthread_cond_t audio_cond, video_cond;
 }   player_stat_t;
 
 extern player_stat_t *g_myplayer;
 
-player_stat_t *player_init(const char *p_input_file);
-int player_deinit(player_stat_t *is);
-void toggle_pause(player_stat_t *is);
+int player_running(const char *p_input_file, char *type);
 double get_clock(play_clock_t *c);
+void   set_clock_at(play_clock_t *c, double pts, int serial, double time);
+void   set_clock(play_clock_t *c, double pts, int serial);
+void   stream_toggle_pause(player_stat_t *is);
+void   stream_seek(player_stat_t *is, int64_t pos, int64_t rel, int seek_by_bytes);
 double get_master_clock(player_stat_t *is);
-void set_clock_at(play_clock_t *c, double pts, int serial, double time);
-void set_clock(play_clock_t *c, double pts, int serial);
-void stream_toggle_pause(player_stat_t *is);
-void stream_seek(player_stat_t *is, int64_t pos, int64_t rel, int seek_by_bytes);
-
-void dd_meminfo(void);
-
-#endif
-
+void   toggle_pause(player_stat_t *is);
+player_stat_t *player_init(const char *p_input_file);
+int   player_deinit(player_stat_t *is);
+int   open_video(player_stat_t *is);
 #ifdef __cplusplus
 }
-#endif
+#endif // __cplusplu
+
+
 #endif
