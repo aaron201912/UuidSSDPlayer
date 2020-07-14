@@ -2,6 +2,10 @@
 /gen auto by zuitools
 ***********************************************/
 #include "mainActivity.h"
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <fcntl.h>
 
 /*TAG:GlobalVariable全局变量*/
 static ZKListView* mListview_indicatorPtr;
@@ -113,6 +117,73 @@ typedef struct {
 }S_VideoViewCallback;
 /*TAG:VideoViewCallback*/
 static S_VideoViewCallback SVideoViewCallbackTab[] = {
+};
+
+
+typedef enum
+{
+  IPC_KEYEVENT = 0,
+  IPC_COMMAND,
+  IPC_LOGCMD,
+  IPC_EVENT_MAX,
+} IPC_EVENT_TYPE;
+
+typedef enum
+{
+  IPC_COMMAND_EXIT = 0,
+  IPC_COMMAND_SUSPEND,
+  IPC_COMMAND_RESUME,
+  IPC_COMMAND_RELOAD,
+  IPC_COMMAND_BROWN_GETFOCUS,
+  IPC_COMMAND_BROWN_LOSEFOCUS,
+  IPC_COMMAND_APP_START_DONE,
+  IPC_COMMAND_APP_STOP_DONE,
+  IPC_COMMAND_SETUP_WATERMARK,
+  IPC_COMMAND_APP_START,
+  IPC_COMMAND_APP_STOP,
+  IPC_COMMAND_MAX,
+} IPC_COMMAND_TYPE;
+
+typedef struct {
+  uint32_t EventType;
+  uint32_t Data;
+  char StrData[256];
+} IPCEvent;
+
+#define SVC_IPC "/tmp/brown_svc_input"
+
+class IPCOutput {
+public:
+  IPCOutput(const std::string& file):m_fd(-1), m_file(file) {
+  }
+
+  virtual ~IPCOutput() {
+    Term();
+  }
+
+  bool Init() {
+    if (m_fd < 0) {
+      m_fd = open(m_file.c_str(), O_WRONLY | O_NONBLOCK);
+    }
+    return m_fd >= 0;
+  }
+
+  void Term() {
+    if (m_fd >= 0) {
+      close(m_fd);
+      m_fd = -1;
+    }
+  }
+
+  void Send(const IPCEvent& evt) {
+    if (m_fd >= 0) {
+      write(m_fd, &evt, sizeof(IPCEvent));
+    }
+  }
+
+private:
+  int m_fd;
+  std::string m_file;
 };
 
 
@@ -239,11 +310,33 @@ void mainActivity::onItemClick(ZKListView *pListView, int index, int id){
 
 void mainActivity::onSlideItemClick(ZKSlideWindow *pSlideWindow, int index) {
     int tablen = sizeof(SSlideWindowItemClickCallbackTab) / sizeof(S_SlideWindowItemClickCallback);
-    for (int i = 0; i < tablen; ++i) {
-        if (SSlideWindowItemClickCallbackTab[i].id == pSlideWindow->getID()) {
-	    if (index < (int)(sizeof(IconTab)/sizeof(char*)))
+    for (int i = 0; i < tablen; ++i)
+    {
+        if (SSlideWindowItemClickCallbackTab[i].id == pSlideWindow->getID())
+        {
+            if (index < sizeof(IconTab)/sizeof(char*))
+            {
                 SSlideWindowItemClickCallbackTab[i].onSlideItemClickCallback(pSlideWindow, index);
-            break;
+                break;
+            }
+            else
+            {
+                //browser start
+                IPCOutput o(SVC_IPC);
+                if(!o.Init())
+                {
+                    printf("Brown process Not start!!!\n");
+                    o.Term();
+                }
+                IPCEvent sendevt;
+                memset(&sendevt,0,sizeof(IPCEvent));
+                sendevt.EventType = IPC_COMMAND;
+                sendevt.Data = IPC_COMMAND_APP_START;  //IPC_COMMAND_APP_STOP to stop browser fg
+
+                o.Send(sendevt);
+                SSTAR_DeinitHotPlugDetect();
+                exit(0);
+            }
         }
     }
 }

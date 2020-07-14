@@ -21,6 +21,7 @@ class IMEBaseApp;
 
 class EasyUIContext {
 	friend int main(int argc, const char *argv[]);
+	friend int createEasyui(void);
 public:
 	/**
 	 * @brief 全局触摸监听接口

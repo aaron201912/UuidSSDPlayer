@@ -30,6 +30,7 @@
 */
 
 #include "statusbarconfig.h"
+#include "hotplugdetect.h"
 
 static int g_curPageIdx = 0;
 /**

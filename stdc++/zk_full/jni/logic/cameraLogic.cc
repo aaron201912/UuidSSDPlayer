@@ -307,6 +307,7 @@ int V4L2_EnableVdec(int vdecChn, int divpChn, int width, int height, MI_VDEC_Cod
 	MI_SYS_ChnPort_t stDivpChnPort;
     MI_VDEC_ChnAttr_t stVdecChnAttr;
 	MI_VDEC_OutputPortAttr_t stOutputPortAttr;
+	MI_VDEC_InitParam_t stVdecInitParam;
 	MI_S32 s32Ret = -1;
 	int outWidth = width;
 	int outHeight = height;
@@ -316,6 +317,10 @@ int V4L2_EnableVdec(int vdecChn, int divpChn, int width, int height, MI_VDEC_Cod
 
 	if (outHeight > 1080)
 		outHeight = 1080;
+
+	memset(&stVdecInitParam, 0, sizeof(MI_VDEC_InitParam_t));
+	stVdecInitParam.bDisableLowLatency = false;
+	MI_VDEC_InitDev(&stVdecInitParam);
 
 	memset(&stVdecChnAttr, 0, sizeof(MI_VDEC_ChnAttr_t));
 	stVdecChnAttr.stVdecVideoAttr.u32RefFrameNum = 2;
@@ -397,6 +402,8 @@ int V4L2_DisableVdec(int vdecChn, int divpChn)
 	{
 		printf("%s %d, MI_VENC_StopRecvPic %d error, %X\n", __func__, __LINE__, vdecChn, s32Ret);
 	}
+
+	MI_VDEC_DeInitDev();
 
     return 0;
 }

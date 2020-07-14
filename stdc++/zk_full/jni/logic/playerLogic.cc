@@ -2227,6 +2227,7 @@ static void onProgressChanged_Seekbar_volumn(ZKSeekBar *pSeekBar, int progress) 
 		MI_AO_SetMute(AUDIO_DEV, g_bMute);
 	}
 #endif
+#endif
 }
 static bool onButtonClick_Button_confirm(ZKButton *pButton) {
     LOGD(" ButtonClick Button_confirm !!!\n");
