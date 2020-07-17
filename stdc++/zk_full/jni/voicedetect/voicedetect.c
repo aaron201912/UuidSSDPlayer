@@ -78,6 +78,7 @@
 #define MAX_BUF_LEN					256
 #define MAX_FRAME_QUEUE_DEPTH       64
 #define SAMPLE_RATE					16000
+#define MAX_COMMAN_NUM				31
 
 typedef struct
 {
@@ -771,6 +772,9 @@ int SSTAR_VoiceDetectInit(TrainedWord_t **ppTriggerCmdList, int *pnTriggerCmdCnt
 	printf("==================================\n");
 
 	*pnCommonCmdCnt = DSpotterGetCommandNumber(hDSpotter[1]);
+	if (*pnCommonCmdCnt > MAX_COMMAN_NUM)
+		*pnCommonCmdCnt = MAX_COMMAN_NUM;
+
 	*ppCommonCmdList = (TrainedWord_t*)malloc(sizeof(TrainedWord_t) * (*pnCommonCmdCnt));
 	pLastCmd[0] = 0;
 	printf("========== Command List ==========\n");

@@ -64,6 +64,9 @@ static S_ACTIVITY_TIMEER REGISTER_ACTIVITY_TIMER_TAB[] = {
  */
 static void onUI_init(){
     //Tips :添加 UI初始化的显示代码到这里,如:mText1Ptr->setText("123");
+	// set date
+	system("date 032912122020.12");
+
 	// get text from m_pchText
 	g_pLangID = (int*)malloc(sizeof(int) * TTS_GetLanguageMaxNum());
 	if (!g_pLangID)

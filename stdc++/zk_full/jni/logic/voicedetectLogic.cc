@@ -113,6 +113,9 @@ static S_ACTIVITY_TIMEER REGISTER_ACTIVITY_TIMER_TAB[] = {
  */
 static void onUI_init(){
     //Tips :添加 UI初始化的显示代码到这里,如:mText1Ptr->setText("123");
+	// set date
+	system("date 092912122020.12");
+
 	int nRet = SSTAR_VoiceDetectInit(&g_pstTriggerCmdList, &g_nTriggerCmdCnt, &g_pCommonCmdList, &g_nCommonCmdCnt);
 	if (nRet)
 	{

@@ -374,7 +374,7 @@ static void *WifiScanProc(void *pdata)
 		memcpy(&stConnParam, &g_stConnParam, sizeof(MI_WLAN_ConnectParam_t));
 		pthread_mutex_unlock(&g_connParamMutex);
 
-	    	list_t *pos = NULL;
+	    list_t *pos = NULL;
 		registModuleCnt = 0;
 		pthread_mutex_lock(&g_scanCallbackListMutex);
 		list_for_each(pos, &g_scanCallbackListHead)
@@ -426,6 +426,11 @@ static void *WifiScanProc(void *pdata)
 					free(g_pstScanRes);
 					g_pstScanRes = NULL;
 				}
+			}
+			else
+			{
+				usleep(50000);
+				continue;
 			}
 		}
 
