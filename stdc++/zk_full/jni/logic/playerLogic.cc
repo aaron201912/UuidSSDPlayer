@@ -2233,6 +2233,20 @@ static bool onButtonClick_Button_confirm(ZKButton *pButton) {
     LOGD(" ButtonClick Button_confirm !!!\n");
 #ifdef SUPPORT_PLAYER_MODULE
 	mWindow_errMsgPtr->setVisible(false);
+
+	if (g_hideToolbarThread.isRunning())
+	{
+		printf("stop hideToolBarthread\n");
+		g_hideToolbarThread.requestExitAndWait();
+	}
+
+	g_bPlayFileThreadExit = true;
+	if (g_playFileThread)
+	{
+		pthread_join(g_playFileThread, NULL);
+		g_playFileThread = NULL;
+	}
+
 	EASYUICONTEXT->goBack();
 #endif
     return false;
