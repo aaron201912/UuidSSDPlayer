@@ -57,6 +57,7 @@ fpZmDLNAServiceStart fsZmDLNAServiceStart = NULL;
 //-------------------------------------------
 int gVedioWidth = 0;
 int gVedioHeight = 0;
+char gsd20xipaddr[32];
 
 static ss_player_t margs1,margs2;
 static pthread_t g_thid_pcm = 0;
@@ -188,7 +189,7 @@ void Ss_DLNA_pthread_close(void)
 	}
 	nPlayerStatuc = MPLAYER_IDLE;
 	//deinit sdk
-	Ss_Player_DeInit(0);
+	Ss_Player_DeInit(1);
 }
 
 void mDLNAPlayback_Open(char *url,char *MetaData, float fPosition)
@@ -283,7 +284,7 @@ int Ss_DLNA_ServiceStart(void)
 {
     char *dlaname = (char*)"/customer/lib/libmdlna.so";
     margs2.pcm_exit = 0;
-    printf(" reception\n");
+    printf("Start Of Ss_DLNA_ServiceStart\n");
 	dlna_callbacks_t uo;
     if(1)
     {
@@ -313,9 +314,11 @@ int Ss_DLNA_ServiceStart(void)
     if(m_pLibdlnaHandle != NULL)
     {
         fsZmDLNAServiceStart  = (fpZmDLNAServiceStart)dlsym(m_pLibdlnaHandle, "ZmDLNAServiceStart");
-        if (dlerror() != NULL)
+        char *error = dlerror();
+        if (error != NULL)
         {
             printf("!!!warning dlsym(ZmDLNAServiceStart) failed.\n");
+            printf("dlerror: %s\n", error);
         }
         else
         {
@@ -330,6 +333,7 @@ int Ss_DLNA_ServiceStart(void)
         if(error != NULL)
         {
             printf("!!!warning(%s) open fail| error.\n", dlaname);
+            printf("dlerror: %s\n", error);
         }
         else
         {
@@ -337,6 +341,7 @@ int Ss_DLNA_ServiceStart(void)
         }
         return -1;
     }
+    printf("End Of Ss_DLNA_ServiceStart\n");
 	return nStartMediaStatuc;
 }
 
@@ -432,17 +437,19 @@ static void Ss_pthread_finish(void)
 
 void VideoMirroringOpen(void *cls, int width, int height, const void *buffer, int buflen, int payloadtype, double timestamp)
 {
-//	int ret = 0;
 	int spscnt =0,spsnalsize=0,ppscnt=0,ppsnalsize=0;
 	MI_VDEC_VideoStream_t stVdecStream;
 	MI_U32 s32Ret;
 
+	printf("Start Of VideoMirroringOpen\n");
+
 #if SAVE_264_FILE
-	printf("start open test.h264");
-	FP_H264 = fopen("/customer/test.h264", "wb");
+    printf("start open test.h264\n");
+    int ret = 0;
+    FP_H264 = fopen("/customer/test.h264", "wb");
     if(FP_H264 == NULL)
     {
-        fprintf(stderr,"=====FP_H264 null=======");
+        fprintf(stderr,"=====FP_H264 null=======\n");
         return;
     }
 #endif
@@ -470,11 +477,10 @@ void VideoMirroringOpen(void *cls, int width, int height, const void *buffer, in
     data[6 + spsnalsize] = 0;
     data[7 + spsnalsize] = 1;
     memcpy(data + 8 + spsnalsize, head + 11 + spsnalsize, ppsnalsize);
-	printf("VideoMirroringOpen");
 	
 #if SAVE_264_FILE
 	ret = fwrite(data,1,4 + spsnalsize + 4 + ppsnalsize,FP_H264);
-	printf("ret = %d\n",ret);
+	printf("fwrite h264 ret = %d\n",ret);
 #endif
 
 	IsH264ModeChange(data,spsnalsize);
@@ -495,8 +501,10 @@ void VideoMirroringOpen(void *cls, int width, int height, const void *buffer, in
         return;
 	}
 	Ss_UI_Close();
-	Ss_Pthread_Pcm();
+	//Ss_Pthread_Pcm();
 	free(data);
+
+	printf("End Of VideoMirroringOpen\n");
 }
 
 
@@ -526,6 +534,7 @@ void VideoMirroringProcess(void *cls, const void *buffer, int buflen, int payloa
 
 #if SAVE_264_FILE
 	fwrite(data, 1, buflen, FP_H264);
+	//printf("[%d]stream data : %x %x %x %x %x, size : %d\n", payloadtype, data[1], data[2], data[3], data[4], buflen);
 #endif
 
 	MI_VDEC_VideoStream_t stVdecStream;
@@ -575,11 +584,12 @@ void VideoMirroringProcess(void *cls, const void *buffer, int buflen, int payloa
 
 #if SAVE_264_FILE
 		fwrite(data,1,4 + spsnalsize + 4 + ppsnalsize,FP_H264);
+		//printf("[%d]stream data : %x %x %x %x %x, size : %d\n", payloadtype, data[1], data[2], data[3], data[4], (4 + spsnalsize + 4 + ppsnalsize));
 #endif
 
 		if(IsH264ModeChange(data,spsnalsize))
 		{
-			Ss_Player_DeInit(0);
+			Ss_Player_DeInit(1);
 			printf("width = %d , hight = %d \n",gVedioWidth,gVedioHeight);
 			Ss_Player_Init(gVedioWidth,gVedioHeight,0);
 
@@ -615,7 +625,7 @@ void VideoMirroringStop(void *cls)
     }
 #endif
 
-	Ss_Player_DeInit(0);
+	Ss_Player_DeInit(1);
 	//Ss_pthread_finish();
 	printf("=====video_mirroring_stop=2=======\r\n");
 	Ss_UI_Open();
@@ -838,8 +848,9 @@ void Airplay_setosversion(void *cls,double osversion)
         }
         else
         {
-          nStartMediaStatuc =fStartMediaServerFuc(pickname,dllname,keypath,nMWeight, nMHeight,60,(char*)"867589136",&ao);
-           // SSLPRT_MSG("AriplayV.%d.%s-%s-StartMediaOption(%x)ServerResult(%d)WxH(%d,%d)\n",ZYFLAY_VERSION,__DATE__,__TIME__,nCastmode,nStartMediaStatuc,nMWeight,nMHeight);//20
+            //nStartMediaStatuc =fStartMediaServerFuc(pickname,dllname,keypath,nMWeight, nMHeight,60,(char*)"867589136",&ao);
+            nStartMediaStatuc =fStartMediaServerFuc(pickname,dllname,keypath,nMWeight, nMHeight,60,(char*)"927589132",&ao);
+            // SSLPRT_MSG("AriplayV.%d.%s-%s-StartMediaOption(%x)ServerResult(%d)WxH(%d,%d)\n",ZYFLAY_VERSION,__DATE__,__TIME__,nCastmode,nStartMediaStatuc,nMWeight,nMHeight);//20
         }
     }
     else
@@ -848,6 +859,7 @@ void Airplay_setosversion(void *cls,double osversion)
         if(error != NULL)
         {
             printf("!!!warning(%s) open fail| error.\n", dllname);
+            printf("dlerror: %s\n", error);
         }
         else
         {
