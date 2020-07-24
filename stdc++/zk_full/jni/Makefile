@@ -57,10 +57,11 @@ INCLUDE_DIR := -I$(EASYUI_COMMON_INCLUDE) \
 					-I$(ZKSW_PREBUILT_INCLUDE_PATH)/mgeff \
 					-I ../jni/sdkdir/include \
 					-I ../jni/voicedetect \
-					-I ../jni/tts
+					-I ../jni/tts \
+					-I ../jni/rtsp/include
 
-LDFLAGS =  -leasyui -pthread -lmi_sys -lmi_disp -lmi_panel -lmi_ao -lmi_gfx -lmi_divp -lmi_vdec -lmi_common -lstdc++ -lmi_ai -lDSpotter -lCReader -ldl -lrt -fPIC -shared
-LDFLAGS += -L$(ZKSW_PREBUILT_LIB_PATH)/system -L. -L ../jni/sdkdir/lib
+LDFLAGS =  -leasyui -pthread -lmi_sys -lmi_disp -lmi_panel -lmi_ao -lmi_gfx -lmi_divp -lmi_vdec -lmi_common -lstdc++ -lmi_ai -lDSpotter -lCReader -lbase -liniparser -llive555 -lonvif -lssclient -ltem -ldl -lrt -fPIC -shared
+LDFLAGS += -L$(ZKSW_PREBUILT_LIB_PATH)/system -L. -L ../jni/sdkdir/lib -L ../jni/rtsp/lib
 LDFLAGS += -L../jni/airplay/lib -lmediaserver 
 
 INCLUDE_DIR += -I ../jni/player -I ../jni/player/ffmpeg/include -I ../jni/player/mediastream -I ../jni/player/imagedata

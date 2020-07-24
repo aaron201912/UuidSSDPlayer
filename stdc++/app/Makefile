@@ -20,7 +20,7 @@ LOCAL_CFLAGS =
 ifeq ($(ENABLE_HDMI), 1)
 LOCAL_LDFLAGS = -leasyui -lnanovg -lpng12 -ljpeg -lpthread -lfreetype -ldl -lts -lz -lmi_common -lmi_gfx -lmi_sys -lmi_disp -lmi_panel -lmi_vdec -lmi_ao -lmi_ai -lDSpotter -lCReader -lmi_hdmi -Wl,--hash-style=gnu
 else
-LOCAL_LDFLAGS = -leasyui -lnanovg -lpng12 -ljpeg -lpthread -lfreetype -ldl -lts -lz -lmi_common -lmi_gfx -lmi_sys -lmi_disp -lmi_panel -lmi_vdec -lmi_ao -lmi_ai -lDSpotter -lCReader -Wl,--hash-style=gnu
+LOCAL_LDFLAGS = -leasyui -lnanovg -lpng12 -ljpeg -lpthread -lfreetype -ldl -lts -lz -lmi_common -lmi_gfx -lmi_sys -lmi_disp -lmi_panel -lmi_vdec -lmi_ao -lmi_ai -lmi_divp -lmi_venc -lDSpotter -lCReader -lbase -liniparser -llive555 -lonvif -lssclient -ltem -Wl,--hash-style=gnu
 endif
 
 CPPSRCS += ${wildcard *.cpp}
