@@ -5,14 +5,14 @@ TARGET = zkgui
 #PROJECT_PATH=/home/koda.xu/I6/master/project
 PROJECT_PATH = ../zk_full/jni/sdkdir
 
-MINIGUI_PATH=./minigui_dir
+ZKGUI_PATH=./zkgui_dir
 ENABLE_HDMI = 0
 COMPILE_ROOT := $(shell pwd)
 CC = arm-linux-gnueabihf-g++
 STRIP = arm-linux-gnueabihf-strip
 
-CFLAGS = -I$(MINIGUI_PATH)/include -I$(MINIGUI_PATH)/include/freetype2 -I$(MINIGUI_PATH)/include/easyui -I$(PROJECT_PATH)/include
-LDFLAGS = -L$(MINIGUI_PATH)/lib -L$(PROJECT_PATH)/lib
+CFLAGS = -I$(ZKGUI_PATH)/include -I$(ZKGUI_PATH)/include/freetype2 -I$(ZKGUI_PATH)/include/easyui -I$(PROJECT_PATH)/include
+LDFLAGS = -L$(ZKGUI_PATH)/lib -L$(PROJECT_PATH)/lib
 CONFIG_PREFIX =.
 
 LOCAL_CFLAGS =

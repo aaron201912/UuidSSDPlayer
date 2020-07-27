@@ -1,20 +1,16 @@
 TARGET = zkgui
 
-#赋值对应的路径,此路径需要和本地sdk路径一致
-#PROJECT_PATH=/home/beal.wu/i2m_i6_master/project
-#PROJECT_PATH=/home/koda.xu/I6/master/project
 PROJECT_PATH = ../zk_full/jni/sdkdir
 
-MINIGUI_PATH=./minigui_dir
+ZKGUI_PATH=./zkgui_dir
 ENABLE_HDMI = 0
 COMPILE_ROOT := $(shell pwd)
 CC = arm-linux-gnueabihf-g++
 #CC = arm-linux-gnueabihf-gcc
 STRIP = arm-linux-gnueabihf-strip
 
-CFLAGS = -I$(MINIGUI_PATH)/include -I$(MINIGUI_PATH)/include/freetype2 -I$(MINIGUI_PATH)/include/easyui -I$(MINIGUI_PATH)/include/uClibc++ -I$(PROJECT_PATH)/include
-#CFLAGS = -I$(MINIGUI_PATH)/include -I$(MINIGUI_PATH)/include/freetype2 -I$(MINIGUI_PATH)/include/easyui -I$(PROJECT_PATH)/include
-LDFLAGS = -L$(MINIGUI_PATH)/lib -L$(PROJECT_PATH)/lib
+CFLAGS = -I$(ZKGUI_PATH)/include -I$(ZKGUI_PATH)/include/freetype2 -I$(ZKGUI_PATH)/include/easyui -I$(ZKGUI_PATH)/include/uClibc++ -I$(PROJECT_PATH)/include
+LDFLAGS = -L$(ZKGUI_PATH)/lib -L$(PROJECT_PATH)/lib
 CONFIG_PREFIX =.
 
 LOCAL_CFLAGS =
