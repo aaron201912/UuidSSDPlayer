@@ -92,7 +92,7 @@ static void SaveScanResult(char *curSsid, MI_WLAN_ScanResult_t *pstScanResult)
 		char *pSsid = (char*)pstScanResult->stAPInfo[i].au8SSId;
 		char saveSsid[MI_WLAN_MAX_SSID_LEN] = {0};
 
-		if (pSsid && strcmp(pSsid, "\"\""))
+		if (pSsid && strcmp(pSsid, "\"\"") && strlen(pSsid))
 		{
 			WifiScanResultListData_t *pstScanResData = NULL;
 			int len = strlen(pSsid);
@@ -217,7 +217,7 @@ static void WifiDeinit()
 	pthread_mutex_destroy(&g_scanCallbackListMutex);
 	pthread_mutex_destroy(&g_connParamMutex);
 
-	MI_WLAN_Close();
+	MI_WLAN_Close(&g_stOpenParam);
 	sleep(3);			// test if the condition is needed
 	MI_WLAN_DeInit();
 
@@ -281,7 +281,7 @@ static void *WifiConnectProc(void *pdata)
 					newConnect = 1;
 			}
 
-			MI_WLAN_GetStatus(&stStatus);
+			MI_WLAN_GetStatus(g_hWlan, &stStatus);
 
 			if(stStatus.stStaStatus.state == WPA_COMPLETED)
 			{
@@ -687,5 +687,5 @@ int Wifi_GetSupportStatus()
 
 int Wifi_GetCurConnStatus(MI_WLAN_Status_t *status)
 {
-	return MI_WLAN_GetStatus(status);
+	return MI_WLAN_GetStatus(g_hWlan, status);
 }

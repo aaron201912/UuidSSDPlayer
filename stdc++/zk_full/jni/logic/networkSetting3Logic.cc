@@ -147,6 +147,16 @@ static bool onButtonClick_sys_back(ZKButton *pButton) {
 static void onEditTextChanged_EdittextAllInfo(const std::string &text) {
     //LOGD(" onEditTextChanged_ EdittextAllInfo %s !!!\n", text.c_str());
 #ifdef SUPPORT_WLAN_MODULE
+	if (strlen(text.c_str()) > MI_WLAN_MAX_PASSWD_LEN)
+	{
+		mTextView1Ptr->setText("密码长度不能超过40个字符，请重新输入密码!");
+
+		if (!mWindow_passwdErrorPtr->isVisible())
+			mWindow_passwdErrorPtr->setVisible(1);
+
+		return;
+	}
+
 	memset(g_stConnectInfo.au8Password, 0, sizeof(g_stConnectInfo.au8Password));
 	memcpy(g_stConnectInfo.au8Password, text.c_str(), strlen(text.c_str()));
 #endif
@@ -167,10 +177,15 @@ static bool onButtonClick_Button_connect_conn(ZKButton *pButton) {
 
 static bool onButtonClick_Button_show_passwd(ZKButton *pButton) {
     //LOGD(" ButtonClick Button_show_passwd !!!\n");
-#ifdef SUPPORT_WLAN_MODULE
 	printf("clicked show_passwd_btn\n");
 	pButton->setSelected(!pButton->isSelected());
 	mEdittextAllInfoPtr->setPassword(!pButton->isSelected());
-#endif
+    return false;
+}
+
+static bool onButtonClick_Button_confirm(ZKButton *pButton) {
+    //LOGD(" ButtonClick Button_confirm !!!\n");
+    mEdittextAllInfoPtr->setText("");
+    mWindow_passwdErrorPtr->setVisible(0);
     return false;
 }

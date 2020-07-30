@@ -41,7 +41,7 @@
 static MI_WLAN_Status_t status;
 static int Ss_Wlan_State(void)
 {
-	MI_WLAN_GetStatus(&status);
+	SSTAR_GetWifiCurConnStatus(&status);
 	if(status.stStaStatus.state == WPA_COMPLETED)
 	{
 		char *wlan_id = (char*)status.stStaStatus.ssid;
