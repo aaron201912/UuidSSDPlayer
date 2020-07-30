@@ -406,9 +406,23 @@ static void onListItemClick_ListviewNetwork(ZKListView *pListView, int index, in
 	else
 	{
 		// show select ssid info
-		Intent* intent = new Intent();
-		intent->putExtra("ssid", string(scanRes.ssid));
-		EASYUICONTEXT->openActivity("networkSetting3Activity", intent);
+		if (scanRes.bEncrypt)
+		{
+			Intent* intent = new Intent();
+			intent->putExtra("ssid", string(scanRes.ssid));
+			EASYUICONTEXT->openActivity("networkSetting3Activity", intent);
+		}
+		else
+		{
+			MI_WLAN_ConnectParam_t connParam;
+			memset(&connParam, 0, sizeof(MI_WLAN_ConnectParam_t));
+			connParam.eSecurity = E_MI_WLAN_SECURITY_WPA;
+			connParam.OverTimeMs = 5000;
+			memcpy(connParam.au8SSId, scanRes.ssid, strlen(scanRes.ssid));
+
+			SSTAR_DisconnectWifi();
+			SSTAR_ConnectWifi(&connParam);
+		}
 	}
 #endif
 }
