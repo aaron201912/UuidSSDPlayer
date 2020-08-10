@@ -257,7 +257,7 @@ void SstarBlitCW(Surface *pSrcSurface, Surface *pDstSurface, RECT *pRect)
 
     _get_src_rect_cw(&dst_update, &src_update, pDstSurface);
 
-    int srcClipN = 0, dstClipN = 0;
+    int srcClipN = 0;
     RECT *srcClip = NULL, *dstClip = NULL;
     extractSquareClip_MinArea(src_update, &srcClip, &srcClipN);
     //extractSquareClip(dst_update, &dstClip, &dstClipN);

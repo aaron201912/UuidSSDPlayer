@@ -46,6 +46,8 @@ typedef struct{
     int status;
     int rotate;
     bool mute;
+    bool audio_only, video_only;
+    int  play_mode;
     char filePath[512];
 }stPlayerData;
 
@@ -760,22 +762,24 @@ int tp_player_open(char *fp, uint16_t x, uint16_t y, uint16_t width, uint16_t he
     o_sendevt.stPlData.width  = width;
     o_sendevt.stPlData.height = height;
     o_sendevt.stPlData.aodev = AUDIO_DEV;
+    o_sendevt.stPlData.audio_only = false;
+    o_sendevt.stPlData.video_only = false;
+    o_sendevt.stPlData.play_mode  = 0;    // 0: 单次播放,1: 循环播放(seek to start)
     tp_client.Send(o_sendevt);
     printf("tp_player try to open file: %s\n", fp);
-retry:
-    memset(&i_recvevt, 0, sizeof(IPCEvent));
-    if (tp_server.Read(i_recvevt) > 0) {
-        if (i_recvevt.EventType == IPC_COMMAND_ACK) {
-            printf("receive ack from my_player!\n");
-        } else if (i_recvevt.EventType == IPC_COMMAND_ERROR) {
-            g_status = i_recvevt.stPlData.status;
-            printf("my_player occur errord]!\n", g_status);
-        }
-    } else {
-        usleep(10 * 1000);
-        goto retry;
-    }
 
+    memset(&i_recvevt, 0, sizeof(IPCEvent));
+    while (tp_server.Read(i_recvevt) <= 0
+           || ((i_recvevt.EventType != IPC_COMMAND_ACK)
+           && (i_recvevt.EventType != IPC_COMMAND_ERROR))) {
+        usleep(10 * 1000);
+    }
+    if (i_recvevt.EventType == IPC_COMMAND_ACK) {
+        printf("receive ack from my_player!\n");
+    } else if (i_recvevt.EventType == IPC_COMMAND_ERROR) {
+        g_status = i_recvevt.stPlData.status;
+        printf("my_player occur errord]!\n", g_status);
+    }
     return 0;
 #else
     int ret = -1;

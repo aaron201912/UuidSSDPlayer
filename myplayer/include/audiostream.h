@@ -22,7 +22,7 @@ extern "C"{
 #define MAX_ADJUST_AO_VOLUME    20
 
 extern MI_AUDIO_DEV gplayer_AoDevId;
-extern int64_t g_audio_chlayout;
+extern uint64_t g_audio_chlayout;
 
 
 int open_audio(player_stat_t *is);

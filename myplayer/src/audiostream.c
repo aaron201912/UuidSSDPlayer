@@ -39,7 +39,7 @@
 
 extern AVPacket a_flush_pkt;
 MI_AUDIO_DEV gplayer_AoDevId = -1;
-int64_t g_audio_chlayout = 0;
+uint64_t g_audio_chlayout = 0;
 
 // 从packet_queue中取一个packet，解码生成frame
 static int audio_decode_frame(AVCodecContext *p_codec_ctx, packet_queue_t *p_pkt_queue, AVFrame *frame)
@@ -295,8 +295,11 @@ recheck:
         {
             is->audio_complete = 1;
             if (is->video_complete && is->audio_complete) {
-                //stream_seek(is, is->p_fmt_ctx->start_time, 0, 0);
-                is->play_status = 1;
+                if (is->opts.play_mode == AV_LOOP) {
+                    stream_seek(is, is->p_fmt_ctx->start_time, 0, 0);
+                } else {
+                    is->play_status = 1;
+                }
             }
             NANOX_LOG("audio play completely!\n");
         } 

@@ -334,29 +334,19 @@ static int demux_init(player_stat_t *is)
     printf("total time of file : %f\n", totle_seconds);
     av_dump_format(p_fmt_ctx, 0, p_fmt_ctx->filename, 0);
 
-    if (a_idx >= 0)
-    {
-        is->p_audio_stream = p_fmt_ctx->streams[a_idx];
-        is->audio_complete = 0;
-        printf("audio codec_info_nbframes:%d, nb_frames:%lld, probe_packet:%d\n", is->p_audio_stream->codec_info_nb_frames, is->p_audio_stream->nb_frames, is->p_audio_stream->probe_packets);
-        //printf("audio duration:%lld, nb_frames:%lld\n", is->p_audio_stream->duration, is->p_audio_stream->nb_frames);
-    }
-    if (v_idx >= 0)
-    {
-        is->p_video_stream = p_fmt_ctx->streams[v_idx];
-        is->video_complete = 0;
-        printf("video codec_info_nbframes:%d, nb_frames:%lld, probe_packet:%d\n", is->p_video_stream->codec_info_nb_frames, is->p_video_stream->nb_frames, is->p_video_stream->probe_packets);
-        //printf("video duration:%lld, nb_frames:%lld\n", is->p_video_stream->duration, is->p_video_stream->nb_frames);
-    }
-
     // set GetCurPlayPos callback
-    if (v_idx >= 0 && is->p_video_stream->codec_info_nb_frames >= 1)
+    if (v_idx >= 0 && p_fmt_ctx->streams[v_idx]->codec_info_nb_frames >= 1)
     {
         is->playerController.fpGetCurrentPlayPosFromVideo = is->playerController.fpGetCurrentPlayPos;
         printf("get play pos from video stream\n");
 
+        p_codec_par = p_fmt_ctx->streams[v_idx]->codecpar;
+        if (p_codec_par->width <= 0 || p_codec_par->height <= 0) {
+            printf("read video stream info error!\n");
+            ret = -1;
+            goto fail;
+        }
         // 提示软解视频质量不超过720P
-        p_codec_par = is->p_video_stream->codecpar;
         if (p_codec_par->codec_id != AV_CODEC_ID_H264 && p_codec_par->codec_id != AV_CODEC_ID_HEVC)
         {
             if (p_codec_par->width * p_codec_par->height > 1280 * 720)
@@ -380,6 +370,21 @@ static int demux_init(player_stat_t *is)
     {
         is->playerController.fpGetCurrentPlayPosFromAudio = is->playerController.fpGetCurrentPlayPos;
         printf("get play pos from audio stream\n");
+    }
+
+    if (a_idx >= 0)
+    {
+        is->p_audio_stream = p_fmt_ctx->streams[a_idx];
+        is->audio_complete = 0;
+        printf("audio codec_info_nbframes:%d, nb_frames:%lld, probe_packet:%d\n", is->p_audio_stream->codec_info_nb_frames, is->p_audio_stream->nb_frames, is->p_audio_stream->probe_packets);
+        //printf("audio duration:%lld, nb_frames:%lld\n", is->p_audio_stream->duration, is->p_audio_stream->nb_frames);
+    }
+    if (v_idx >= 0)
+    {
+        is->p_video_stream = p_fmt_ctx->streams[v_idx];
+        is->video_complete = 0;
+        printf("video codec_info_nbframes:%d, nb_frames:%lld, probe_packet:%d\n", is->p_video_stream->codec_info_nb_frames, is->p_video_stream->nb_frames, is->p_video_stream->probe_packets);
+        //printf("video duration:%lld, nb_frames:%lld\n", is->p_video_stream->duration, is->p_video_stream->nb_frames);
     }
 
     prctl(PR_SET_NAME, "demux_read");

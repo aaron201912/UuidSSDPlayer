@@ -89,6 +89,10 @@ enum {
     AV_SYNC_EXTERNAL_CLOCK, /* synchronize to an external clock */
 };
 
+enum {
+    AV_ONCE,
+    AV_LOOP,
+};
 
 typedef struct {
     double pts;                     // 当前帧(待播放)显示时间戳，播放后，当前帧变成上一帧
@@ -151,6 +155,11 @@ typedef struct {
     packet_queue_t *pktq;           // 指向对应的packet_queue
 }   frame_queue_t;
 
+typedef struct {
+    int audio_only;
+    int video_only;
+    int play_mode;
+} player_opts_t;
 
 typedef struct {
     char *filename;
@@ -232,10 +241,13 @@ typedef struct {
     bool demux_status, time_out;
 
     struct timeval start, now;
+    struct timeval tim_open, tim_play;
     pthread_mutex_t audio_mutex, video_mutex;
+    player_opts_t opts;
 }   player_stat_t;
 
 extern player_stat_t *g_myplayer;
+extern player_opts_t g_opts;
 
 int player_running(const char *p_input_file, char *type);
 double get_clock(play_clock_t *c);

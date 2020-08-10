@@ -6,9 +6,13 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <string>
+#include <signal.h>
 #include <memory.h>
+#include <sys/time.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <dlfcn.h> 
+
 
 #include "interface.h"
 #include "player.h"
@@ -47,6 +51,8 @@ typedef struct{
     int status;
     int rotate;
     bool mute;
+    bool audio_only, video_only;
+    int  play_mode;
     char filePath[512];
 }stPlayerData;
 
@@ -167,6 +173,7 @@ int main(int argc, char *argv[])
     bool bExit = false;
 
     printf("##### Welcome to MyPlayer! #####\n");
+    signal(SIGPIPE, SIG_IGN);
 
     IPCInput i_client(CLT_IPC);
     if(!i_client.Init())
@@ -193,8 +200,15 @@ int main(int argc, char *argv[])
                         //return -1;
                         break;
                     }
+
                     printf("start to play %s, windows = [%d %d %d %d]\n", recvevt.stPlData.filePath, recvevt.stPlData.x,
                     recvevt.stPlData.y, recvevt.stPlData.width, recvevt.stPlData.height);
+
+                    g_opts.audio_only = recvevt.stPlData.audio_only;
+                    g_opts.video_only = recvevt.stPlData.video_only;
+                    g_opts.play_mode  = recvevt.stPlData.play_mode;
+                    printf("player options value = [%d %d %d]\n", g_opts.audio_only, g_opts.video_only, g_opts.play_mode);
+
                     my_player_set_aodev(recvevt.stPlData.aodev);
                     my_player_set_rotate(recvevt.stPlData.rotate);
                     ret = my_player_open(recvevt.stPlData.filePath, recvevt.stPlData.x, recvevt.stPlData.y, recvevt.stPlData.width, recvevt.stPlData.height);
@@ -316,9 +330,9 @@ int main(int argc, char *argv[])
                 sendevt.EventType = IPC_COMMAND_GET_POSITION;
                 sendevt.stPlData.misc = position;
                 o_server.Send(sendevt);
-                time_last.tv_sec = time_now.tv_sec;
                 //av_log(NULL, AV_LOG_WARNING, "send current position time[%0.3lf]\n", sendevt.stPlData.misc);
             }
+            time_last.tv_sec = time_now.tv_sec;
         }
 
         // 异常处理或者播放完成
@@ -347,7 +361,7 @@ int main(int argc, char *argv[])
             g_myplayer->play_status = 0;
         }
 
-        usleep(100 * 1000);
+        usleep(10 * 1000);
     }
 
     printf("Player is exit: %d\n", bExit);

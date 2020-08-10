@@ -78,6 +78,8 @@ typedef struct{
     int status;
     int rotate;
     bool mute;
+    bool audio_only, video_only;
+    int  play_mode;
     char filePath[512];
 }stPlayerData;
 
@@ -1247,38 +1249,41 @@ static void StartPlayStreamFile(char *pFileName)
     sendevt.stPlData.width  = g_playViewWidth;
     sendevt.stPlData.height = g_playViewHeight;
     sendevt.stPlData.aodev = AUDIO_DEV;
+    sendevt.stPlData.audio_only = false;
+    sendevt.stPlData.video_only = false;
+    sendevt.stPlData.play_mode  = 0;    // 0: 单次播放,1: 循环播放(seek to start)
     o_client.Send(sendevt);
     printf("try to open file: %s\n", pFileName);
-retry:
+
     memset(&recvevt, 0, sizeof(IPCEvent));
-    if (i_server.Read(recvevt) > 0) {
-    	if (recvevt.EventType == IPC_COMMAND_ACK) {
-    		printf("receive ack from my_player!\n");
+    while (i_server.Read(recvevt) <= 0
+           || ((recvevt.EventType != IPC_COMMAND_ACK)
+           && (recvevt.EventType != IPC_COMMAND_ERROR))) {
+        usleep(10 * 1000);
+    }
+	if (recvevt.EventType == IPC_COMMAND_ACK) {
+		printf("receive ack from my_player!\n");
 
-    		memset(&sendevt, 0, sizeof(IPCEvent));
-    		sendevt.EventType = IPC_COMMAND_GET_DURATION;
-    	    o_client.Send(sendevt);
-    	} else if(recvevt.EventType == IPC_COMMAND_ERROR) {
-		    if (recvevt.stPlData.status == -101)
-		        mTextview_msgPtr->setText("请检查网络连接！");
-		    else if (recvevt.stPlData.status == -2)
-		        mTextview_msgPtr->setText("不支持播放720P以上的视频！");
-		    else if (recvevt.stPlData.status == -3)
-		        mTextview_msgPtr->setText("解码速度不够，请降低视频帧率！");
-		    else if (recvevt.stPlData.status == -4)
-		        mTextview_msgPtr->setText("读取网络超时！");
-		    else
-		        mTextview_msgPtr->setText("Other Error Occur!");
+		memset(&sendevt, 0, sizeof(IPCEvent));
+		sendevt.EventType = IPC_COMMAND_GET_DURATION;
+	    o_client.Send(sendevt);
+	} else if(recvevt.EventType == IPC_COMMAND_ERROR) {
+	    if (recvevt.stPlData.status == -101)
+	        mTextview_msgPtr->setText("请检查网络连接！");
+	    else if (recvevt.stPlData.status == -2)
+	        mTextview_msgPtr->setText("不支持播放720P以上的视频！");
+	    else if (recvevt.stPlData.status == -3)
+	        mTextview_msgPtr->setText("解码速度不够，请降低视频帧率！");
+	    else if (recvevt.stPlData.status == -4)
+	        mTextview_msgPtr->setText("读取网络超时！");
+	    else
+	        mTextview_msgPtr->setText("Other Error Occur!");
 
-		    mWindow_errMsgPtr->setVisible(true);
+	    mWindow_errMsgPtr->setVisible(true);
 
-		    pthread_mutex_lock(&g_playFileMutex);
-			g_bPlayError = true;
-			pthread_mutex_unlock(&g_playFileMutex);
-    	}
-    } else {
-    	usleep(10 * 1000);
-    	goto retry;
+	    pthread_mutex_lock(&g_playFileMutex);
+		g_bPlayError = true;
+		pthread_mutex_unlock(&g_playFileMutex);
     }
 
     SetPlayerVolumn(g_s32VolValue);

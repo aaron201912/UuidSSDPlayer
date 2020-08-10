@@ -77,7 +77,6 @@ static int alloc_for_frame(frame_t *vp, AVFrame *frame)
 
 static int queue_picture(player_stat_t *is, AVFrame *src_frame, double pts, double duration, int64_t pos)
 {
-    int ret;
     frame_t *vp;
     frame_queue_t *f = &is->video_frm_queue;
 
@@ -103,14 +102,14 @@ static int queue_picture(player_stat_t *is, AVFrame *src_frame, double pts, doub
     // 将AVFrame拷入队列相应位置
     if (is->decoder_type == SOFT_DECODING)
     {
-        av_frame_move_ref(vp->frame, src_frame);
+        //av_frame_move_ref(vp->frame, src_frame);
 
         //gettimeofday(&trans_start, NULL);
-        //ret = alloc_for_frame(vp, src_frame);
-        //if (ret < 0) {
-        //    av_log(NULL, AV_LOG_ERROR, "alloc_for_frame failed!\n");
-        //    return 0;
-        //}
+        int ret = alloc_for_frame(vp, src_frame);
+        if (ret < 0) {
+            av_log(NULL, AV_LOG_ERROR, "alloc_for_frame failed!\n");
+            return 0;
+        }
         //gettimeofday(&trans_end, NULL);
         //time0 = ((int64_t)trans_end.tv_sec * 1000000 + trans_end.tv_usec) - ((int64_t)trans_start.tv_sec * 1000000 + trans_start.tv_usec);
         //printf("time of alloc_for_frame : %lldus\n", time0);
@@ -177,6 +176,12 @@ static int video_decode_frame(AVCodecContext *p_codec_ctx, packet_queue_t *p_pkt
                     //av_log(NULL, AV_LOG_ERROR, "ret : %d, cann't fetch a frame, try again!\n", ret);
                     break;
                 }
+                else if (ret == MI_ERR_VDEC_FAILED)
+                {
+                    av_log(NULL, AV_LOG_ERROR, "vdec occur fatal erro in decoding!\n");
+                    g_myplayer->play_status = -1;
+                    break;
+                }
                 else
                 {
                     av_log(NULL, AV_LOG_ERROR, "video avcodec_receive_frame(): other errors\n");
@@ -239,7 +244,7 @@ static int video_decode_frame(AVCodecContext *p_codec_ctx, packet_queue_t *p_pkt
 
 static double compute_target_delay(double delay, player_stat_t *is)
 {
-    double sync_threshold, diff = 0;
+    double diff = 0;
 
     /* update delay to follow master synchronisation source */
     if (is->av_sync_type == AV_SYNC_AUDIO_MASTER && is->audio_idx >= 0) {
@@ -251,9 +256,9 @@ static double compute_target_delay(double delay, player_stat_t *is)
             /* skip or repeat frame. We take into account the
                delay to compute the threshold. I still don't know
                if it is the best guess */
-            sync_threshold = FFMAX(AV_SYNC_THRESHOLD_MIN, FFMIN(AV_SYNC_THRESHOLD_MAX, delay));
             if (!isnan(diff)) {
-                /*if (diff <= -sync_threshold) {
+                /*double sync_threshold = FFMAX(AV_SYNC_THRESHOLD_MIN, FFMIN(AV_SYNC_THRESHOLD_MAX, delay));
+                if (diff <= -sync_threshold) {
                     delay = FFMAX(0, delay + diff);
                 }
                 else if (diff >= sync_threshold && delay > AV_SYNC_FRAMEDUP_THRESHOLD) {
@@ -519,8 +524,12 @@ recheck:
         {
             is->video_complete = 1;
             if (is->video_complete && is->audio_complete) {
-                //stream_seek(is, is->p_fmt_ctx->start_time, 0, 0);
-                is->play_status = 1;
+                if (is->opts.play_mode == AV_LOOP) {
+                    stream_seek(is, is->p_fmt_ctx->start_time, 0, 0);
+                    printf("seek file to start time!\n");
+                } else {
+                    is->play_status = 1;
+                }
             }
             NANOX_LOG("video play completely!\n");
         }
@@ -595,8 +604,11 @@ recheck:
 
     video_display(is);                      // 取出当前帧vp(若有丢帧是nextvp)进行播放
 
-    if (!is->start_play) {              // 播放第一张图片后认为开始播放
+    if (!is->start_play) {                  // 播放第一张图片后认为开始播放
         is->start_play = true;
+        gettimeofday(&is->tim_play, NULL);
+        uint64_t time = (is->tim_play.tv_sec - is->tim_open.tv_sec) * 1000000 + (is->tim_play.tv_usec - is->tim_open.tv_usec);
+        printf("myplayer display first pic time [%llu]us\n", time);
     }
 
     return 0;
@@ -818,7 +830,7 @@ static int open_video_stream(player_stat_t *is)
     AVCodec* p_codec = NULL;
     AVCodecContext* p_codec_ctx = NULL;
     AVStream *p_stream = is->p_video_stream;
-    int ret, tmp;
+    int ret;
 
     // 1. 为视频流构建解码器AVCodecContext
     // 1.1 获取解码器参数AVCodecParameters
@@ -881,7 +893,7 @@ static int open_video_stream(player_stat_t *is)
     /*if ((is->in_width > is->in_height && p_codec_par->width < p_codec_par->height)
      || (is->in_width < is->in_height && p_codec_par->width > p_codec_par->height)) {
         is->display_mode = E_MI_DISP_ROTATE_270;    // 如果视频的宽高与显示屏的宽高不匹配自动旋转270度
-        tmp = is->in_width;
+        int tmp = is->in_width;
         is->in_width  = is->in_height;
         is->in_height = tmp;                        // 交换宽高
     } else {

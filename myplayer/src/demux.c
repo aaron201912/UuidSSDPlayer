@@ -98,7 +98,7 @@ static void * demux_thread(void *arg)
             // FIXME the +-2 is due to rounding being not done in the correct direction in generation
             // of the seek_pos/seek_rel variables
             //printf("video stream pos : %lld\n", seek_target);
-            is->seek_flags |= AVSEEK_FLAG_BACKWARD;
+            //is->seek_flags |= AVSEEK_FLAG_BACKWARD;
             //ret = av_seek_frame(is->p_fmt_ctx, is->video_idx, seek_target, is->seek_flags);
             ret = avformat_seek_file(is->p_fmt_ctx, -1, seek_min, seek_target, seek_max, is->seek_flags);
 
@@ -150,12 +150,10 @@ static void * demux_thread(void *arg)
             pthread_mutex_unlock(&wait_mutex);
             //printf("queue size: %d\n",is->audio_pkt_queue.size + is->video_pkt_queue.size);
 
-            if (is->video_idx >= 0 && is->video_pkt_queue.nb_packets < 10) {
-                //printf("wait video queue avalible pktnb: %d\n",is->video_pkt_queue.nb_packets);
-            }
-            if (is->audio_idx >= 0 && is->audio_pkt_queue.nb_packets == 0) {
-                //printf("wait audio queue avalible pktnb: %d\n",is->audio_pkt_queue.nb_packets);
-                is->play_status = -3;
+            if ((is->video_idx >= 0 && is->video_pkt_queue.nb_packets <= 0)
+                || (is->audio_idx >= 0 && is->audio_pkt_queue.nb_packets <= 0)) {
+                printf("wait video queue avalible pktnb: %d\n",is->video_pkt_queue.nb_packets);
+                printf("wait audio queue avalible pktnb: %d\n",is->audio_pkt_queue.nb_packets);
             }
 
             if (is->no_pkt_buf) {
@@ -217,12 +215,12 @@ static void * demux_thread(void *arg)
 
         // 4.3 根据当前packet类型(音频、视频、字幕)，将其存入对应的packet队列
 
-        if (pkt->stream_index == is->audio_idx)
+        if (pkt->stream_index == is->audio_idx && !is->opts.video_only)
         {
             packet_queue_put(&is->audio_pkt_queue, pkt);
             //printf("put audio pkt end, size = %d\n", is->audio_pkt_queue.nb_packets);
         }
-        else if (pkt->stream_index == is->video_idx)
+        else if (pkt->stream_index == is->video_idx && !is->opts.audio_only)
         {
             packet_queue_put(&is->video_pkt_queue, pkt);
             //printf("put video pkt end, size = %d\n", is->video_pkt_queue.nb_packets);
@@ -332,6 +330,17 @@ static int demux_init(player_stat_t *is)
     double totle_seconds = p_fmt_ctx->duration * av_q2d(AV_TIME_BASE_Q);
     printf("start time : %.3f, total time of input file : %0.3f\n", p_fmt_ctx->start_time * av_q2d(AV_TIME_BASE_Q), totle_seconds);
     av_dump_format(p_fmt_ctx, 0, is->filename, 0);
+
+    //根据设置的参数选择播放声音或视频
+    if (is->opts.audio_only) {
+        v_idx = -1;
+        is->av_sync_type = AV_SYNC_AUDIO_MASTER;
+    }
+
+    if (is->opts.video_only) {
+        a_idx = -1;
+        is->av_sync_type = AV_SYNC_VIDEO_MASTER;
+    }
 
     if (a_idx >= 0) {
         is->p_audio_stream = p_fmt_ctx->streams[a_idx];

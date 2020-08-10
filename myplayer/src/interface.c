@@ -20,6 +20,8 @@ static player_stat_t *ssplayer = NULL;
 static bool g_mute = false;
 static int g_rotate = E_MI_DISP_ROTATE_NONE;
 
+player_opts_t g_opts = {0, 0, AV_ONCE};
+
 static void * my_layer_handler(void * arg)
 {
     int ret;
@@ -84,6 +86,9 @@ int my_player_open(const char *fp, uint16_t x, uint16_t y, uint16_t width, uint1
         return -1;
     }
 
+    gettimeofday(&ssplayer->tim_open, NULL);
+
+    memcpy(&ssplayer->opts, &g_opts, sizeof(player_opts_t));
     ssplayer->display_mode = g_rotate;
     ssplayer->in_height = height;
     ssplayer->in_width  = width;
@@ -126,6 +131,8 @@ int my_player_close(void)
         ret = my_audio_deinit();
         av_log(NULL, AV_LOG_INFO, "my_audio_deinit done!\n");
     }
+
+    memset(&g_opts, 0x0, sizeof(player_opts_t));
 
     ssplayer = NULL;
     g_mute = false;
@@ -371,5 +378,6 @@ int my_player_set_mute(bool mute)
 
     return 0;
 }
+
 
 
