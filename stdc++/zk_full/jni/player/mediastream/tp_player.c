@@ -732,6 +732,34 @@ static void player_control_callback(player_stat_t *is, player_control_t *func)
         }
     }
 }
+#else
+static bool enable_listen = false, g_exit = false;
+static pthread_t idle_tid;
+static void * tp_idle_thread(void *arg)
+{
+    player_control_t *func_t = (player_control_t *)arg;
+
+    printf("tp_idle_thread start\n");
+
+    while (!g_exit)
+    {
+        if (enable_listen) {
+            if (tp_server.Read(i_recvevt) > 0) {
+                if (i_recvevt.EventType == IPC_COMMAND_COMPLETE) {
+                    printf("receive message of playing completely!\n");
+                    func_t->fpPlayComplete();
+                } else if (i_recvevt.EventType == IPC_COMMAND_ERROR) {
+                    printf("receive message of error in playing!\n");
+                    func_t->fpPlayError(i_recvevt.stPlData.status);
+                }
+            }
+        }
+        usleep(100 * 1000);
+    }
+
+    printf("### tp_idle_thread exit ###\n");
+    return NULL;
+}
 #endif
 
 int tp_player_open(char *fp, uint16_t x, uint16_t y, uint16_t width, uint16_t height, void *parg)
@@ -739,12 +767,21 @@ int tp_player_open(char *fp, uint16_t x, uint16_t y, uint16_t width, uint16_t he
 #ifdef SUPPORT_PLAYER_PROCESS
     printf("tp_player_open start!\n");
 
+    player_control_t *func_t = (player_control_t *)parg;
+
     if(!tp_server.Init()) {
         printf("[%s %d]create i_server fail!\n", __FILE__, __LINE__);
         return -1;
     }
     if(!tp_client.Init()) {
         printf("[%s %d]server process not start!\n", __FILE__, __LINE__);
+        return -1;
+    }
+
+    g_exit = false;
+    int ret = pthread_create(&idle_tid, NULL, tp_idle_thread, (void *)parg);
+    if (ret != 0) {
+        printf("[%s %d]create tp_idle_thread failed!\n", __FILE__, __LINE__);
         return -1;
     }
 
@@ -778,8 +815,11 @@ int tp_player_open(char *fp, uint16_t x, uint16_t y, uint16_t width, uint16_t he
         printf("receive ack from my_player!\n");
     } else if (i_recvevt.EventType == IPC_COMMAND_ERROR) {
         g_status = i_recvevt.stPlData.status;
-        printf("my_player occur errord]!\n", g_status);
+        printf("my_player occur error [%d]!\n", g_status);
+        func_t->fpPlayError(g_status);
     }
+
+    enable_listen = true;
     return 0;
 #else
     int ret = -1;
@@ -790,47 +830,46 @@ int tp_player_open(char *fp, uint16_t x, uint16_t y, uint16_t width, uint16_t he
         return -1;
     }
 
-    if ((x + width) > MAINWND_W || (y + height) > MAINWND_H)
-    {
+    if ((x + width) > MAINWND_W || (y + height) > MAINWND_H || !width || !height) {
         printf("parameter is invalid!\n");
         return -1;
     }
 
-    if (width % 16)
-    {
-        printf("width is not 16 alignment!\n");
-        return -1;
-    }
-
     g_is = player_init(fp);
-    if (g_is == NULL)
-    {
+    if (g_is == NULL) {
         printf("player init failed\n");
         return -1;
     }
 
-    player_control_callback(g_is, func_t);
+    g_is->in_width  = width;
+    g_is->in_height = height;
+    printf("tp_player_open w/h = [%d %d]\n", g_is->in_width, g_is->in_height);
 
-    ret = open_demux(g_is);
-    if (ret < 0)
-    {
-        player_deinit(g_is);
-        g_is = NULL;
-        return -1;
-    }
-
-    g_is->in_width = width;
-    g_is->in_width = height;
     sstar_audio_init();
     //sstar_video_init(x, y, width, height);
 
+    player_control_callback(g_is, func_t);
+
+    ret = open_demux(g_is);
+    if (ret < 0) {
+        goto fail;
+    }
+
     ret = open_video(g_is);
+    if (ret < 0) {
+        goto fail;
+    }
+
     ret = open_audio(g_is);
+    if (ret < 0) {
+        goto fail;
+    }
 
     g_loop_flag = 1;
 
-    //printf("\033[31;2mgtp_player_open exit!\033[0m\n");
-
+    return 0;
+fail:
+    tp_player_close();
     return ret;
 #endif
 }
@@ -846,6 +885,10 @@ int tp_player_close(void)
     o_sendevt.EventType = IPC_COMMAND_CLOSE;
     tp_client.Send(o_sendevt);
     printf("tp_player_close done!\n");
+
+    g_exit = true;
+    pthread_join(idle_tid, NULL);
+    enable_listen = false;
 
     tp_server.Term();
     return 0;

@@ -186,7 +186,7 @@ static void * demux_thread(void *arg)
                     packet_queue_put_nullpacket(&is->audio_pkt_queue, is->audio_idx);
                 }
 
-                is->eof = 1;
+                is->eof = (is->time_out) ? 0 : 1;
                 //av_log(is->p_fmt_ctx, AV_LOG_INFO, "read packet over!\n");
                 av_log(NULL, AV_LOG_ERROR, "ret : %d, feof : %d\n", ret, avio_feof(is->p_fmt_ctx->pb));
             }
@@ -194,7 +194,6 @@ static void * demux_thread(void *arg)
             if (is->time_out) {
                 av_log(NULL, AV_LOG_ERROR, "av_read_frame time out!\n");
                 is->time_out = false;
-                is->play_status = -4;
             }
 
             pthread_mutex_lock(&wait_mutex);
