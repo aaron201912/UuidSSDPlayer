@@ -659,14 +659,12 @@ int my_audio_init(int nAoDevId)
     stSetAttr.eWorkmode = E_MI_AUDIO_MODE_I2S_MASTER;
     stSetAttr.u32FrmNum = 6;
     stSetAttr.u32PtNumPerFrm = MI_AUDIO_SAMPLE_PER_FRAME;
-    stSetAttr.u32ChnCnt = 1;
 
-    if(stSetAttr.u32ChnCnt == 2)
-    {
+    if (g_audio_chlayout & AV_CH_LAYOUT_STEREO) {
+        stSetAttr.u32ChnCnt = 2;
         stSetAttr.eSoundmode = E_MI_AUDIO_SOUND_MODE_STEREO;
-    }
-    else if(stSetAttr.u32ChnCnt == 1)
-    {
+    } else {
+        stSetAttr.u32ChnCnt = 1;
         stSetAttr.eSoundmode = E_MI_AUDIO_SOUND_MODE_MONO;
     }
 
