@@ -150,10 +150,14 @@ static void * demux_thread(void *arg)
             pthread_mutex_unlock(&wait_mutex);
             //printf("queue size: %d\n",is->audio_pkt_queue.size + is->video_pkt_queue.size);
 
-            if ((is->video_idx >= 0 && is->video_pkt_queue.nb_packets <= 0)
-                || (is->audio_idx >= 0 && is->audio_pkt_queue.nb_packets <= 0)) {
-                printf("wait video queue avalible pktnb: %d\n",is->video_pkt_queue.nb_packets);
-                printf("wait audio queue avalible pktnb: %d\n",is->audio_pkt_queue.nb_packets);
+            if (is->video_idx >= 0 && is->audio_idx >= 0 && is->audio_pkt_queue.nb_packets <= 0) {
+                double diff = get_clock(&is->audio_clk) - get_clock(&is->video_clk);
+                if (!isnan(diff) && diff > AV_NOSYNC_THRESHOLD) {
+                    printf("video lags audio for too long!\n");
+                    is->play_status = -3;
+                }
+                //printf("wait video queue avalible pktnb: %d\n",is->video_pkt_queue.nb_packets);
+                //printf("wait audio queue avalible pktnb: %d\n",is->audio_pkt_queue.nb_packets);
             }
 
             if (is->no_pkt_buf) {
@@ -284,18 +288,39 @@ static int demux_init(player_stat_t *is)
         ret = err;
         goto fail;
     }
+    // 构建私人结构体保存视频信息
+    if (!p_fmt_ctx->opaque) {
+        p_fmt_ctx->opaque = (AVH2645HeadInfo *)av_malloc(sizeof(AVH2645HeadInfo));
+        if (!p_fmt_ctx->opaque) {
+            printf("Could not allocate AVH2645HeadInfo.\n");
+            ret = AVERROR(ENOMEM);
+            goto fail;
+        }
+        memset(p_fmt_ctx->opaque, 0x0, sizeof(AVH2645HeadInfo));
+    }
     // 1.2 搜索流信息：读取一段视频文件数据，尝试解码，将取到的流信息填入p_fmt_ctx->streams
     //     ic->streams是一个指针数组，数组大小是pFormatCtx->nb_streams
     err = avformat_find_stream_info(p_fmt_ctx, NULL);
     if (err < 0)
     {
         printf("avformat_find_stream_info() failed %d\n", err);
+        if (p_fmt_ctx->opaque) {
+            av_freep(&p_fmt_ctx->opaque);
+        }
         ret = -1;
         goto fail;
     }
     av_log(NULL, AV_LOG_INFO, "avformat demuxer name : %s\n", p_fmt_ctx->iformat->name);
     is->no_pkt_buf = 0;
     av_log(NULL, AV_LOG_ERROR, "avio buffer size = %d, probesize = %lld\n", p_fmt_ctx->pb->buffer_size, p_fmt_ctx->probesize);
+
+    if (p_fmt_ctx->opaque) {
+        AVH2645HeadInfo *head_info = (AVH2645HeadInfo *)p_fmt_ctx->opaque;
+        printf("frame_mbs_only_flag = %d\n", head_info->frame_mbs_only_flag);
+        printf("max_bytes_per_pic_denom = %d\n", head_info->max_bytes_per_pic_denom);
+        printf("frame_cropping_flag = %d\n", head_info->frame_cropping_flag);
+        printf("conformance_window_flag = %d\n", head_info->conformance_window_flag);
+    }
 
     // 2. 查找第一个音频流/视频流
     a_idx = -1;

@@ -173,7 +173,7 @@ static int video_decode_frame(AVCodecContext *p_codec_ctx, packet_queue_t *p_pkt
                 {
                     av_log(NULL, AV_LOG_ERROR, "vdec occur fatal erro in decoding!\n");
                     g_myplayer->play_error = -1;
-                    break;
+                    return 0;
                 }
                 else
                 {

@@ -200,7 +200,7 @@ static int sstar_video_init(void)
         MI_DIVP_OutputPortAttr_t stOutputPortAttr;
         MI_DISP_InputPortAttr_t stInputPortAttr;
         MI_SYS_ChnPort_t stDispChnPort;
-		MI_SYS_ChnPort_t stDivpChnPort;
+        MI_SYS_ChnPort_t stDivpChnPort;
 
         MI_GFX_Open();
 
@@ -235,7 +235,7 @@ static int sstar_video_init(void)
         stOutputPortAttr.u32Width           = ALIGN_BACK(g_is->src_width , 32);
         stOutputPortAttr.u32Height          = ALIGN_BACK(g_is->src_height, 32);
         MI_DIVP_SetOutputPortAttr(0, &stOutputPortAttr);
-		MI_DIVP_StartChn(0);
+        MI_DIVP_StartChn(0);
 
         MI_DISP_DisableInputPort(0, 0);
         MI_DISP_SetInputPortAttr(0, 0, &stInputPortAttr);
@@ -787,47 +787,47 @@ int tp_player_open(char *fp, uint16_t x, uint16_t y, uint16_t width, uint16_t he
 
     if (g_is != NULL) {
         printf("\033[31;2mtp_player_open failed!\033[0m\n");
-		return -1;
+        return -1;
     }
 
-	if ((x + width) > MAINWND_W || (y + height) > MAINWND_H)
-	{
-		printf("parameter is invalid!\n");
-		return -1;
-	}
+    if ((x + width) > MAINWND_W || (y + height) > MAINWND_H)
+    {
+        printf("parameter is invalid!\n");
+        return -1;
+    }
 
-	if (width % 16)
-	{
-		printf("width is not 16 alignment!\n");
-		return -1;
-	}
+    if (width % 16)
+    {
+        printf("width is not 16 alignment!\n");
+        return -1;
+    }
 
-	g_is = player_init(fp);
-	if (g_is == NULL)
-	{
-		printf("player init failed\n");
-		return -1;
-	}
+    g_is = player_init(fp);
+    if (g_is == NULL)
+    {
+        printf("player init failed\n");
+        return -1;
+    }
 
-	player_control_callback(g_is, func_t);
+    player_control_callback(g_is, func_t);
 
-	ret = open_demux(g_is);
-	if (ret < 0)
-	{
-		player_deinit(g_is);
-		g_is = NULL;
-		return -1;
-	}
+    ret = open_demux(g_is);
+    if (ret < 0)
+    {
+        player_deinit(g_is);
+        g_is = NULL;
+        return -1;
+    }
 
-	g_is->in_width = width;
-	g_is->in_width = height;
-	sstar_audio_init();
-	//sstar_video_init(x, y, width, height);
+    g_is->in_width = width;
+    g_is->in_width = height;
+    sstar_audio_init();
+    //sstar_video_init(x, y, width, height);
 
-	ret = open_video(g_is);
-	ret = open_audio(g_is);
+    ret = open_video(g_is);
+    ret = open_audio(g_is);
 
-	g_loop_flag = 1;
+    g_loop_flag = 1;
 
     //printf("\033[31;2mgtp_player_open exit!\033[0m\n");
 
@@ -842,8 +842,8 @@ int tp_player_close(void)
         printf("my_player is not start!\n");
         return -1;
     }
-	memset(&o_sendevt, 0, sizeof(IPCEvent));
-	o_sendevt.EventType = IPC_COMMAND_CLOSE;
+    memset(&o_sendevt, 0, sizeof(IPCEvent));
+    o_sendevt.EventType = IPC_COMMAND_CLOSE;
     tp_client.Send(o_sendevt);
     printf("tp_player_close done!\n");
 

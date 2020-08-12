@@ -394,21 +394,25 @@ int player_deinit(player_stat_t *is)
         av_dict_free(&is->p_dict);
         printf("04.av_dict_free finish!\n");
 
+        if (is->p_fmt_ctx->opaque)
+            av_freep(&is->p_fmt_ctx->opaque);
+        printf("05.av_freep p_fmt_ctx opaque finish\n");
+
         avformat_close_input(&is->p_fmt_ctx);
-        printf("05.avformat_close_input finish!\n");
+        printf("06.avformat_close_input finish!\n");
     }
     /* free all pictures */
     packet_queue_destroy(&is->video_pkt_queue);
-    printf("06.video packet_queue_destroy!\n");
+    printf("07.video packet_queue_destroy!\n");
     
     packet_queue_destroy(&is->audio_pkt_queue);
-    printf("07.audio packet_queue_destroy!\n");
+    printf("08.audio packet_queue_destroy!\n");
     
     frame_queue_destory(&is->video_frm_queue);
-    printf("08.video frame_queue_destory!\n");
+    printf("09.video frame_queue_destory!\n");
     
     frame_queue_destory(&is->audio_frm_queue);
-    printf("09.audio frame_queue_destory!\n");
+    printf("10.audio frame_queue_destory!\n");
 
     pthread_mutex_destroy(&is->audio_mutex);
     pthread_mutex_destroy(&is->video_mutex);
@@ -416,13 +420,13 @@ int player_deinit(player_stat_t *is)
     pthread_cond_destroy(&is->video_cond);
     
     pthread_cond_destroy(&is->continue_read_thread);
-    printf("10.read pthread_cond_destroy!\n");
+    printf("11.read pthread_cond_destroy!\n");
     
     av_free(is->filename);  
-    printf("11.av_free filename!\n");
+    printf("12.av_free filename!\n");
     
     av_freep(&is);
-    printf("12.av_free is!\n");
+    printf("13.av_free is!\n");
 
     printf("##### player_deinit exit #####\n");
 

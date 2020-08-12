@@ -578,8 +578,8 @@ static int open_audio_playing(void *arg)
 
     is->audio_param_tgt.fmt = AUDIO_INPUT_SAMPFMT;
     is->audio_param_tgt.freq = AUDIO_INPUT_SAMPRATE;
-    is->audio_param_tgt.channel_layout = AUDIO_INPUT_CHLAYOUT;
-    //is->audio_param_tgt.channel_layout = g_audio_chlayout;
+    //is->audio_param_tgt.channel_layout = AUDIO_INPUT_CHLAYOUT;
+    is->audio_param_tgt.channel_layout = g_audio_chlayout;
 
     is->audio_param_tgt.channels = av_get_channel_layout_nb_channels(is->audio_param_tgt.channel_layout);
         

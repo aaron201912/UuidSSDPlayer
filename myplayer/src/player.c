@@ -359,8 +359,12 @@ int player_deinit(player_stat_t *is)
         av_dict_free(&is->p_dict);
         av_log(NULL, AV_LOG_WARNING, "2.4av_dict_free finish\n");
 
+        if (is->p_fmt_ctx->opaque)
+            av_freep(&is->p_fmt_ctx->opaque);
+        av_log(NULL, AV_LOG_WARNING, "2.5av_freep p_fmt_ctx opaque finish\n");
+
         avformat_close_input(&is->p_fmt_ctx);
-        av_log(NULL, AV_LOG_WARNING, "2.5avformat_close_input finish\n");
+        av_log(NULL, AV_LOG_WARNING, "2.6avformat_close_input finish\n");
     }
 
     packet_queue_destroy(&is->video_pkt_queue);

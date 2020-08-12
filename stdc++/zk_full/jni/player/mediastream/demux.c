@@ -158,15 +158,17 @@ static void* demux_thread(void *arg)
             //printf("queue size: %d\n",is->audio_pkt_queue.size + is->video_pkt_queue.size);
             //printf("wait video queue avalible pktnb: %d\n",is->video_pkt_queue.nb_packets);
             //printf("wait audio queue avalible pktnb: %d\n",is->audio_pkt_queue.nb_packets);
-            if (is->audio_pkt_queue.size + is->video_pkt_queue.size > MAX_QUEUE_SIZE &&
-                is->audio_pkt_queue.nb_packets == 0 && !is->play_error)
+            if (is->audio_idx >= 0 && is->video_idx >= 0 && is->audio_pkt_queue.nb_packets <= 0 && !is->play_error)
             {
-                av_log(NULL, AV_LOG_WARNING, "WARNING: Please Reduce The Resolution Of Video!!!\n");
-                is->play_error = -3;
-                printf("queue size: %d, video pkt size: %d, audio pkt size: %d\n",
-                       is->audio_pkt_queue.size + is->video_pkt_queue.size,
-                       is->video_pkt_queue.nb_packets,
-                       is->audio_pkt_queue.nb_packets);
+                double diff = get_clock(&is->audio_clk) - get_clock(&is->video_clk);
+                if (!isnan(diff) && diff > AV_NOSYNC_THRESHOLD) {
+                    av_log(NULL, AV_LOG_WARNING, "WARNING: Please Reduce The Resolution Of Video!!!\n");
+                    is->play_error = -3;
+                    printf("queue size: %d, video pkt size: %d, audio pkt size: %d\n",
+                           is->audio_pkt_queue.size + is->video_pkt_queue.size,
+                           is->video_pkt_queue.nb_packets,
+                           is->audio_pkt_queue.nb_packets);
+                }
             }
 
             if (is->no_pkt_buf) {
@@ -282,14 +284,37 @@ static int demux_init(player_stat_t *is)
         goto fail;
     }
     is->p_fmt_ctx = p_fmt_ctx;
+
+    // 构建私人结构体保存视频信息
+    if (!p_fmt_ctx->opaque) {
+        p_fmt_ctx->opaque = (AVH2645HeadInfo *)av_malloc(sizeof(AVH2645HeadInfo));
+        if (!p_fmt_ctx->opaque) {
+            printf("Could not allocate AVH2645HeadInfo.\n");
+            ret = AVERROR(ENOMEM);
+            goto fail;
+        }
+        memset(p_fmt_ctx->opaque, 0x0, sizeof(AVH2645HeadInfo));
+    }
+
     // 1.2 搜索流信息：读取一段视频文件数据，尝试解码，将取到的流信息填入p_fmt_ctx->streams
     //     ic->streams是一个指针数组，数组大小是pFormatCtx->nb_streams
     err = avformat_find_stream_info(p_fmt_ctx, NULL);
     if (err < 0)
     {
         printf("avformat_find_stream_info() failed %d\n", err);
+        if (p_fmt_ctx->opaque) {
+            av_freep(&p_fmt_ctx->opaque);
+        }
         ret = -1;
         goto fail;
+    }
+
+    if (p_fmt_ctx->opaque) {
+        AVH2645HeadInfo *head_info = (AVH2645HeadInfo *)p_fmt_ctx->opaque;
+        printf("frame_mbs_only_flag = %d\n", head_info->frame_mbs_only_flag);
+        printf("max_bytes_per_pic_denom = %d\n", head_info->max_bytes_per_pic_denom);
+        printf("frame_cropping_flag = %d\n", head_info->frame_cropping_flag);
+        printf("conformance_window_flag = %d\n", head_info->conformance_window_flag);
     }
 
     is->seek_by_bytes = !!(p_fmt_ctx->flags & AVFMT_TS_DISCONT) && strcmp("ogg", p_fmt_ctx->iformat->name);
@@ -332,7 +357,7 @@ static int demux_init(player_stat_t *is)
 
     totle_seconds = p_fmt_ctx->duration * av_q2d(AV_TIME_BASE_Q);
     printf("total time of file : %f\n", totle_seconds);
-    av_dump_format(p_fmt_ctx, 0, p_fmt_ctx->filename, 0);
+    av_dump_format(p_fmt_ctx, 0, is->filename, 0);
 
     // set GetCurPlayPos callback
     if (v_idx >= 0 && p_fmt_ctx->streams[v_idx]->codec_info_nb_frames >= 1)
