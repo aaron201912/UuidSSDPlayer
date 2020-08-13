@@ -566,11 +566,12 @@ static int open_audio_playing(void *arg)
 
     if (!g_audio_chlayout) {
         g_audio_chlayout = is->p_audio_stream->codecpar->channel_layout;
-        //av_log(NULL, AV_LOG_INFO, "get g_audio_chlayout = %lld\n", audio_chlayout);
-        if (!(g_audio_chlayout & (AV_CH_LAYOUT_MONO | AV_CH_LAYOUT_STEREO))) {
-
-            g_audio_chlayout = AV_CH_LAYOUT_MONO; // 如读取音频信息失败, 默认使用单声道
+        if (g_audio_chlayout == AV_CH_LAYOUT_STEREO) {
+            g_audio_chlayout = AV_CH_LAYOUT_STEREO; // 如果不是立体声, 默认使用单声道
+        } else {
+            g_audio_chlayout = AV_CH_LAYOUT_MONO;
         }
+        av_log(NULL, AV_LOG_INFO, "get g_audio_chlayout = %llu\n", g_audio_chlayout);
     }
 
     my_audio_init(AUDIO_DEV);
@@ -638,6 +639,10 @@ int my_audio_deinit(void)
 
     /* disable ao device */
     MI_AO_Disable(AoDevId);
+
+    g_audio_chlayout = 0;
+    printf("reset g_audio_chlayout [%llu]\n", g_audio_chlayout);
+
     return MI_SUCCESS;
 }
 
