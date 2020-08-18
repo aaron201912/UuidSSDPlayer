@@ -29,8 +29,7 @@
 *
 * 在Eclipse编辑器中  使用 “alt + /”  快捷键可以打开智能提示
 */
-
-#include "ssclient.h"
+#include "rtspclient.h"
 #include "panelconfig.h"
 
 #define RTSP_CONFIG_PATH	"/customer/res/rtsp/config/RTSP_CLIENT_SLOT.ini"
@@ -45,7 +44,6 @@ static S_ACTIVITY_TIMEER REGISTER_ACTIVITY_TIMER_TAB[] = {
 	//{1,  1000},
 };
 
-static SsClient *g_pSstarClient = NULL;
 /**
  * 当界面构造时触发
  */
@@ -63,9 +61,7 @@ static void onUI_intent(const Intent *intentPtr) {
     if (intentPtr != NULL) {
     	std::string strUrl = intentPtr->getExtra("url");
 
-    	g_pSstarClient = new SsClient(strUrl.c_str(), RTSP_CONFIG_PATH, PANEL_MAX_WIDTH, PANEL_MAX_HEIGHT);
-    	printf("onUI_intent: g_pSstarClient is %p\n", g_pSstarClient);
-    	g_pSstarClient->Play();
+    	SSTAR_RTSPClinet_Init(strUrl.c_str(), RTSP_CONFIG_PATH, PANEL_MAX_WIDTH, PANEL_MAX_HEIGHT);
     }
 }
 
@@ -88,13 +84,7 @@ static void onUI_hide() {
  */
 static void onUI_quit() {
 	printf("onUI_quit\n");
-
-	if (g_pSstarClient)
-	{
-		g_pSstarClient->Stop();
-		delete g_pSstarClient;
-		g_pSstarClient = NULL;
-	}
+	SSTAR_RTSPClient_Deinit();
 }
 
 /**
@@ -149,16 +139,8 @@ static bool onrtspstreamActivityTouchEvent(const MotionEvent &ev) {
 static bool onButtonClick_sys_back(ZKButton *pButton) {
     //LOGD(" ButtonClick sys_back !!!\n");
 	printf("sys_back\n");
+	SSTAR_RTSPClient_Deinit();
 
-	if (g_pSstarClient)
-	{
-		printf("sys_back begin to stop\n");
-		g_pSstarClient->Stop();
-		printf("sys_back stop done\n");
-		delete g_pSstarClient;
-		printf("sys_back delete done\n");
-		g_pSstarClient = NULL;
-	}
     return false;
 }
 static bool onButtonClick_Button_confirm(ZKButton *pButton) {

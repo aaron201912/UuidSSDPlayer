@@ -22,7 +22,7 @@
 //For audio
 #include "audioplayer.h"
 #include "list.h"
-//
+#include <dlfcn.h>
 
 /*******************/
 /*      Macro      */
@@ -97,7 +97,23 @@ typedef struct
 	PlayAudioData_t *pAudioData;
 } AudioListData_t;
 
+typedef struct
+{
+	void *pHandle;
+	TTSDLL_API INT (*pfnCReader_GetAvailableLangID)(const char* lpchDataPath, INT *pLangID, INT nSize, CREADER_STATUS* pnErr);
+	TTSDLL_API INT (*pfnCReader_GetAvailableSpeakerNum)(const char* lpchDataPath, INT nLangID, CREADER_STATUS* pnErr);
+	TTSDLL_API INT (*pfnCReader_GetAvailableSpeaker)(const char* lpchLibPath, const char* lpchDataPath, INT nLangID, INT nSpeaker, char *lpchSpeaker, int nBufferSize, CREADER_STATUS* pnErr);
+	TTSDLL_API HANDLE (*pfnCReader_Init)(const INT nVsrLangID, const char* lpchLibPath, const char* lpchDataPath, const char* lpchVoiceName, CREADER_STATUS* pnErr);
+	TTSDLL_API CREADER_STATUS (*pfnCReader_StartWithUTF8)(HANDLE hTTS, const char *lpchUttr, CREADER_TYPE nType, CReaderCallback lpfnCallback, LPVOID lpCBVoid);
+	TTSDLL_API CREADER_STATUS (*pfnCReader_Next)(HANDLE hTTS);
+	TTSDLL_API CREADER_STATUS (*pfnCReader_Stop)(HANDLE hTTS);
+	TTSDLL_API CREADER_STATUS (*pfnCReader_Release)(HANDLE hTTS);
+} CReaderAssembly_t;
+
+
 typedef struct tm SYSTEMTIME;
+
+static CReaderAssembly_t g_stCReaderAssembly;
 
 //Playing parameters
 static const int g_nBit = 16;
@@ -161,6 +177,83 @@ static VOID GetLocalTime(SYSTEMTIME *st)
 	pst = localtime(&t);
 	memcpy(st, pst, sizeof(SYSTEMTIME));
 	st->tm_year += 1900;
+}
+
+static int OpenCReaderLibrary()
+{
+	g_stCReaderAssembly.pHandle = dlopen("libCReader.so", RTLD_NOW);
+	if(NULL == g_stCReaderAssembly.pHandle)
+	{
+		printf(" %s: Can not load libCReader.so!\n", __func__);
+		return -1;
+	}
+
+	g_stCReaderAssembly.pfnCReader_GetAvailableLangID = (TTSDLL_API INT(*)(const char* lpchDataPath, INT *pLangID, INT nSize, CREADER_STATUS* pnErr))dlsym(g_stCReaderAssembly.pHandle, "CReader_GetAvailableLangID");
+	if(NULL == g_stCReaderAssembly.pfnCReader_GetAvailableLangID)
+	{
+		printf(" %s: dlsym CReader_GetAvailableLangID failed, %s\n", __func__, dlerror());
+		return -1;
+	}
+
+	g_stCReaderAssembly.pfnCReader_GetAvailableSpeakerNum = (TTSDLL_API INT(*)(const char* lpchDataPath, INT nLangID, CREADER_STATUS* pnErr))dlsym(g_stCReaderAssembly.pHandle, "CReader_GetAvailableSpeakerNum");
+	if(NULL == g_stCReaderAssembly.pfnCReader_GetAvailableSpeakerNum)
+	{
+		printf(" %s: dlsym CReader_GetAvailableSpeakerNum failed, %s\n", __func__, dlerror());
+		return -1;
+	}
+
+	g_stCReaderAssembly.pfnCReader_GetAvailableSpeaker = (TTSDLL_API INT(*)(const char* lpchLibPath, const char* lpchDataPath, INT nLangID, INT nSpeaker, char *lpchSpeaker, int nBufferSize, CREADER_STATUS* pnErr))dlsym(g_stCReaderAssembly.pHandle, "CReader_GetAvailableSpeaker");
+	if(NULL == g_stCReaderAssembly.pfnCReader_GetAvailableSpeaker)
+	{
+		printf(" %s: dlsym CReader_GetAvailableSpeaker failed, %s\n", __func__, dlerror());
+		return -1;
+	}
+
+	g_stCReaderAssembly.pfnCReader_Init = (TTSDLL_API HANDLE(*)(const INT nVsrLangID, const char* lpchLibPath, const char* lpchDataPath, const char* lpchVoiceName, CREADER_STATUS* pnErr))dlsym(g_stCReaderAssembly.pHandle, "CReader_Init");
+	if(NULL == g_stCReaderAssembly.pfnCReader_Init)
+	{
+		printf(" %s: dlsym CReader_Init failed, %s\n", __func__, dlerror());
+		return -1;
+	}
+
+	g_stCReaderAssembly.pfnCReader_StartWithUTF8 = (TTSDLL_API CREADER_STATUS(*)(HANDLE hTTS, const char *lpchUttr, CREADER_TYPE nType, CReaderCallback lpfnCallback, LPVOID lpCBVoid))dlsym(g_stCReaderAssembly.pHandle, "CReader_StartWithUTF8");
+	if(NULL == g_stCReaderAssembly.pfnCReader_StartWithUTF8)
+	{
+		printf(" %s: dlsym CReader_StartWithUTF8 failed, %s\n", __func__, dlerror());
+		return -1;
+	}
+
+	g_stCReaderAssembly.pfnCReader_Next = (TTSDLL_API CREADER_STATUS(*)(HANDLE hTTS))dlsym(g_stCReaderAssembly.pHandle, "CReader_Next");
+	if(NULL == g_stCReaderAssembly.pfnCReader_Next)
+	{
+		printf(" %s: dlsym CReader_Next failed, %s\n", __func__, dlerror());
+		return -1;
+	}
+
+	g_stCReaderAssembly.pfnCReader_Stop = (TTSDLL_API CREADER_STATUS(*)(HANDLE hTTS))dlsym(g_stCReaderAssembly.pHandle, "CReader_Stop");
+	if(NULL == g_stCReaderAssembly.pfnCReader_Stop)
+	{
+		printf(" %s: dlsym CReader_Stop failed, %s\n", __func__, dlerror());
+		return -1;
+	}
+
+	g_stCReaderAssembly.pfnCReader_Release = (TTSDLL_API CREADER_STATUS(*)(HANDLE hTTS))dlsym(g_stCReaderAssembly.pHandle, "CReader_Release");
+	if(NULL == g_stCReaderAssembly.pfnCReader_Release)
+	{
+		printf(" %s: dlsym CReader_Release failed, %s\n", __func__, dlerror());
+		return -1;
+	}
+	return 0;
+}
+
+static void CloseCReaderLibrary()
+{
+	if(g_stCReaderAssembly.pHandle)
+	{
+		dlclose(g_stCReaderAssembly.pHandle);
+		g_stCReaderAssembly.pHandle = NULL;
+	}
+	memset(&g_stCReaderAssembly, 0, sizeof(g_stCReaderAssembly));
 }
 
 //When the engine generates TTS data, it will call this function to transfer TTS data to outside
@@ -369,7 +462,7 @@ void* ThreadTTS(void* param)
 	}
 
 	//Set variables
-	if((nRet = CReader_StartWithUTF8(poPlayer->m_hCReader, (const char*)poPlayer->m_pchText, CREADER_TYPE_NORMAL, CallBack, (LPVOID)poPlayer)) != CREADER_RET_OK)
+	if((nRet = g_stCReaderAssembly.pfnCReader_StartWithUTF8(poPlayer->m_hCReader, (const char*)poPlayer->m_pchText, CREADER_TYPE_NORMAL, CallBack, (LPVOID)poPlayer)) != CREADER_RET_OK)
 	{
 		printf("ThreadTTS: Fail to call CReader_StartWithUTF8(...)!\n");
 		return NULL;
@@ -385,7 +478,7 @@ void* ThreadTTS(void* param)
 			continue;
 		}
 
-		nRes = CReader_Next(poPlayer->m_hCReader);
+		nRes = g_stCReaderAssembly.pfnCReader_Next(poPlayer->m_hCReader);
 
 	} while(nRes == CREADER_RET_OK);
 	
@@ -438,6 +531,16 @@ void* ThreadTTS(void* param)
 /*******************/
 /*       API       */
 /*******************/
+int TTS_Preload()
+{
+	return OpenCReaderLibrary();
+}
+
+void TTS_Unload()
+{
+	CloseCReaderLibrary();
+}
+
 int TTS_GetLanguageMaxNum()
 {
 	return sizeof(g_language)/sizeof(Language);
@@ -449,10 +552,10 @@ int TTS_GetAvailableLangID(char* pchDataPath, int *pLanguageID)
 	CREADER_STATUS nRes;
 	int nLangNum = 0;
 
-	nLangNum = CReader_GetAvailableLangID(pchDataPath, NULL, 0, &nRes);
+	nLangNum = g_stCReaderAssembly.pfnCReader_GetAvailableLangID(pchDataPath, NULL, 0, &nRes);
 	if (nLangNum > 0)
 	{
-		CReader_GetAvailableLangID(pchDataPath, pLanguageID, nLangNum, &nRes);
+		g_stCReaderAssembly.pfnCReader_GetAvailableLangID(pchDataPath, pLanguageID, nLangNum, &nRes);
 		//support language
 		for(int i = 0; i < nLangNum; i++)
 		{
@@ -473,14 +576,14 @@ int TTS_GetAvailableSpeaker(char* pchLibPath, char* pchDataPath, int nLangID)
 	memset(g_speaker, 0, sizeof(g_speaker));
 
 	//Get Speaker number
-	nSpeaker = CReader_GetAvailableSpeakerNum(pchDataPath, nLangID, &nRes);
+	nSpeaker = g_stCReaderAssembly.pfnCReader_GetAvailableSpeakerNum(pchDataPath, nLangID, &nRes);
 
 	if (nSpeaker > 0)
 	{
 		for (int i = 0; i < nSpeaker; i++)
 		{
 			char *pSpeakerName = NULL;
-			nSpeakerNameLen = CReader_GetAvailableSpeaker(pchLibPath, pchDataPath, nLangID, i, NULL, 0, &nRes);
+			nSpeakerNameLen = g_stCReaderAssembly.pfnCReader_GetAvailableSpeaker(pchLibPath, pchDataPath, nLangID, i, NULL, 0, &nRes);
 			pSpeakerName = (char*)malloc(sizeof(char) * nSpeakerNameLen);
 			if(!pSpeakerName)
 			{
@@ -490,7 +593,7 @@ int TTS_GetAvailableSpeaker(char* pchLibPath, char* pchDataPath, int nLangID)
 				return -1;
 			}
 
-			CReader_GetAvailableSpeaker(pchLibPath, pchDataPath, nLangID, i, pSpeakerName, nSpeakerNameLen, &nRes);
+			g_stCReaderAssembly.pfnCReader_GetAvailableSpeaker(pchLibPath, pchDataPath, nLangID, i, pSpeakerName, nSpeakerNameLen, &nRes);
 			if(nRes == CREADER_RET_OK)
 			{
 				printf("speaker %d: %s, %d\n", i, pSpeakerName, nSpeakerNameLen);
@@ -524,7 +627,7 @@ HANDLE TTS_Initialize(char* pchLibPath, char* pchDataPath, int nLangID, char *pS
 	}
 
 	memset(poPlayer, 0, sizeof(Player));
-	poPlayer->m_hCReader = CReader_Init(nLangID, pchLibPath, pchDataPath, pSpeakerName, &nRes);
+	poPlayer->m_hCReader = g_stCReaderAssembly.pfnCReader_Init(nLangID, pchLibPath, pchDataPath, pSpeakerName, &nRes);
 
 	if(nRes != CREADER_RET_OK)
 	{
@@ -603,7 +706,7 @@ int TTS_Release(HANDLE hPlayer)
 	pthread_mutex_destroy(&(poPlayer->m_hMutex));
 
 	if(poPlayer->m_hCReader)
-		CReader_Release(poPlayer->m_hCReader);
+		g_stCReaderAssembly.pfnCReader_Release(poPlayer->m_hCReader);
 
 	SAFE_FREE(poPlayer);
 
@@ -704,7 +807,7 @@ int TTS_Stop(HANDLE hPlayer)
 		return __PLAYER_ERR_NULL_HANDLE__;
 
 	poPlayer->m_nPlayStatus = PLAY_STATUS_STOPPED;
-	CReader_Stop(poPlayer->m_hCReader);
+	g_stCReaderAssembly.pfnCReader_Stop(poPlayer->m_hCReader);
 	poPlayer->m_bAudioStart = FALSE;
 
 	if(poPlayer->m_hSynthesizeThread != (pthread_t)NULL)

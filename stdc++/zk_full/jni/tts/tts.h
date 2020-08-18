@@ -27,7 +27,8 @@ typedef struct _Speakers{
 
 typedef void (*TtsCallback)();
 
-
+int TTS_Preload();
+void TTS_Unload();
 int TTS_GetLanguageMaxNum();
 int TTS_GetAvailableLangID(char* pchDataPath, int *pLanguageID);
 int TTS_GetAvailableSpeaker(char* pchLibPath, char* pchDataPath, int nLangID);

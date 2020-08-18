@@ -11,7 +11,6 @@
 #include <fcntl.h>
 #include <vector>
 
-#ifdef SUPPORT_WLAN_MODULE
 #include "wifiprofile.h"
 #include "cJSON.h"
 
@@ -491,4 +490,4 @@ int updateEnableStatus(bool bEnable)
 
 	return 0;
 }
-#endif
+

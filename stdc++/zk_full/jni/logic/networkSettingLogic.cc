@@ -29,7 +29,6 @@
 *
 * 在Eclipse编辑器中  使用 “alt + /”  快捷键可以打开智能提示
 */
-#ifdef SUPPORT_WLAN_MODULE
 #include <algorithm>
 #include "statusbarconfig.h"
 #include "hotplugdetect.h"
@@ -128,7 +127,6 @@ void WifiSignalSTRStatusCallback(ScanResult_t *pstScanResult, int resCnt)
 	}
 }
 
-#endif
 /**
  * 注册定时器
  * 填充数组用于注册定时器
@@ -143,16 +141,13 @@ static S_ACTIVITY_TIMEER REGISTER_ACTIVITY_TIMER_TAB[] = {
  */
 static void onUI_init(){
     //Tips :添加 UI初始化的显示代码到这里,如:mText1Ptr->setText("123");
-#ifdef SUPPORT_WLAN_MODULE
 	WIFI_LOG("onUI_init\n");
-#endif
 }
 
 /**
  * 当切换到该界面时触发
  */
 static void onUI_intent(const Intent *intentPtr) {
-#ifdef SUPPORT_WLAN_MODULE
 	WIFI_LOG("onUI_intent\n");
 
 	SSTAR_RegisterWifiStaConnListener(WifiConnStatusCallback);
@@ -197,33 +192,27 @@ static void onUI_intent(const Intent *intentPtr) {
 	g_scanResLock.unlock();
 
 	WIFI_LOG("Leave onUI_intent\n");
-#endif
 }
 
 /*
  * 当界面显示时触发
  */
 static void onUI_show() {
-#ifdef SUPPORT_WLAN_MODULE
 	WIFI_LOG("onUI_show\n");
 	WIFI_LOG("Leave onUI_show\n");
-#endif
 }
 
 /*
  * 当界面隐藏时触发
  */
 static void onUI_hide() {
-#ifdef SUPPORT_WLAN_MODULE
 	WIFI_LOG("onUI_hide\n");
-#endif
 }
 
 /*
  * 当界面完全退出时触发
  */
 static void onUI_quit() {
-#ifdef SUPPORT_WLAN_MODULE
 	WIFI_LOG("onUI_quit\n");
 
 	SSTAR_UnRegisterWifiStaConnListener(WifiConnStatusCallback);
@@ -234,7 +223,6 @@ static void onUI_quit() {
 	g_vecScanResult.clear();
 	g_scanResLock.unlock();
 	ShowStatusBar(1, 0, 0);
-#endif
 }
 
 /**
@@ -256,7 +244,6 @@ static void onProtocolDataUpdate(const SProtocolData &data) {
  */
 static bool onUI_Timer(int id){
 	switch (id) {
-#ifdef SUPPORT_WLAN_MODULE
 		case TIMER_LOADING:
 			{
 				//WIFI_LOG("loading timer tick, preLoadStatus=%d, loadStatus=%d\n", loadingStatus, isLoading);
@@ -275,7 +262,6 @@ static bool onUI_Timer(int id){
 				loadingStatus = isLoading;
 			}
 			break;
-#endif
 		default:
 			break;
 	}
@@ -308,7 +294,6 @@ static bool onnetworkSettingActivityTouchEvent(const MotionEvent &ev) {
 
 static bool onButtonClick_ButtonWifisw(ZKButton *pButton) {
     //LOGD(" ButtonClick ButtonWifisw !!!\n");
-#ifdef SUPPORT_WLAN_MODULE
 	WIFI_LOG("onButtonClick_ButtonWifisw\n");
 	bool bWifiEnable = false;
 	pButton->setSelected(!pButton->isSelected());
@@ -332,13 +317,11 @@ static bool onButtonClick_ButtonWifisw(ZKButton *pButton) {
 		g_scanResLock.unlock();
 	}
 
-#endif
     return false;
 }
 
 static int getListItemCount_ListviewNetwork(const ZKListView *pListView) {
     //LOGD("getListItemCount_ListviewNetwork !\n");
-#ifdef SUPPORT_WLAN_MODULE
 	int size = 0;
 
 	g_scanResLock.lock();
@@ -346,14 +329,10 @@ static int getListItemCount_ListviewNetwork(const ZKListView *pListView) {
 	g_scanResLock.unlock();
 
 	return size;
-#else
-	return 0;
-#endif
 }
 
 static void obtainListItemData_ListviewNetwork(ZKListView *pListView,ZKListView::ZKListItem *pListItem, int index) {
     //LOGD(" obtainListItemData_ ListviewNetwork  !!!\n");
-#ifdef SUPPORT_WLAN_MODULE
 	ZKListView::ZKListSubItem *pLevelItem = pListItem->findSubItemByID(ID_NETWORKSETTING_SubItemSignal);
 	ZKListView::ZKListSubItem *pNameItem = pListItem->findSubItemByID(ID_NETWORKSETTING_SubItemNetworkID);
 	ZKListView::ZKListSubItem *pEncryItem = pListItem->findSubItemByID(ID_NETWORKSETTING_SubItemEncry);
@@ -388,12 +367,10 @@ static void obtainListItemData_ListviewNetwork(ZKListView *pListView,ZKListView:
 	} else {
 		pConnectStatusItem->setVisible(false);
 	}
-#endif
 }
 
 static void onListItemClick_ListviewNetwork(ZKListView *pListView, int index, int id) {
     //LOGD(" onListItemClick_ ListviewNetwork  !!!\n");
-#ifdef SUPPORT_WLAN_MODULE
 	g_scanResLock.lock();
 	const ScanResult_t &scanRes = g_vecScanResult.at(index);
 	bool bConnected = (g_connStatus && !strcmp(scanRes.ssid, g_connSsid));
@@ -424,7 +401,6 @@ static void onListItemClick_ListviewNetwork(ZKListView *pListView, int index, in
 			SSTAR_ConnectWifi(&connParam);
 		}
 	}
-#endif
 }
 
 static bool onButtonClick_sys_back(ZKButton *pButton) {

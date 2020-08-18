@@ -26,10 +26,6 @@ LOCAL_HEAD_FILES := $(PROJ_HEAD_FILES)
 PROJ_DIR_TREE := $(dir $(foreach src_path, $(LOCAL_SRC_FILES), $(call rwildcard,$(src_path),*/) ) )  
 PROJ_DIR_TREE := $(sort $(PROJ_DIR_TREE))  
 
-#wlan功能启用开关
-CONFIG_WLAN_SWITCH := "enable"
-#CONFIG_WLAN_SWITCH :=
-
 #player功能启用开关
 CONFIG_PLAYER_SWITCH := "enable"
 #CONFIG_PLAYER_SWITCH :=
@@ -58,26 +54,18 @@ INCLUDE_DIR := -I$(EASYUI_COMMON_INCLUDE) \
 					-I ../jni/sdkdir/include \
 					-I ../jni/voicedetect \
 					-I ../jni/tts \
-					-I ../jni/rtsp/include
-
-LDFLAGS =  -leasyui -pthread -lmi_sys -lmi_disp -lmi_panel -lmi_ao -lmi_gfx -lmi_divp -lmi_vdec -lmi_common -lstdc++ -lmi_ai -lDSpotter -lCReader -lbase -liniparser -llive555 -lonvif -lssclient -ltem -ldl -lrt -fPIC -shared
-LDFLAGS += -L$(ZKSW_PREBUILT_LIB_PATH)/system -L. -L ../jni/sdkdir/lib -L ../jni/rtsp/lib
-LDFLAGS += -L../jni/airplay/lib -lmediaserver 
+					-I ../jni/rtsp/include	\
+					-I ../jni/rtsp	\
+					-I ../jni/airplay/include
+					
+LDFLAGS =  -leasyui -pthread -lmi_sys -lmi_disp -lmi_panel -lmi_ao -lmi_gfx -lmi_divp -lmi_vdec -lmi_common -lmi_wlan -lcjson -lstdc++ -lmi_ai -ldl -lrt -fPIC -shared
+LDFLAGS += -L$(ZKSW_PREBUILT_LIB_PATH)/system -L. -L ../jni/sdkdir/lib
 
 INCLUDE_DIR += -I ../jni/player -I ../jni/player/ffmpeg/include -I ../jni/player/mediastream -I ../jni/player/imagedata
 INCLUDE_DIR += -I ../jni/v4l2/inc -I ../jni/v4l2/inc/uvc -I ../jni/v4l2/inc/video -I ../jni/v4l2/src -I ../jni/v4l2/src/control -I ../jni/v4l2/src/gcc \
                -I ../jni/v4l2/src/libv4l -I ../jni/v4l2/src/processing
 INCLUDE_DIR += -I ../jni/hotplugdetect -I ../jni/hotplugdetect/common -I ../jni/hotplugdetect/usbdetect -I ../jni/hotplugdetect/wifidetect \
 			   -I ../jni/hotplugdetect/wirednetworkdetect
-INCLUDE_DIR += -I ../jni/airplay/include
-
-ifneq ($(CONFIG_WLAN_SWITCH),)
-CFLAGS+=-DSUPPORT_WLAN_MODULE
-CXXFLAGS+=-DSUPPORT_WLAN_MODULE
-
-#INCLUDE_DIR += -I ../jni/hotplugdetect/wifidetect
-LDFLAGS += -lmi_wlan -lcjson
-endif
 
 ifneq ($(CONFIG_PLAYER_SWITCH),)
 CFLAGS+=-DSUPPORT_PLAYER_MODULE
