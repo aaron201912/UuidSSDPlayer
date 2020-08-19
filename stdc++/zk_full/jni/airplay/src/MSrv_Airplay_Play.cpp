@@ -441,7 +441,11 @@ void VideoMirroringOpen(void *cls, int width, int height, const void *buffer, in
 	MI_VDEC_VideoStream_t stVdecStream;
 	MI_U32 s32Ret;
 
-	printf("Start Of VideoMirroringOpen\n");
+    if (nPlayerStatuc != MPLAYER_IDLE) {
+        return;
+    }
+
+    printf("Start Of VideoMirroringOpen\n");
 
 #if SAVE_264_FILE
     printf("start open test.h264\n");
@@ -591,7 +595,7 @@ void VideoMirroringProcess(void *cls, const void *buffer, int buflen, int payloa
 		{
 			Ss_Player_DeInit(1);
 			printf("width = %d , hight = %d \n",gVedioWidth,gVedioHeight);
-			Ss_Player_Init(gVedioWidth,gVedioHeight,0);
+            Ss_Player_Init(gVedioWidth, gVedioHeight, 1);
 
 			MI_VDEC_VideoStream_t stVdecStream;
 			MI_U32 s32Ret;
@@ -616,15 +620,16 @@ void VideoMirroringProcess(void *cls, const void *buffer, int buflen, int payloa
 
 void VideoMirroringStop(void *cls)
 {
-	printf("=====video_mirroring_stop=1=======\r\n");
-
+    if (nPlayerStatuc == MPLAYER_IDLE) {
+        return;
+    }
 #if SAVE_264_FILE
 	if(FP_H264)
     {
         fclose(FP_H264);
     }
 #endif
-
+    printf("=====video_mirroring_stop=1=======\r\n");
 	Ss_Player_DeInit(1);
 	//Ss_pthread_finish();
 	printf("=====video_mirroring_stop=2=======\r\n");
@@ -656,7 +661,7 @@ void AudioSetVolume(void *cls, int volume)
    {
 		volume = 30;
    }
-   printf("=====audio_setvolume====%d====",volume);
+    printf("=====audio_setvolume====%d====\n",volume);
    MI_AO_SetVolume(AoDevId, volume);
 }
 
@@ -677,7 +682,9 @@ void AudioProcess(void *cls, const void *buffer, int buflen, double timestamp, u
 	stAoSendFrame.u32Len = buflen;
     stAoSendFrame.apVirAddr[0] = (void *)buffer;
     stAoSendFrame.apVirAddr[1] = NULL;
-	s32RetSendStatus = MI_AO_SendFrame(AoDevId, AoChn, &stAoSendFrame, 0);
+    do{
+        s32RetSendStatus = MI_AO_SendFrame(AoDevId, AoChn, &stAoSendFrame, 24);
+    }while(s32RetSendStatus == MI_AO_ERR_NOBUF);
 	if(s32RetSendStatus != MI_SUCCESS)
 	{
 		printf("[Warning]: MI_AO_SendFrame fail, error is 0x%x: \n",s32RetSendStatus);

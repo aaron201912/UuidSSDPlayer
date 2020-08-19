@@ -132,9 +132,10 @@ int Ss_Player_Init(int input_w,int input_h,int flag)
 
 int Ss_Player_DeInit(int flag)
 {
-	NANOX_ICAST("enter\n");
-	//Unbind vdec 2 disp
-	MI_SYS_ChnPort_t stSrcChnPort;
+    NANOX_ICAST("Ss_Player_DeInit enter\n");
+
+    //Unbind vdec 2 disp
+    MI_SYS_ChnPort_t stSrcChnPort;
     MI_SYS_ChnPort_t stDstChnPort;
     stSrcChnPort.eModId = E_MI_MODULE_ID_VDEC;
     stSrcChnPort.u32DevId = 0;
@@ -145,12 +146,16 @@ int Ss_Player_DeInit(int flag)
     stDstChnPort.u32DevId = 0;
     stDstChnPort.u32ChnId = 0;
     stDstChnPort.u32PortId = 0;
-	STCHECKRESULT(MI_SYS_UnBindChnPort(&stSrcChnPort, &stDstChnPort));
-	STCHECKRESULT(MI_VDEC_StopChn(0));
+    STCHECKRESULT(MI_SYS_UnBindChnPort(&stSrcChnPort, &stDstChnPort));
+
+    STCHECKRESULT(MI_DISP_ClearInputPortBuffer(0, 0));
+    STCHECKRESULT(MI_DISP_DisableInputPort(0, 0));
+
+    STCHECKRESULT(MI_VDEC_StopChn(0));
     STCHECKRESULT(MI_VDEC_DestroyChn(0));
-	if(flag) MI_VDEC_DeInitDev();
-	NANOX_ICAST("leave\n");
-	return 0;
+    if(flag) MI_VDEC_DeInitDev();
+    NANOX_ICAST("Ss_Player_DeInit leave\n");
+    return 0;
 }
 
 #ifdef __cplusplus
