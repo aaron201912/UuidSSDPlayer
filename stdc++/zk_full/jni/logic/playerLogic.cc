@@ -65,6 +65,8 @@ typedef enum
   IPC_COMMAND_SET_MUTE,
   IPC_COMMAND_ERROR,
   IPC_COMMAND_COMPLETE,
+  IPC_COMMAND_CREATE,
+  IPC_COMMAND_DESTORY,
   IPC_COMMAND_EXIT
 } IPC_COMMAND_TYPE;
 
@@ -1225,20 +1227,46 @@ void DetectUsbHotplug(UsbParam_t *pstUsbParam)		// action 0, connect; action 1, 
 	}
 }
 
+#define USE_POPEN       1
+FILE *player_fd = NULL;
+
 static void StartPlayStreamFile(char *pFileName)
 {
-	printf("Start to StartPlayStreamFile\n");
+    printf("Start to StartPlayStreamFile\n");
 #ifdef SUPPORT_PLAYER_PROCESS
-	mWindow_errMsgPtr->setVisible(false);
-	ResetSpeedMode();
-	system("echo 1 > /sys/class/gpio/gpio12/value");
+    mWindow_errMsgPtr->setVisible(false);
+    ResetSpeedMode();
+    system("echo 1 > /sys/class/gpio/gpio12/value");
 
-	memset(&sendevt, 0, sizeof(IPCEvent));
+    if(!i_server.Init()) {
+        printf("[%s %d]create i_server fail!\n", __FILE__, __LINE__);
+        return;
+    }
+
+    #if USE_POPEN
+    player_fd = popen("./MyPlayer &", "w");
+    printf("popen myplayer progress done!\n");
+
+    while (i_server.Read(recvevt) <= 0
+           || (recvevt.EventType != IPC_COMMAND_CREATE)) {
+        usleep(50 * 1000);
+    }
+    if (recvevt.EventType == IPC_COMMAND_CREATE) {
+        printf("myplayer progress create success!\n");
+    }
+    #endif
+
+    if(!o_client.Init()) {
+        printf("[%s %d]my_player process not start!\n", __FILE__, __LINE__);
+        return;
+    }
+
+    memset(&sendevt, 0, sizeof(IPCEvent));
     sendevt.EventType = IPC_COMMAND_OPEN;
     strcpy(sendevt.stPlData.filePath, pFileName);
     printf("list file name to play = %s\n", sendevt.stPlData.filePath);
 
-	// 旋转开关
+    // 旋转开关
     #if ENABLE_ROTATE
     sendevt.stPlData.rotate = E_MI_DISP_ROTATE_270;
     #else
@@ -1261,76 +1289,76 @@ static void StartPlayStreamFile(char *pFileName)
            && (recvevt.EventType != IPC_COMMAND_ERROR))) {
         usleep(10 * 1000);
     }
-	if (recvevt.EventType == IPC_COMMAND_ACK) {
-		printf("receive ack from my_player!\n");
+    if (recvevt.EventType == IPC_COMMAND_ACK) {
+        printf("receive ack from my_player!\n");
 
-		memset(&sendevt, 0, sizeof(IPCEvent));
-		sendevt.EventType = IPC_COMMAND_GET_DURATION;
-	    o_client.Send(sendevt);
-	} else if(recvevt.EventType == IPC_COMMAND_ERROR) {
-	    if (recvevt.stPlData.status == -101)
-	        mTextview_msgPtr->setText("请检查网络连接！");
-	    else if (recvevt.stPlData.status == -2)
-	        mTextview_msgPtr->setText("不支持播放720P以上的视频！");
-	    else if (recvevt.stPlData.status == -3)
-	        mTextview_msgPtr->setText("解码速度不够，请降低视频帧率！");
-	    else if (recvevt.stPlData.status == -4)
-	        mTextview_msgPtr->setText("读取网络超时！");
-	    else
-	        mTextview_msgPtr->setText("Other Error Occur!");
+        memset(&sendevt, 0, sizeof(IPCEvent));
+        sendevt.EventType = IPC_COMMAND_GET_DURATION;
+        o_client.Send(sendevt);
+    } else if(recvevt.EventType == IPC_COMMAND_ERROR) {
+        if (recvevt.stPlData.status == -101)
+            mTextview_msgPtr->setText("请检查网络连接！");
+        else if (recvevt.stPlData.status == -2)
+            mTextview_msgPtr->setText("不支持播放720P以上的视频！");
+        else if (recvevt.stPlData.status == -3)
+            mTextview_msgPtr->setText("解码速度不够，请降低视频帧率！");
+        else if (recvevt.stPlData.status == -4)
+            mTextview_msgPtr->setText("读取网络超时！");
+        else
+            mTextview_msgPtr->setText("Other Error Occur!");
 
-	    mWindow_errMsgPtr->setVisible(true);
+        mWindow_errMsgPtr->setVisible(true);
 
-	    pthread_mutex_lock(&g_playFileMutex);
-		g_bPlayError = true;
-		pthread_mutex_unlock(&g_playFileMutex);
+        pthread_mutex_lock(&g_playFileMutex);
+        g_bPlayError = true;
+        pthread_mutex_unlock(&g_playFileMutex);
     }
 
     SetPlayerVolumn(g_s32VolValue);
 #else
-	// ffmpeg_player初始化 & ui初始化
-	mWindow_errMsgPtr->setVisible(false);
-	// init player
-	ResetSpeedMode();
-	StartPlayVideo();
-	StartPlayAudio();
+    // ffmpeg_player初始化 & ui初始化
+    mWindow_errMsgPtr->setVisible(false);
+    // init player
+    ResetSpeedMode();
+    StartPlayVideo();
+    StartPlayAudio();
 
-	g_pstPlayStat = player_init(pFileName);
-	if (!g_pstPlayStat)
-	{
-		StopPlayAudio();
-		StopPlayVideo();
-		printf("Initilize player failed!\n");
-		return;
-	}
-	// 旋转开关
-    #if ENABLE_ROTATE
-	g_pstPlayStat->display_mode = E_MI_DISP_ROTATE_270;
-    #else
-	g_pstPlayStat->display_mode = E_MI_DISP_ROTATE_NONE;
-	#endif
-	// 设置视频显示位置与窗口
-	g_pstPlayStat->pos_x = 0;
-	g_pstPlayStat->pos_y = 0;
-	g_pstPlayStat->in_width  = g_playViewWidth;
-	g_pstPlayStat->in_height = g_playViewHeight;
-	printf("video file name is : %s, panel w/h = [%d %d]\n", g_pstPlayStat->filename, g_playViewWidth, g_playViewHeight);
-
-	SetStreamPlayerControlCallBack(g_pstPlayStat);
-	printf("open_demux\n");
-	open_demux(g_pstPlayStat);
-	printf("open_video\n");
-	open_video(g_pstPlayStat);
-	printf("open_audio\n");
-	open_audio(g_pstPlayStat);
-	SetPlayerVolumn(g_s32VolValue);
+    g_pstPlayStat = player_init(pFileName);
+    if (!g_pstPlayStat)
+    {
+        StopPlayAudio();
+        StopPlayVideo();
+        printf("Initilize player failed!\n");
+        return;
+    }
+    // 旋转开关
+#if ENABLE_ROTATE
+    g_pstPlayStat->display_mode = E_MI_DISP_ROTATE_270;
+#else
+    g_pstPlayStat->display_mode = E_MI_DISP_ROTATE_NONE;
 #endif
-	printf("End to StartPlayStreamFile\n");
+    // 设置视频显示位置与窗口
+    g_pstPlayStat->pos_x = 0;
+    g_pstPlayStat->pos_y = 0;
+    g_pstPlayStat->in_width  = g_playViewWidth;
+    g_pstPlayStat->in_height = g_playViewHeight;
+    printf("video file name is : %s, panel w/h = [%d %d]\n", g_pstPlayStat->filename, g_playViewWidth, g_playViewHeight);
+
+    SetStreamPlayerControlCallBack(g_pstPlayStat);
+    printf("open_demux\n");
+    open_demux(g_pstPlayStat);
+    printf("open_video\n");
+    open_video(g_pstPlayStat);
+    printf("open_audio\n");
+    open_audio(g_pstPlayStat);
+    SetPlayerVolumn(g_s32VolValue);
+#endif
+    printf("End to StartPlayStreamFile\n");
 }
 
 static void StopPlayStreamFile()
 {
-	printf("Start to StopPlayStreamFile\n");
+    printf("Start to StopPlayStreamFile\n");
 #ifdef SUPPORT_PLAYER_PROCESS
     if(!o_client.Init()) {
         printf("my_player is not start!\n");
@@ -1339,36 +1367,54 @@ static void StopPlayStreamFile()
 
     system("echo 0 > /sys/class/gpio/gpio12/value");
     g_bPlaying = false;
-	g_bPause = false;
+    g_bPause = false;
 
-	memset(&sendevt, 0, sizeof(IPCEvent));
+    memset(&sendevt, 0, sizeof(IPCEvent));
+    #if USE_POPEN
+    sendevt.EventType = IPC_COMMAND_EXIT;
+    #else
     sendevt.EventType = IPC_COMMAND_CLOSE;
+    #endif
     o_client.Send(sendevt);
 
-	ResetSpeedMode();
-	SetPlayingStatus(false);
-	mTextview_speedPtr->setText("");
-	mTextview_curtimePtr->setText("00:00:00");
-	mSeekbar_progressPtr->setProgress(0);
-	g_firstPlayPos = PLAY_INIT_POS;
+    #if USE_POPEN
+    while (i_server.Read(recvevt) <= 0
+           || (recvevt.EventType != IPC_COMMAND_DESTORY)) {
+        usleep(50 * 1000);
+    }
+    if (recvevt.EventType == IPC_COMMAND_DESTORY) {
+        printf("myplayer progress destory done!\n");
+    }
+    pclose(player_fd);
+    #endif
+
+    i_server.Term();
+    o_client.Term();
+
+    ResetSpeedMode();
+    SetPlayingStatus(false);
+    mTextview_speedPtr->setText("");
+    mTextview_curtimePtr->setText("00:00:00");
+    mSeekbar_progressPtr->setProgress(0);
+    g_firstPlayPos = PLAY_INIT_POS;
 #else
-	// ffmpeg_player反初始化 & ui反初始化
-	g_bPlaying = false;
-	g_bPause = false;
-	StopPlayVideo();
-	player_deinit(g_pstPlayStat);
-	StopPlayAudio();
-	ResetSpeedMode();
+    // ffmpeg_player反初始化 & ui反初始化
+    g_bPlaying = false;
+    g_bPause = false;
+    StopPlayVideo();
+    player_deinit(g_pstPlayStat);
+    StopPlayAudio();
+    ResetSpeedMode();
 
-	SetPlayingStatus(false);
-	mTextview_speedPtr->setText("");
-	mTextview_curtimePtr->setText("00:00:00");
-	mSeekbar_progressPtr->setProgress(0);
+    SetPlayingStatus(false);
+    mTextview_speedPtr->setText("");
+    mTextview_curtimePtr->setText("00:00:00");
+    mSeekbar_progressPtr->setProgress(0);
 
-	// reset pts
-	g_firstPlayPos = PLAY_INIT_POS;
+    // reset pts
+    g_firstPlayPos = PLAY_INIT_POS;
 #endif
-	printf("End of StopPlayStreamFile\n");
+    printf("End of StopPlayStreamFile\n");
 }
 
 static void TogglePlayStreamFile()
@@ -1717,18 +1763,6 @@ static void onUI_init(){
     printf("create player dev\n");
 
 #ifdef SUPPORT_PLAYER_MODULE
-
-	#ifdef SUPPORT_PLAYER_PROCESS
-    if(!i_server.Init()) {
-        printf("[%s %d]create i_server fail!\n", __FILE__, __LINE__);
-        return -1;
-    }
-    if(!o_client.Init()) {
-        printf("[%s %d]server process not start!\n", __FILE__, __LINE__);
-        return -1;
-    }
-	#endif
-
     // init play view real size
     LayoutPosition layoutPos = mVideoview_videoPtr->getPosition();
     g_playViewWidth = layoutPos.mWidth * PANEL_MAX_WIDTH / UI_MAX_WIDTH;
@@ -1780,18 +1814,13 @@ static void onUI_hide() {
 static void onUI_quit() {
 	printf("destroy player dev\n");
 #ifdef SUPPORT_PLAYER_MODULE
+    pthread_mutex_destroy(&g_playFileMutex);
+    DestroyPlayerDev();
+    g_firstPlayPos = PLAY_INIT_POS;
 
-	#ifdef SUPPORT_PLAYER_PROCESS
-	i_server.Term();
-	#endif
-
-	pthread_mutex_destroy(&g_playFileMutex);
-	DestroyPlayerDev();
-	g_firstPlayPos = PLAY_INIT_POS;
-
-	printf("start to UnRegisterUsbListener\n");
-	SSTAR_UnRegisterUsbListener(DetectUsbHotplug);
-	printf("end of UnRegisterUsbListener\n");
+    printf("start to UnRegisterUsbListener\n");
+    SSTAR_UnRegisterUsbListener(DetectUsbHotplug);
+    printf("end of UnRegisterUsbListener\n");
 #endif
 }
 

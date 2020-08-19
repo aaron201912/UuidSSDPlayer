@@ -33,6 +33,8 @@ typedef enum
   IPC_COMMAND_SET_MUTE,
   IPC_COMMAND_ERROR,
   IPC_COMMAND_COMPLETE,
+  IPC_COMMAND_CREATE,
+  IPC_COMMAND_DESTORY,
   IPC_COMMAND_EXIT
 } IPC_COMMAND_TYPE;
 
@@ -762,6 +764,9 @@ static void * tp_idle_thread(void *arg)
 }
 #endif
 
+#define USE_POPEN       1
+FILE *tp_fd = NULL;
+
 int tp_player_open(char *fp, uint16_t x, uint16_t y, uint16_t width, uint16_t height, void *parg)
 {
 #ifdef SUPPORT_PLAYER_PROCESS
@@ -773,8 +778,24 @@ int tp_player_open(char *fp, uint16_t x, uint16_t y, uint16_t width, uint16_t he
         printf("[%s %d]create i_server fail!\n", __FILE__, __LINE__);
         return -1;
     }
+
+    #if USE_POPEN
+    tp_fd = popen("./MyPlayer &", "w");
+    printf("popen myplayer progress done!\n");
+
+    while (tp_server.Read(i_recvevt) <= 0
+           || (i_recvevt.EventType != IPC_COMMAND_CREATE)) {
+        usleep(10 * 1000);
+    }
+    if (i_recvevt.EventType == IPC_COMMAND_CREATE) {
+        printf("myplayer progress create success!\n");
+    } else {
+        return -1;
+    }
+    #endif
+
     if(!tp_client.Init()) {
-        printf("[%s %d]server process not start!\n", __FILE__, __LINE__);
+        printf("[%s %d]my_player is not start!\n", __FILE__, __LINE__);
         return -1;
     }
 
@@ -882,8 +903,24 @@ int tp_player_close(void)
         return -1;
     }
     memset(&o_sendevt, 0, sizeof(IPCEvent));
+    #if USE_POPEN
+    o_sendevt.EventType = IPC_COMMAND_EXIT;
+    #else
     o_sendevt.EventType = IPC_COMMAND_CLOSE;
+    #endif
     tp_client.Send(o_sendevt);
+
+    #if USE_POPEN
+    while (tp_server.Read(i_recvevt) <= 0
+           || (i_recvevt.EventType != IPC_COMMAND_DESTORY)) {
+        usleep(10 * 1000);
+    }
+    if (i_recvevt.EventType == IPC_COMMAND_DESTORY) {
+        printf("myplayer progress destory done!\n");
+    }
+    pclose(tp_fd);
+    #endif
+
     printf("tp_player_close done!\n");
 
     g_exit = true;
@@ -891,6 +928,8 @@ int tp_player_close(void)
     enable_listen = false;
 
     tp_server.Term();
+    tp_client.Term();
+
     return 0;
 #else
     int ret = -1;

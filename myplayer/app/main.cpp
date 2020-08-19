@@ -38,6 +38,8 @@ typedef enum
   IPC_COMMAND_SET_MUTE,
   IPC_COMMAND_ERROR,
   IPC_COMMAND_COMPLETE,
+  IPC_COMMAND_CREATE,
+  IPC_COMMAND_DESTORY,
   IPC_COMMAND_EXIT
 } IPC_COMMAND_TYPE;
 
@@ -161,6 +163,7 @@ private:
     IPCNameFifo m_fifo;
 };
 
+#define USE_POPEN       1
 
 struct timeval time_now, time_last;
 static bool g_playing = false;
@@ -176,13 +179,23 @@ int main(int argc, char *argv[])
     signal(SIGPIPE, SIG_IGN);
 
     IPCInput i_client(CLT_IPC);
-    if(!i_client.Init())
-    {
-        printf("create ipc input fail\n");
+    if(!i_client.Init()) {
+        printf("create myplayer ipc input fail\n");
         return -1;
     }
 
     IPCOutput o_server(SVC_IPC);
+
+    #if USE_POPEN
+    if(!o_server.Init()) {
+        printf("Main Process Not start!!!\n");
+        return -1;
+    }
+
+    memset(&sendevt,0,sizeof(IPCEvent));
+    sendevt.EventType = IPC_COMMAND_CREATE;
+    o_server.Send(sendevt);
+    #endif
 
     while(!bExit)
     {
@@ -196,8 +209,6 @@ int main(int argc, char *argv[])
                 {
                     if(!o_server.Init()) {
                         printf("Main Process Not start!!!\n");
-                        //i_client.Term();
-                        //return -1;
                         break;
                     }
 
@@ -263,8 +274,6 @@ int main(int argc, char *argv[])
                     double position;
                     if(!o_server.Init()) {
                         printf("Main Process Not start!!!\n");
-                        //i_client.Term();
-                        //return -1;
                         break;
                     }
                     
@@ -282,8 +291,6 @@ int main(int argc, char *argv[])
                     double duration;
                     if(!o_server.Init()) {
                         printf("Main Process Not start!!!\n");
-                        //i_client.Term();
-                        //return -1;
                         break;
                     }
                     
@@ -366,7 +373,13 @@ int main(int argc, char *argv[])
 
     printf("Player is exit: %d\n", bExit);
 
-    //o_server.Term();
+    #if USE_POPEN
+    memset(&sendevt,0,sizeof(IPCEvent));
+    sendevt.EventType = IPC_COMMAND_DESTORY;
+    o_server.Send(sendevt);
+    #endif
+
+    o_server.Term();
     i_client.Term();
 
     return 0;

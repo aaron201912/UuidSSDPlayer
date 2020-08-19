@@ -222,7 +222,7 @@ static int video_decode_frame(AVCodecContext *p_codec_ctx, packet_queue_t *p_pkt
         else
         {
             // 如果是最后一个空的packet,只取frame不再送packet
-            if (pkt.data == NULL || pkt.size == 0) {
+            if (pkt.data == NULL && pkt.size == 0) {
                 p_codec_ctx->flags |= (1 << 5);
                 printf("send a null paket to decoder\n");
             } else{
@@ -1126,7 +1126,7 @@ int my_display_set(player_stat_t *is)
         stDivpChnAttr.u32MaxHeight          = 1080;
 
         MI_DIVP_CreateChn(0, &stDivpChnAttr);
-		MI_DIVP_SetChnAttr(0, &stDivpChnAttr);
+        MI_DIVP_SetChnAttr(0, &stDivpChnAttr);
 
         memset(&stOutputPortAttr, 0, sizeof(MI_DIVP_OutputPortAttr_t));
         stOutputPortAttr.eCompMode          = E_MI_SYS_COMPRESS_MODE_NONE;
@@ -1134,7 +1134,7 @@ int my_display_set(player_stat_t *is)
         stOutputPortAttr.u32Width           = ALIGN_BACK(is->src_width , 32);
         stOutputPortAttr.u32Height          = ALIGN_BACK(is->src_height, 32);
         MI_DIVP_SetOutputPortAttr(0, &stOutputPortAttr);
-		MI_DIVP_StartChn(0);
+        MI_DIVP_StartChn(0);
 
         MI_DISP_DisableInputPort(DISP_LAYER, DISP_INPUTPORT);
         MI_DISP_SetInputPortAttr(DISP_LAYER, DISP_INPUTPORT, &stInputPortAttr);
@@ -1213,7 +1213,7 @@ int my_display_unset(player_stat_t *is)
         MI_GFX_Close();
     }
 
-    //MI_DISP_ClearInputPortBuffer(DISP_LAYER, DISP_INPUTPORT, TRUE);
+    MI_DISP_ClearInputPortBuffer(DISP_LAYER, DISP_INPUTPORT, TRUE);
     //MI_DISP_HideInputPort(DISP_LAYER, DISP_INPUTPORT);
     MI_DISP_DisableInputPort(DISP_LAYER, DISP_INPUTPORT);
     return 0;
