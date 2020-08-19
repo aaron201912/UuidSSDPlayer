@@ -772,6 +772,8 @@ int tp_player_open(char *fp, uint16_t x, uint16_t y, uint16_t width, uint16_t he
 #ifdef SUPPORT_PLAYER_PROCESS
     printf("tp_player_open start!\n");
 
+    struct timeval time_start, time_wait;
+
     player_control_t *func_t = (player_control_t *)parg;
 
     if(!tp_server.Init()) {
@@ -783,9 +785,16 @@ int tp_player_open(char *fp, uint16_t x, uint16_t y, uint16_t width, uint16_t he
     tp_fd = popen("./MyPlayer &", "w");
     printf("popen myplayer progress done!\n");
 
+    memset(&i_recvevt, 0, sizeof(IPCEvent));
+    gettimeofday(&time_start, NULL);
     while (tp_server.Read(i_recvevt) <= 0
            || (i_recvevt.EventType != IPC_COMMAND_CREATE)) {
         usleep(10 * 1000);
+        gettimeofday(&time_wait, NULL);
+        if (time_wait.tv_sec - time_start.tv_sec > 1) {
+            printf("myplayer progress destory failed!\n");
+            return -1;
+        }
     }
     if (i_recvevt.EventType == IPC_COMMAND_CREATE) {
         printf("myplayer progress create success!\n");
@@ -831,6 +840,17 @@ int tp_player_open(char *fp, uint16_t x, uint16_t y, uint16_t width, uint16_t he
            || ((i_recvevt.EventType != IPC_COMMAND_ACK)
            && (i_recvevt.EventType != IPC_COMMAND_ERROR))) {
         usleep(10 * 1000);
+        gettimeofday(&time_wait, NULL);
+        if (time_wait.tv_sec - time_start.tv_sec > 1) {
+            memset(&o_sendevt, 0, sizeof(IPCEvent));
+            #if USE_POPEN
+            o_sendevt.EventType = IPC_COMMAND_EXIT;
+            #else
+            o_sendevt.EventType = IPC_COMMAND_CLOSE;
+            #endif
+            tp_client.Send(o_sendevt);
+            break;
+        }
     }
     if (i_recvevt.EventType == IPC_COMMAND_ACK) {
         printf("receive ack from my_player!\n");
@@ -898,6 +918,8 @@ fail:
 int tp_player_close(void)
 {
 #ifdef SUPPORT_PLAYER_PROCESS
+    struct timeval time_start, time_wait;
+
     if(!tp_client.Init()) {
         printf("my_player is not start!\n");
         return -1;
@@ -911,9 +933,16 @@ int tp_player_close(void)
     tp_client.Send(o_sendevt);
 
     #if USE_POPEN
+    memset(&i_recvevt, 0, sizeof(IPCEvent));
+    gettimeofday(&time_start, NULL);
     while (tp_server.Read(i_recvevt) <= 0
            || (i_recvevt.EventType != IPC_COMMAND_DESTORY)) {
         usleep(10 * 1000);
+        gettimeofday(&time_wait, NULL);
+        if (time_wait.tv_sec - time_start.tv_sec > 1) {
+            printf("myplayer progress destory failed!\n");
+            break;
+        }
     }
     if (i_recvevt.EventType == IPC_COMMAND_DESTORY) {
         printf("myplayer progress destory done!\n");

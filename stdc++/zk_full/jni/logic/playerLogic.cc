@@ -1234,6 +1234,8 @@ static void StartPlayStreamFile(char *pFileName)
 {
     printf("Start to StartPlayStreamFile\n");
 #ifdef SUPPORT_PLAYER_PROCESS
+    struct timeval time_start, time_wait;
+
     mWindow_errMsgPtr->setVisible(false);
     ResetSpeedMode();
     system("echo 1 > /sys/class/gpio/gpio12/value");
@@ -1247,9 +1249,16 @@ static void StartPlayStreamFile(char *pFileName)
     player_fd = popen("./MyPlayer &", "w");
     printf("popen myplayer progress done!\n");
 
+    memset(&recvevt, 0, sizeof(IPCEvent));
+    gettimeofday(&time_start, NULL);
     while (i_server.Read(recvevt) <= 0
            || (recvevt.EventType != IPC_COMMAND_CREATE)) {
         usleep(50 * 1000);
+        gettimeofday(&time_wait, NULL);
+        if (time_wait.tv_sec - time_start.tv_sec > 1) {
+            printf("myplayer progress create failed!\n");
+            return;
+        }
     }
     if (recvevt.EventType == IPC_COMMAND_CREATE) {
         printf("myplayer progress create success!\n");
@@ -1284,10 +1293,22 @@ static void StartPlayStreamFile(char *pFileName)
     printf("try to open file: %s\n", pFileName);
 
     memset(&recvevt, 0, sizeof(IPCEvent));
+    gettimeofday(&time_start, NULL);
     while (i_server.Read(recvevt) <= 0
            || ((recvevt.EventType != IPC_COMMAND_ACK)
            && (recvevt.EventType != IPC_COMMAND_ERROR))) {
         usleep(10 * 1000);
+        gettimeofday(&time_wait, NULL);
+        if (time_wait.tv_sec - time_start.tv_sec > 1) {
+            memset(&sendevt, 0, sizeof(IPCEvent));
+            #if USE_POPEN
+            sendevt.EventType = IPC_COMMAND_EXIT;
+            #else
+            sendevt.EventType = IPC_COMMAND_CLOSE;
+            #endif
+            o_client.Send(sendevt);
+            break;
+        }
     }
     if (recvevt.EventType == IPC_COMMAND_ACK) {
         printf("receive ack from my_player!\n");
@@ -1360,6 +1381,8 @@ static void StopPlayStreamFile()
 {
     printf("Start to StopPlayStreamFile\n");
 #ifdef SUPPORT_PLAYER_PROCESS
+    struct timeval time_start, time_wait;
+
     if(!o_client.Init()) {
         printf("my_player is not start!\n");
         return;
@@ -1378,9 +1401,16 @@ static void StopPlayStreamFile()
     o_client.Send(sendevt);
 
     #if USE_POPEN
+    memset(&recvevt, 0, sizeof(IPCEvent));
+    gettimeofday(&time_start, NULL);
     while (i_server.Read(recvevt) <= 0
            || (recvevt.EventType != IPC_COMMAND_DESTORY)) {
         usleep(50 * 1000);
+        gettimeofday(&time_wait, NULL);
+        if (time_wait.tv_sec - time_start.tv_sec > 1) {
+            printf("myplayer progress destory failed!\n");
+            break;
+        }
     }
     if (recvevt.EventType == IPC_COMMAND_DESTORY) {
         printf("myplayer progress destory done!\n");
