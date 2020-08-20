@@ -170,7 +170,7 @@ static int WifiInit()
 	{
 		//setWifiSupportStatus(false);
 		g_wifiSupported = 0;
-		printf("not support wifi\n");
+		printf("open wifi failed\n");
 		return -1;
 	}
 

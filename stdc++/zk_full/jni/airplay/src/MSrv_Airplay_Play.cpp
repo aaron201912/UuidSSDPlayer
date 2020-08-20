@@ -16,6 +16,7 @@
 #include <UtilS_SPS_PPS.h>
 #include <MSrv_Airplay_Player.h>
 #include "mi_wlan.h"
+#include "ffmpegFunctionSet.h"
 
 #define VDEC_INPUT_WIDTH1        1920
 #define VDEC_INPUT_HEIGHT1       1080
@@ -61,7 +62,7 @@ char gsd20xipaddr[32];
 
 static ss_player_t margs1,margs2;
 static pthread_t g_thid_pcm = 0;
-
+static AirplayFfmpegAssembly_t g_stAirplayFfmpegAssembly;
 
 //-----------------------------------------------DLNA-------------------------------------------------------------------------
 /*--------------------------------------------
@@ -96,31 +97,32 @@ static void *sstar_play_pthread(void *arg)
 	ss_player_t *args = (ss_player_t *)arg;
     AVFormatContext *format_ctx = NULL;
     AVDictionary *format_opts = NULL;
-    AVPacket *packet = (AVPacket *)av_malloc(sizeof(AVPacket));
+    AVPacket *packet = (AVPacket *)g_stAirplayFfmpegAssembly.pfn_av_malloc(sizeof(AVPacket));
     int ret = 0, video_idx;
 
     printf("get in sstar_play_pthread!\n");
     printf("try to play %s ...\n", args->fp);
 
 replay:
-    format_ctx = avformat_alloc_context();
+	format_ctx = g_stAirplayFfmpegAssembly.pfn_avformat_alloc_context();
     if (format_ctx == NULL)
     {
         printf("avformat_alloc_context failed!\n");
         goto error;
     }
 
-    av_dict_set(&format_opts, "stimeout", "5000000", 0);
-    av_dict_set(&format_opts, "http_transport",  "http", 0);
+    g_stAirplayFfmpegAssembly.pfn_av_dict_set(&format_opts, "stimeout", "5000000", 0);
+    g_stAirplayFfmpegAssembly.pfn_av_dict_set(&format_opts, "http_transport",  "http", 0);
+
     //av_dict_set(&format_opts, "rtsp_transport",  "tcp", 0);
 
     //start player
-    if ((ret = avformat_open_input(&format_ctx, args->fp, NULL, &format_opts)) != 0) {
+    if ((ret = g_stAirplayFfmpegAssembly.pfn_avformat_open_input(&format_ctx, args->fp, NULL, &format_opts)) != 0) {
         printf("avformat_open_input failed!\n");
         goto error;
     }
 
-    if ((ret = avformat_find_stream_info(format_ctx, NULL)) < 0)
+    if ((ret = g_stAirplayFfmpegAssembly.pfn_avformat_find_stream_info(format_ctx, NULL)) < 0)
     {
         printf("avformat_find_stream_info() failed!\n");
         goto error;
@@ -137,18 +139,18 @@ replay:
 	Ss_UI_Close();
     while (args->exit!=1)
     {
-        if ((ret = av_read_frame(format_ctx, packet)) >= 0)
+    	if ((ret = g_stAirplayFfmpegAssembly.pfn_av_read_frame(format_ctx, packet)) >= 0)
         {
             if (packet->stream_index == video_idx || format_ctx->nb_streams == 0)
             {
                 sstar_send_stream((const char*)packet->data, packet->size, packet->pts);
             }
-            av_packet_unref(packet);
+            g_stAirplayFfmpegAssembly.pfn_av_packet_unref(packet);
         }
         else
         {
-            avformat_close_input(&format_ctx);
-            av_dict_free(&format_opts);
+        	g_stAirplayFfmpegAssembly.pfn_avformat_close_input(&format_ctx);
+        	g_stAirplayFfmpegAssembly.pfn_av_dict_free(&format_opts);
             printf("play again\n");
             goto replay;
         }
@@ -157,14 +159,14 @@ replay:
     }
 
 error:
-    av_free(packet);
+	g_stAirplayFfmpegAssembly.pfn_av_free(packet);
     if (format_ctx != NULL)
     {
-        avformat_close_input(&format_ctx);
+    	g_stAirplayFfmpegAssembly.pfn_avformat_close_input(&format_ctx);
     }
     if (format_opts != NULL)
     {
-        av_dict_free(&format_opts);
+    	g_stAirplayFfmpegAssembly.pfn_av_dict_free(&format_opts);
     }
     if (ret < 0)
     {
@@ -277,6 +279,15 @@ int Ss_DLNA_ServiceClose(void)
 	}
 	//Ss_Player_DeInit(0);
 	nPlayerStatuc = MPLAYER_IDLE;
+
+	if (m_pLibdlnaHandle)
+	{
+		dlclose(m_pLibdlnaHandle);
+		m_pLibdlnaHandle = NULL;
+	}
+
+	CloseAirplayFfmpegLib(&g_stAirplayFfmpegAssembly);
+
 	return 0;
 }
 
@@ -305,6 +316,13 @@ int Ss_DLNA_ServiceStart(void)
     else
     {
         return -1;
+    }
+
+    // load ffmpeg libs
+    if (OpenAirplayFfmpegLib(&g_stAirplayFfmpegAssembly))
+    {
+    	printf("Airplay: load ffmpeg libs failed\n");
+    	return -1;
     }
 
     if(m_pLibdlnaHandle == NULL)
