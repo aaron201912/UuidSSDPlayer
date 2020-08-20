@@ -175,7 +175,7 @@ static void * audio_decode_thread(void *arg)
             //af->serial = is->auddec.pkt_serial;
             // 当前帧包含的(单个声道)采样数/采样率就是当前帧的播放时长
             af->duration = av_q2d((AVRational) { p_frame->nb_samples, p_frame->sample_rate });
-            //printf("audio frame pts : %d, time pts : %f, audio duration : %f.\n", p_frame->pts, af->pts, af->duration);
+            //printf("audio frame pts : %lld, time pts : %f, audio duration : %f.\n", p_frame->pts, af->pts, af->duration);
             // 将frame数据拷入af->frame，af->frame指向音频frame队列尾部
             av_frame_move_ref(af->frame, p_frame);
             // 更新音频frame队列大小及写指针

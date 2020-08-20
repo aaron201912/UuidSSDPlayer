@@ -98,7 +98,7 @@ static void * demux_thread(void *arg)
             // FIXME the +-2 is due to rounding being not done in the correct direction in generation
             // of the seek_pos/seek_rel variables
             //printf("video stream pos : %lld\n", seek_target);
-            //is->seek_flags |= AVSEEK_FLAG_BACKWARD;
+            is->seek_flags |= AVSEEK_FLAG_BACKWARD;
             //ret = av_seek_frame(is->p_fmt_ctx, is->video_idx, seek_target, is->seek_flags);
             ret = avformat_seek_file(is->p_fmt_ctx, -1, seek_min, seek_target, seek_max, is->seek_flags);
 
@@ -189,6 +189,11 @@ static void * demux_thread(void *arg)
                 is->eof = (is->time_out) ? 0 : 1;
                 //av_log(is->p_fmt_ctx, AV_LOG_INFO, "read packet over!\n");
                 av_log(NULL, AV_LOG_ERROR, "ret : %d, feof : %d\n", ret, avio_feof(is->p_fmt_ctx->pb));
+            } else {
+                // 针对硬解码, 需要多送几张null包, 唤醒解码线程从vdec取出最后几张frame
+                if (is->video_idx >= 0 && !is->paused && is->eof && !is->video_pkt_queue.size && !is->video_complete) {
+                    packet_queue_put_nullpacket(&is->video_pkt_queue, is->video_idx);
+                }
             }
 
             if (is->time_out) {

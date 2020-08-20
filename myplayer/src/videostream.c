@@ -222,12 +222,12 @@ static int video_decode_frame(AVCodecContext *p_codec_ctx, packet_queue_t *p_pkt
         else
         {
             // 如果是最后一个空的packet,只取frame不再送packet
-            if (pkt.data == NULL && pkt.size == 0) {
+            /*if (pkt.data == NULL && pkt.size == 0) {
                 p_codec_ctx->flags |= (1 << 5);
                 printf("send a null paket to decoder\n");
-            } else{
+            } else {
                 p_codec_ctx->flags &= ~(1 << 5);
-            }
+            }*/
             // 2. 将packet发送给解码器
             //    发送packet的顺序是按dts递增的顺序，如IPBBPBB
             //    pkt.pos变量可以标识当前packet在视频文件中的地址偏移
@@ -531,9 +531,10 @@ recheck:
                     is->play_status = 1;
                 }
             }
-            NANOX_LOG("video play completely!\n");
+            NANOX_LOG("video play completely, total/left frame = [%d %d]!\n", is->p_vcodec_ctx->frame_number, is->video_frm_queue.size);
+        } else {
+            return 0;
         }
-        return 0;
     }
     //av_log(NULL, AV_LOG_ERROR, "frame_queue_nb_remaining done!\n");
     /* dequeue the picture */
@@ -722,6 +723,13 @@ static int open_video_playing(void *arg)
     int ret;
     int dst_width, dst_height;
     const AVPixFmtDescriptor *desc;
+
+    ret = my_display_set(is);
+    if (ret < 0) {
+        av_log(NULL, AV_LOG_ERROR, "my_display_set failed!\n");
+        return ret;
+    }
+    is->enable_video = true;
 
     if (is->decoder_type == SOFT_DECODING)
     {
@@ -1016,13 +1024,6 @@ static int open_video_stream(player_stat_t *is)
         printf("avcodec_open2() failed %d\n", ret);
         return -1;
     }
-
-    ret = my_display_set(is);
-    if (ret < 0) {
-        av_log(NULL, AV_LOG_ERROR, "my_display_set failed!\n");
-        return ret;
-    }
-    is->enable_video = true;
 
     is->p_vcodec_ctx = p_codec_ctx;
     is->p_vcodec_ctx->debug  = true;
