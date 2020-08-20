@@ -297,7 +297,7 @@ MI_S32 StartCapture()
 
 void StopCapture()
 {
-	MI_DISP_ClearInputPortBuffer(DISP_LAYER, DISP_INPUTPORT);
+	MI_DISP_ClearInputPortBuffer(DISP_LAYER, DISP_INPUTPORT, TRUE);
     MI_DISP_HideInputPort(DISP_LAYER, DISP_INPUTPORT);
 }
 

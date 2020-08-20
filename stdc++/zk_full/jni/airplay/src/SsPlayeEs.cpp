@@ -148,7 +148,7 @@ int Ss_Player_DeInit(int flag)
     stDstChnPort.u32PortId = 0;
     STCHECKRESULT(MI_SYS_UnBindChnPort(&stSrcChnPort, &stDstChnPort));
 
-    STCHECKRESULT(MI_DISP_ClearInputPortBuffer(0, 0));
+    STCHECKRESULT(MI_DISP_ClearInputPortBuffer(0, 0, TRUE));
     STCHECKRESULT(MI_DISP_DisableInputPort(0, 0));
 
     STCHECKRESULT(MI_VDEC_StopChn(0));
