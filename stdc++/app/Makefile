@@ -15,7 +15,7 @@ CFLAGS = -I$(ZKGUI_PATH)/include -I$(ZKGUI_PATH)/include/freetype2 -I$(ZKGUI_PAT
 LDFLAGS = -L$(ZKGUI_PATH)/lib -L$(PROJECT_PATH)/lib
 CONFIG_PREFIX =.
 
-LOCAL_CFLAGS =
+LOCAL_CFLAGS = -rdynamic
 
 ifeq ($(ENABLE_HDMI), 1)
 LOCAL_LDFLAGS = -leasyui -lnanovg -lpng12 -ljpeg -lpthread -lfreetype -ldl -lts -lz -lmi_common -lmi_gfx -lmi_sys -lmi_disp -lmi_panel -lmi_vdec -lmi_ao -lmi_ai -lmi_hdmi -Wl,--hash-style=gnu
