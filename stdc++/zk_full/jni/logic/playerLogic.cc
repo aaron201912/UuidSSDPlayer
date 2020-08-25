@@ -1247,21 +1247,34 @@ static void StartPlayStreamFile(char *pFileName)
 
     #if USE_POPEN
     player_fd = popen("./MyPlayer &", "w");
+    if (NULL == player_fd) {
+        printf("my_player is not exit!\n");
+        return;
+    }
     printf("popen myplayer progress done!\n");
 
     memset(&recvevt, 0, sizeof(IPCEvent));
     gettimeofday(&time_start, NULL);
     while (i_server.Read(recvevt) <= 0
            || (recvevt.EventType != IPC_COMMAND_CREATE)) {
-        usleep(50 * 1000);
+        usleep(10 * 1000);
         gettimeofday(&time_wait, NULL);
-        if (time_wait.tv_sec - time_start.tv_sec > 1) {
+        if (time_wait.tv_sec - time_start.tv_sec > 2) {
             printf("myplayer progress create failed!\n");
-            return;
+            break;
         }
     }
     if (recvevt.EventType == IPC_COMMAND_CREATE) {
         printf("myplayer progress create success!\n");
+    } else {
+        mTextview_msgPtr->setText("Other Error Occur!");
+        mWindow_errMsgPtr->setVisible(true);
+
+        pthread_mutex_lock(&g_playFileMutex);
+        g_bPlayError = true;
+        pthread_mutex_unlock(&g_playFileMutex);
+
+        return;
     }
     #endif
 
@@ -1299,7 +1312,7 @@ static void StartPlayStreamFile(char *pFileName)
            && (recvevt.EventType != IPC_COMMAND_ERROR))) {
         usleep(10 * 1000);
         gettimeofday(&time_wait, NULL);
-        if (time_wait.tv_sec - time_start.tv_sec > 1) {
+        if (time_wait.tv_sec - time_start.tv_sec > 10) {
             memset(&sendevt, 0, sizeof(IPCEvent));
             #if USE_POPEN
             sendevt.EventType = IPC_COMMAND_EXIT;
@@ -1385,6 +1398,7 @@ static void StopPlayStreamFile()
 
     if(!o_client.Init()) {
         printf("my_player is not start!\n");
+        i_server.Term();
         return;
     }
 
@@ -1405,9 +1419,9 @@ static void StopPlayStreamFile()
     gettimeofday(&time_start, NULL);
     while (i_server.Read(recvevt) <= 0
            || (recvevt.EventType != IPC_COMMAND_DESTORY)) {
-        usleep(50 * 1000);
+        usleep(10 * 1000);
         gettimeofday(&time_wait, NULL);
-        if (time_wait.tv_sec - time_start.tv_sec > 1) {
+        if (time_wait.tv_sec - time_start.tv_sec > 2) {
             printf("myplayer progress destory failed!\n");
             break;
         }
@@ -1416,6 +1430,7 @@ static void StopPlayStreamFile()
         printf("myplayer progress destory done!\n");
     }
     pclose(player_fd);
+    player_fd = NULL;
     #endif
 
     i_server.Term();

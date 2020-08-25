@@ -783,6 +783,10 @@ int tp_player_open(char *fp, uint16_t x, uint16_t y, uint16_t width, uint16_t he
 
     #if USE_POPEN
     tp_fd = popen("./MyPlayer &", "w");
+    if (tp_fd == NULL) {
+        printf("my_player is not exit!\n");
+        return -1;
+    }
     printf("popen myplayer progress done!\n");
 
     memset(&i_recvevt, 0, sizeof(IPCEvent));
@@ -791,14 +795,15 @@ int tp_player_open(char *fp, uint16_t x, uint16_t y, uint16_t width, uint16_t he
            || (i_recvevt.EventType != IPC_COMMAND_CREATE)) {
         usleep(10 * 1000);
         gettimeofday(&time_wait, NULL);
-        if (time_wait.tv_sec - time_start.tv_sec > 1) {
+        if (time_wait.tv_sec - time_start.tv_sec > 2) {
             printf("myplayer progress destory failed!\n");
-            return -1;
+            break;
         }
     }
     if (i_recvevt.EventType == IPC_COMMAND_CREATE) {
         printf("myplayer progress create success!\n");
     } else {
+        func_t->fpPlayError(-1);
         return -1;
     }
     #endif
@@ -841,7 +846,7 @@ int tp_player_open(char *fp, uint16_t x, uint16_t y, uint16_t width, uint16_t he
            && (i_recvevt.EventType != IPC_COMMAND_ERROR))) {
         usleep(10 * 1000);
         gettimeofday(&time_wait, NULL);
-        if (time_wait.tv_sec - time_start.tv_sec > 1) {
+        if (time_wait.tv_sec - time_start.tv_sec > 10) {
             memset(&o_sendevt, 0, sizeof(IPCEvent));
             #if USE_POPEN
             o_sendevt.EventType = IPC_COMMAND_EXIT;
@@ -922,6 +927,7 @@ int tp_player_close(void)
 
     if(!tp_client.Init()) {
         printf("my_player is not start!\n");
+        tp_server.Term();
         return -1;
     }
     memset(&o_sendevt, 0, sizeof(IPCEvent));
@@ -939,7 +945,7 @@ int tp_player_close(void)
            || (i_recvevt.EventType != IPC_COMMAND_DESTORY)) {
         usleep(10 * 1000);
         gettimeofday(&time_wait, NULL);
-        if (time_wait.tv_sec - time_start.tv_sec > 1) {
+        if (time_wait.tv_sec - time_start.tv_sec > 2) {
             printf("myplayer progress destory failed!\n");
             break;
         }
@@ -948,6 +954,7 @@ int tp_player_close(void)
         printf("myplayer progress destory done!\n");
     }
     pclose(tp_fd);
+    tp_fd = NULL;
     #endif
 
     printf("tp_player_close done!\n");
