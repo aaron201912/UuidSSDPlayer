@@ -7,6 +7,7 @@ PROJECT_PATH = ../zk_full/jni/sdkdir
 
 ZKGUI_PATH=./zkgui_dir
 ENABLE_HDMI = 0
+
 COMPILE_ROOT := $(shell pwd)
 CC = arm-linux-gnueabihf-g++
 STRIP = arm-linux-gnueabihf-strip
@@ -20,7 +21,7 @@ LOCAL_CFLAGS = -rdynamic
 ifeq ($(ENABLE_HDMI), 1)
 LOCAL_LDFLAGS = -leasyui -lnanovg -lpng12 -ljpeg -lpthread -lfreetype -ldl -lts -lz -lmi_common -lmi_gfx -lmi_sys -lmi_disp -lmi_panel -lmi_vdec -lmi_ao -lmi_ai -lmi_hdmi -Wl,--hash-style=gnu
 else
-LOCAL_LDFLAGS = -leasyui -lnanovg -lpng12 -ljpeg -lpthread -lfreetype -ldl -lts -lz -lmi_common -lmi_gfx -lmi_sys -lmi_disp -lmi_panel -lmi_vdec -lmi_ao -lmi_ai -lmi_divp -lmi_venc -Wl,--hash-style=gnu
+LOCAL_LDFLAGS = -leasyui -lnanovg -lpng12 -ljpeg -lpthread -lfreetype -ldl -lts -lz -lmi_common -lmi_gfx -lmi_sys -lmi_disp -lmi_panel -lmi_vdec -lmi_ao -lmi_ai -lmi_divp -Wl,--hash-style=gnu
 endif
 
 CPPSRCS += ${wildcard *.cpp}
