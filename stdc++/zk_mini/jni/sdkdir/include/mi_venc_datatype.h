@@ -16,11 +16,11 @@
 
 #include "mi_common_datatype.h"
 #include "mi_sys_datatype.h"
-#include "cam_os_wrapper.h"
 
 #define MI_VENC_MAX_CHN_NUM_PER_MODULE (8)
 #define MI_VENC_MAX_CHN_NUM_PER_DC (3)
 #define VENC_CUST_MAP_NUM    (2)
+#define VENC_MAX_SAD_RANGE_NUM (16)
 
 //max supported channel number. But the number would be limited by each module.
 #define VENC_MAX_CHN_NUM    (16) //from SPEC
@@ -209,6 +209,13 @@ typedef enum
     E_MI_VENC_INPUT_MODE_RING_HALF_FRM, /*Handshake with input by half buffer in ring mode*/
     E_MI_VENC_INPUT_MODE_MAX
 } MI_VENC_InputSrcBufferMode_e;
+
+typedef enum
+{
+    E_MI_VENC_MD_DET=1,
+    E_MI_VENC_ROI_DET,
+    E_MI_VENC_SMART_DET_MAX,
+} MI_VENC_SmartDetType_e;
 
 //==== Structures ====
 
@@ -838,22 +845,6 @@ typedef struct MI_VENC_ApplyMap_s
     MI_U32 u32RunTimeCustMapSize;
 }MI_VENC_ApplyMap_t;
 
-typedef struct MI_VENC_CustomMap_s
-{
-    MI_BOOL bEnabelHistoStaticInfo;
-    MI_U32 u32RunTimeWidth;
-    MI_U32 u32RunTimeHeight;
-    MI_U32 u32RunTimeCustMapSize;
-    MI_U32 u32MaxPicWidth;
-    MI_U32 u32MaxPicHeight;
-    MI_U32 u32MaxCustMapSize;
-    MI_PHY phyAddr[VENC_CUST_MAP_NUM];
-    void  *virAddr[VENC_CUST_MAP_NUM];
-    MI_BOOL  bAvailable[VENC_CUST_MAP_NUM];
-    MI_VENC_ModType_e eType;
-    CamOsMutex_t stMutex;
-} MI_VENC_CustomMap_t;
-
 typedef struct MI_VENC_FrameHistoStaticInfo_s
 {
     MI_U8   u8PicSkip;
@@ -869,7 +860,6 @@ typedef struct MI_VENC_FrameHistoStaticInfo_s
     MI_U32  u32PicNum;
     MI_U32  u32PicDistLow;
     MI_U32  u32PicDistHigh;
-    CamOsMutex_t stMutex;
 } MI_VENC_FrameHistoStaticInfo_t;
 
 typedef struct MI_VENC_CustMapInfo_s
@@ -889,4 +879,25 @@ typedef struct MI_VENC_AdvCustRcAttr_s
     MI_BOOL bEnabelHistoStaticInfo;
 } MI_VENC_AdvCustRcAttr_t;
 
+typedef struct MI_VENC_MdInfo_s
+{
+    MI_U8 u8SadRangeRatio[VENC_MAX_SAD_RANGE_NUM];
+} MI_VENC_MdInfo_t;
+
+typedef struct MI_VENC_SmartDetInfo_s
+{
+    MI_VENC_SmartDetType_e eSmartDetType;
+    union
+    {
+        MI_VENC_MdInfo_t  stMdInfo;
+        MI_BOOL           bRoiExist;
+    };
+    MI_U8                  u8ProtectFrmNum;
+} MI_VENC_SmartDetInfo_t;
+
+typedef struct MI_VENC_InitParam_s
+{
+    MI_U32 u32MaxWidth;
+    MI_U32 u32MaxHeight;
+}MI_VENC_InitParam_t;
 #endif /* End of #ifndef __MI_VENC_DATATYPE_ */

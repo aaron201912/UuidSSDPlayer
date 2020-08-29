@@ -124,6 +124,17 @@ typedef enum
 #define MI_ERR_GFX_DRV_FAIL_LOCKED MI_DEF_ERR(E_MI_MODULE_ID_GFX, E_MI_ERR_LEVEL_ERROR, E_MI_GFX_ERR_GFX_DRV_FAIL_LOCKED)
 #define MI_ERR_GFX_DRV_FAIL_BLTADDR MI_DEF_ERR(E_MI_MODULE_ID_GFX, E_MI_ERR_LEVEL_ERROR, E_MI_GFX_ERR_GFX_DRV_FAIL_BLTADDR)
 
+//=============================================================================
+// GFX point
+//=============================================================================
+typedef struct MI_GFX_Point_s
+{
+    /// x coordinate
+    MI_S16 s16x;
+    /// y coordinate
+    MI_S16 s16y;
+} MI_GFX_Point_t;
+
 typedef struct MI_GFX_Rect_s
 {
     MI_S32 s32Xpos;
@@ -131,6 +142,57 @@ typedef struct MI_GFX_Rect_s
     MI_U32 u32Width;
     MI_U32 u32Height;
 } MI_GFX_Rect_t;
+
+//=============================================================================
+// GFX line pattern infomation struct
+//=============================================================================
+typedef struct MI_GFX_Line_s
+{
+    /// start point of line
+    MI_GFX_Point_t stPointFrom;
+    /// end point of line
+    MI_GFX_Point_t stPointTo;
+    /// line width in pixel
+    MI_U16 u16Width;
+    /// Constant color or  Gradient color
+    MI_BOOL bColorGradient;
+    /// color range from start to end
+    MI_U32 u32ColorFrom;
+    ///
+    MI_U32 u32ColorTo;
+} MI_GFX_Line_t;
+
+
+//=============================================================================
+// GFX palette information
+//=============================================================================
+
+typedef union
+{
+    /// ARGB8888 byte order
+    struct
+    {
+        MI_U8 u8A;
+        MI_U8 u8R;
+        MI_U8 u8G;
+        MI_U8 u8B;
+    } RGB;
+    // u8Data[0] = u8A
+    // u8Data[1] = u8R
+    // u8Data[2] = u8G
+    // u8Data[3] = u8B
+    MI_U8 u8Data[4];
+} MI_GFX_PaletteEntry_t;
+
+typedef struct MI_GFX_Palette_s
+{
+    /// array subscripts are indentical to value of Index Color
+    MI_GFX_PaletteEntry_t aunPalette[256];
+    /// Starting Index in palette to config
+    MI_U16 u16PalStart;
+    /// Ending Index in palette to config
+    MI_U16 u16PalEnd;
+}MI_GFX_Palette_t;
 
 typedef struct MI_GFX_ColorKey_s
 {
@@ -184,6 +246,13 @@ typedef struct MI_GFX_Opt_s
     MI_U32 u32GlobalSrcConstColor;
     MI_U32 u32GlobalDstConstColor;
 } MI_GFX_Opt_t;
+
+typedef struct MI_GFX_InitParam_s
+{
+    MI_U32 u32DevId;
+    MI_U8 *u8Data;
+} MI_GFX_InitParam_t;
+
 #ifdef __cplusplus
 }
 #endif

@@ -126,8 +126,8 @@ static void onUI_init(){
 	printf("statusbar init start\n");
 	SSTAR_InitHotplugDetect();
 //	SSTAR_RegisterWiredNetworkListener(ShowWiredNetworkStatus);
-	SSTAR_RegisterWifiStaConnListener(ShowWifiConnStatus);
-	SSTAR_RegisterUsbListener(ShowUsbStatus);
+	//SSTAR_RegisterWifiStaConnListener(ShowWifiConnStatus);
+	//SSTAR_RegisterUsbListener(ShowUsbStatus);
 
 	mTextView_usbStatusPtr->setVisible(SSTAR_GetUsbCurrentStatus());
 
@@ -140,8 +140,8 @@ static void onUI_init(){
 }
 
 static void onUI_quit() {
-	SSTAR_UnRegisterUsbListener(ShowUsbStatus);
-	SSTAR_UnRegisterWifiStaConnListener(ShowWifiConnStatus);
+	//SSTAR_UnRegisterUsbListener(ShowUsbStatus);
+	//SSTAR_UnRegisterWifiStaConnListener(ShowWifiConnStatus);
 //	SSTAR_UnRegisterWiredNetworkListener(ShowWiredNetworkStatus);
 	SSTAR_DeinitHotPlugDetect();
 }

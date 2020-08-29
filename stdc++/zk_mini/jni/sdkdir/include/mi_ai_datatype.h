@@ -187,6 +187,12 @@ typedef struct MI_AI_BfConfigAttr_s
 	MI_FLOAT outputGain;
 } MI_AI_BfConfigAttr_t;
 
+typedef struct MI_AI_InitParam_s
+{
+    MI_U32 u32DevId;
+    MI_U8 *u8Data;
+} MI_AI_InitParam_t;
+
 //=============================================================================
 // Variable definition
 //=============================================================================

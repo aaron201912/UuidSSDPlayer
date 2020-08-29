@@ -20,6 +20,15 @@
 
 #include "mi_vdec_datatype.h"
 
+#define VDEC_MAJOR_VERSION 2
+#define VDEC_SUB_VERSION 7
+#define MACRO_TO_STR(macro) #macro
+#define VDEC_VERSION_STR(major_version,sub_version) ({char *tmp = sub_version/100 ? \
+                                    "mi_vdec_version_" MACRO_TO_STR(major_version)"." MACRO_TO_STR(sub_version) : sub_version/10 ? \
+                                    "mi_vdec_version_" MACRO_TO_STR(major_version)".0" MACRO_TO_STR(sub_version) : \
+                                    "mi_vdec_version_" MACRO_TO_STR(major_version)".00" MACRO_TO_STR(sub_version);tmp;})
+#define MI_VDEC_API_VERSION VDEC_VERSION_STR(VDEC_MAJOR_VERSION,VDEC_SUB_VERSION)
+
 #ifdef __cplusplus
 extern "C" {
 #endif

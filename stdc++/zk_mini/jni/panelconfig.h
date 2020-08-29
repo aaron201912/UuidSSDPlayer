@@ -10,8 +10,8 @@
 #include "appconfig.h"
 #include "mi_panel_datatype.h"
 
-//extern MI_PANEL_ParamConfig_t stPanelParam;
-//extern MI_PANEL_MipiDsiConfig_t stMipiDsiConfig;
+extern MI_PANEL_ParamConfig_t stPanelParam;
+extern MI_PANEL_MipiDsiConfig_t stMipiDsiConfig;
 
 #if USE_PANEL_1024_600
 #define PANEL_MAX_WIDTH			1024

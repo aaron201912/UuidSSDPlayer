@@ -242,10 +242,48 @@ void mainActivity::onItemClick(ZKListView *pListView, int index, int id){
 
 void mainActivity::onSlideItemClick(ZKSlideWindow *pSlideWindow, int index) {
     int tablen = sizeof(SSlideWindowItemClickCallbackTab) / sizeof(S_SlideWindowItemClickCallback);
-    for (int i = 0; i < tablen; ++i) {
-        if (SSlideWindowItemClickCallbackTab[i].id == pSlideWindow->getID()) {
-            SSlideWindowItemClickCallbackTab[i].onSlideItemClickCallback(pSlideWindow, index);
-            break;
+
+    for (int i = 0; i < tablen; ++i)
+    {
+        if (SSlideWindowItemClickCallbackTab[i].id == pSlideWindow->getID())
+        {
+        	if (index < (sizeof(IconTab) / sizeof(const char*)))
+        	{
+        		SSlideWindowItemClickCallbackTab[i].onSlideItemClickCallback(pSlideWindow, index);
+        		break;
+        	}
+        	else
+        	{
+				//str suspend in
+        		printf("suspend in\n");
+        		system("echo 4 >/sys/class/gpio/export");
+        		system("echo out >/sys/class/gpio/gpio4/direction");
+        		system("echo 0 >/sys/class/gpio/gpio4/value");
+        		system("echo 5 >/sys/class/gpio/export");
+        		system("echo out >/sys/class/gpio/gpio5/direction");
+        		system("echo 0 >/sys/class/gpio/gpio5/value");
+        		Enter_STR_SuspendMode();
+
+        		system("echo 1 >/sys/class/gpio/gpio73/value");
+        		// stop wifi
+        		//SSTAR_UnRegisterUsbListener(ShowUsbStatus);
+        		//SSTAR_UnRegisterWifiStaConnListener(ShowWifiConnStatus);
+        		//SSTAR_DeinitHotPlugDetect();
+
+        		//mi deinit
+        		system("echo mem > /sys/power/state");
+        		//usleep(2*1000*1000);
+        		printf("resume back\n");
+        		system("echo 1 >/sys/class/gpio/gpio5/value");
+        		system("echo 1 >/sys/class/gpio/gpio4/value");
+        		system("echo 0 >/sys/class/gpio/gpio73/value");
+        		Enter_STR_ResumeMode();
+
+        		// start wifi
+        		//SSTAR_InitHotplugDetect();
+        		//SSTAR_RegisterWifiStaConnListener(ShowWifiConnStatus);
+        		//SSTAR_RegisterUsbListener(ShowUsbStatus);
+        	}
         }
     }
 }

@@ -122,6 +122,11 @@ typedef struct MI_AO_ChnParam_s
     MI_U32 u32Reserved;
 } MI_AO_ChnParam_t;
 
+typedef struct MI_AO_InitParam_s
+{
+    MI_U32 u32DevId;
+    MI_U8 *u8Data;
+} MI_AO_InitParam_t;
 
 //=============================================================================
 // Variable definition
