@@ -97,11 +97,6 @@ MI_S32 MI_SYS_BufBlitPa(MI_SYS_FrameData_t *pstDstBuf, MI_SYS_WindowRect_t *pstD
 MI_S32 MI_SYS_PrivateDevChnHeapAlloc(MI_ModuleId_e eModule, MI_U32 u32Devid, MI_S32 s32ChnId, MI_U8 *pu8BufName, MI_U32 u32blkSize, MI_PHY *pphyAddr, MI_BOOL bTailAlloc);
 
 MI_S32 MI_SYS_PrivateDevChnHeapFree(MI_ModuleId_e eModule, MI_U32 u32Devid, MI_S32 s32ChnId, MI_PHY phyAddr);
-MI_S32 MI_SYS_ReadUuid (MI_U64 *u64Uuid);
-
-MI_S32 MI_SYS_InitDev(MI_SYS_InitParam_t *pstInitParam);
-
-MI_S32 MI_SYS_DeInitDev(void);
 
 /*
 N.B.

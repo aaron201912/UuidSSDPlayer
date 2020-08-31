@@ -28,12 +28,7 @@
 *
 * 在Eclipse编辑器中  使用 “alt + /”  快捷键可以打开智能提示
 */
-//#include "SAT070CP50_1024x600.h"
-#include "mi_panel.h"
-#include "mi_disp_datatype.h"
-#include "mi_disp.h"
-#include "mi_gfx.h"
-#include "panelconfig.h"
+
 #include "statusbarconfig.h"
 #include "hotplugdetect.h"
 
@@ -47,119 +42,6 @@ static S_ACTIVITY_TIMEER REGISTER_ACTIVITY_TIMER_TAB[] = {
 	//{1,  1000},
 };
 
-#define USE_MIPI	0
-#define MAKE_YUYV_VALUE(y,u,v) ((y) << 24) | ((u) << 16) | ((y) << 8) | (v)
-#define YUYV_BLACK MAKE_YUYV_VALUE(0,128,128)
-#define DISP_INPUT_WIDTH        1024
-#define DISP_INPUT_HEIGHT       600
-#define DISP_OUTPUT_X           0
-#define DISP_OUTPUT_Y           0
-#define DISP_OUTPUT_WIDTH       1024
-#define DISP_OUTPUT_HEIGHT      600
-
-static void Enter_STR_SuspendMode()
-{
-	printf("disp disable 00\n");
-    MI_DISP_DisableInputPort(0, 0);
-    printf("disp disable 11\n");
-    MI_DISP_DisableVideoLayer(0);
-    printf("disp disable 22\n");
-    MI_DISP_UnBindVideoLayer(0, 0);
-    printf("disp disable 33\n");
-    MI_DISP_Disable(0);
-    MI_DISP_DeInitDev();
-    printf("disp disable 55\n");
-    MI_PANEL_DeInit();
-    printf("panel disable\n");
-    MI_GFX_DeInitDev();
-    printf("gfx disable\n");
-}
-
-static void Enter_STR_ResumeMode()
-{
-    MI_PANEL_LinkType_e eLinkType;
-	MI_DISP_InputPortAttr_t stInputPortAttr;
-
-	MI_DISP_VideoLayerAttr_t stLayerAttr;
-	MI_DISP_PubAttr_t stDispPubAttr;
-
-	stDispPubAttr.eIntfType = E_MI_DISP_INTF_LCD;
-	stDispPubAttr.eIntfSync = E_MI_DISP_OUTPUT_USER;
-    memset(&stInputPortAttr, 0, sizeof(stInputPortAttr));
-    if (stDispPubAttr.eIntfType == E_MI_DISP_INTF_LCD)
-	{
-		stDispPubAttr.stSyncInfo.u16Vact = stPanelParam.u16Height;
-		stDispPubAttr.stSyncInfo.u16Vbb = stPanelParam.u16VSyncBackPorch;
-		stDispPubAttr.stSyncInfo.u16Vfb = stPanelParam.u16VTotal - (stPanelParam.u16VSyncWidth +
-																	  stPanelParam.u16Height + stPanelParam.u16VSyncBackPorch);
-		stDispPubAttr.stSyncInfo.u16Hact = stPanelParam.u16Width;
-		stDispPubAttr.stSyncInfo.u16Hbb = stPanelParam.u16HSyncBackPorch;
-		stDispPubAttr.stSyncInfo.u16Hfb = stPanelParam.u16HTotal - (stPanelParam.u16HSyncWidth +
-																	  stPanelParam.u16Width + stPanelParam.u16HSyncBackPorch);
-		stDispPubAttr.stSyncInfo.u16Bvact = 0;
-		stDispPubAttr.stSyncInfo.u16Bvbb = 0;
-		stDispPubAttr.stSyncInfo.u16Bvfb = 0;
-		stDispPubAttr.stSyncInfo.u16Hpw = stPanelParam.u16HSyncWidth;
-		stDispPubAttr.stSyncInfo.u16Vpw = stPanelParam.u16VSyncWidth;
-		stDispPubAttr.stSyncInfo.u32FrameRate = stPanelParam.u16DCLK * 1000000 / (stPanelParam.u16HTotal * stPanelParam.u16VTotal);
-		stDispPubAttr.eIntfSync = E_MI_DISP_OUTPUT_USER;
-		stDispPubAttr.eIntfType = E_MI_DISP_INTF_LCD;
-		stDispPubAttr.u32BgColor = YUYV_BLACK;
-	#if USE_MIPI
-		eLinkType = E_MI_PNL_LINK_MIPI_DSI;
-	#else
-		eLinkType = E_MI_PNL_LINK_TTL;
-	#endif
-		stInputPortAttr.u16SrcWidth = DISP_INPUT_WIDTH;
-		stInputPortAttr.u16SrcHeight = DISP_INPUT_HEIGHT;
-		stInputPortAttr.stDispWin.u16X = DISP_OUTPUT_X;
-		stInputPortAttr.stDispWin.u16Y = DISP_OUTPUT_Y;
-
-		stInputPortAttr.stDispWin.u16Width = DISP_OUTPUT_WIDTH;
-		stInputPortAttr.stDispWin.u16Height = DISP_OUTPUT_HEIGHT;
-
-		//MI_DISP_Disable(0);
-		//MI_DISP_DisableInputPort(0, 0);
-		MI_DISP_SetPubAttr(0, &stDispPubAttr);
-
-		MI_DISP_Enable(0);
-		MI_DISP_BindVideoLayer(0, 0);
-		memset(&stLayerAttr, 0, sizeof(stLayerAttr));
-
-		stLayerAttr.stVidLayerSize.u16Width  = DISP_OUTPUT_WIDTH;
-		stLayerAttr.stVidLayerSize.u16Height = DISP_OUTPUT_HEIGHT;
-
-		stLayerAttr.ePixFormat = E_MI_SYS_PIXEL_FRAME_YUV_MST_420;
-		stLayerAttr.stVidLayerDispWin.u16X      = DISP_OUTPUT_X;
-		stLayerAttr.stVidLayerDispWin.u16Y      = DISP_OUTPUT_Y;
-
-		stLayerAttr.stVidLayerDispWin.u16Width  = DISP_OUTPUT_WIDTH;
-		stLayerAttr.stVidLayerDispWin.u16Height = DISP_OUTPUT_HEIGHT;
-
-		MI_DISP_SetVideoLayerAttr(0, &stLayerAttr);
-		MI_DISP_EnableVideoLayer(0);
-
-		MI_DISP_SetInputPortAttr(0, 0, &stInputPortAttr);
-		MI_DISP_EnableInputPort(0, 0);
-		MI_DISP_SetInputPortSyncMode(0, 0, E_MI_DISP_SYNC_MODE_FREE_RUN);
-		//usleep(30*1000);
-		//MI_DISP_Enable(0);
-		//MI_DISP_EnableInputPort(0, 0);
-
-	}
-	if (stDispPubAttr.eIntfType == E_MI_DISP_INTF_LCD)
-	{
-		MI_PANEL_Init(eLinkType);
-		MI_PANEL_SetPanelParam(&stPanelParam);
-		if(eLinkType == E_MI_PNL_LINK_MIPI_DSI)
-		{
-#if USE_MIPI
-			MI_PANEL_SetMipiDsiConfig(&stMipiDsiConfig);
-#endif
-		}
-	}
-	MI_GFX_Open();
-}
 static void onUI_init(){
     //Tips :添加 UI初始化的显示代码到这里,如:mText1->setText("123");
 	ShowStatusBar(1, 0, 0);
@@ -225,7 +107,7 @@ const char* IconTab[]={
 		"qrcodeActivity",
 		"animationActivity",
 		"uartActivity",
-		"networkSettingActivity"
+		"networkSettingActivity",
 };
 
 static void onSlideItemClick_Slidewindow1(ZKSlideWindow *pSlideWindow, int index) {

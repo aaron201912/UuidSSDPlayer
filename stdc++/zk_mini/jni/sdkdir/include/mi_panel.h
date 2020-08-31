@@ -48,9 +48,6 @@ MI_S32 MI_PANEL_SetPanelParam(MI_PANEL_ParamConfig_t *pstParamCfg);
 MI_S32 MI_PANEL_GPIO_Init(MI_PANEL_GpioConfig_t *pstGpioCfg);
 MI_S32 MI_PANEL_SetGpioStatus(MI_U16 u16GpioNum, MI_BOOL bValue);
 MI_S32 MI_PANEL_SetCmd(MI_U32 u32Value, MI_U8 u8Bits);
-MI_S32 MI_PANEL_PWM_Init(MI_PANEL_PwmConfig_t *pstPwmCfg);
-MI_S32 MI_PANEL_InitDev(MI_PANEL_InitParam_t *pstInitParam);
-MI_S32 MI_PANEL_DeInitDev(void);
 
 #ifdef __cplusplus
 }

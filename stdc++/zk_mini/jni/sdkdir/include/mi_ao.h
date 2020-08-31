@@ -86,8 +86,6 @@ MI_S32 MI_AO_DisableAdec(MI_AUDIO_DEV AoDevId, MI_AO_CHN AoChn);
 MI_S32 MI_AO_SetChnParam(MI_AUDIO_DEV AoDevId, MI_AO_CHN AoChn, MI_AO_ChnParam_t *pstChnParam);
 MI_S32 MI_AO_GetChnParam(MI_AUDIO_DEV AoDevId, MI_AO_CHN AoChn, MI_AO_ChnParam_t *pstChnParam);
 MI_S32 MI_AO_SetSrcGain(MI_AUDIO_DEV AoDevId, MI_S32 s32VolumeDb);
-MI_S32 MI_AO_InitDev(MI_AO_InitParam_t *pstInitParam);
-MI_S32 MI_AO_DeInitDev(void);
 #ifdef __cplusplus
 }
 #endif

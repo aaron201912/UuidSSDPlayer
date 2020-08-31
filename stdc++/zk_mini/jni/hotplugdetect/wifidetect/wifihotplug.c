@@ -164,10 +164,9 @@ static int WifiInit()
 		printf("not support wifi\n");
 		return -1;
 	}
-	printf("open wlan\n");
+
 	// init wlan dev
 	if (MI_WLAN_Init(&g_stParm) || MI_WLAN_Open(&g_stOpenParam))
-	//if (MI_WLAN_Init(&g_stParm))
 	{
 		//setWifiSupportStatus(false);
 		g_wifiSupported = 0;
