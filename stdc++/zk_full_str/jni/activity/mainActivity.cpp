@@ -341,15 +341,32 @@ void mainActivity::onSlideItemClick(ZKSlideWindow *pSlideWindow, int index) {
 			{
 				//str suspend in
         		printf("suspend in\n");
-        		system("echo 4 >/sys/class/gpio/export");
-        		system("echo out >/sys/class/gpio/gpio4/direction");
-        		system("echo 0 >/sys/class/gpio/gpio4/value");
-        		system("echo 5 >/sys/class/gpio/export");
-        		system("echo out >/sys/class/gpio/gpio5/direction");
-        		system("echo 0 >/sys/class/gpio/gpio5/value");
-        		Enter_STR_SuspendMode();
+            	if (!access("/sys/class/gpio/gpio4", F_OK))
+        		{
+            		system("echo 0 >/sys/class/gpio/gpio4/value");
+        		}
+            	else
+            	{
+            		system("echo 4 >/sys/class/gpio/export");
+            	    system("echo out >/sys/class/gpio/gpio4/direction");
+            	    system("echo 0 >/sys/class/gpio/gpio4/value");
+            	}
+            	if (!access("/sys/class/gpio/gpio5", F_OK))
+        		{
+            		system("echo 0 >/sys/class/gpio/gpio5/value");
+        		}
+            	else
+            	{
+            		system("echo 5 >/sys/class/gpio/export");
+            	    system("echo out >/sys/class/gpio/gpio5/direction");
+            	    system("echo 0 >/sys/class/gpio/gpio5/value");
+            	}
 
-        		system("echo 1 >/sys/class/gpio/gpio73/value");
+        		Enter_STR_SuspendMode();
+        		if (!access("/sys/class/gpio/gpio73", F_OK))
+        		{
+        			system("echo 1 >/sys/class/gpio/gpio73/value");
+        		}
         		// stop wifi
         		//SSTAR_UnRegisterUsbListener(ShowUsbStatus);
         		//SSTAR_UnRegisterWifiStaConnListener(ShowWifiConnStatus);
@@ -359,10 +376,12 @@ void mainActivity::onSlideItemClick(ZKSlideWindow *pSlideWindow, int index) {
         		system("echo mem > /sys/power/state");
         		//usleep(2*1000*1000);
         		printf("resume back\n");
-        		system("echo 1 >/sys/class/gpio/gpio5/value");
-        		system("echo 1 >/sys/class/gpio/gpio4/value");
+        		//system("echo 1 >/sys/class/gpio/gpio5/value");
+        		//system("echo 1 >/sys/class/gpio/gpio4/value");
         		system("echo 0 >/sys/class/gpio/gpio73/value");
         		Enter_STR_ResumeMode();
+        		system("echo 1 >/sys/class/gpio/gpio5/value");
+        		system("echo 1 >/sys/class/gpio/gpio4/value");
 
         		// start wifi
         		//SSTAR_InitHotplugDetect();
