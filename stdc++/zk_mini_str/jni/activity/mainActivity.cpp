@@ -275,9 +275,13 @@ void mainActivity::onSlideItemClick(ZKSlideWindow *pSlideWindow, int index) {
         		//usleep(2*1000*1000);
         		printf("resume back\n");
         		system("echo 1 >/sys/class/gpio/gpio5/value");
+        		Enter_STR_ResumeMode();
+        		usleep(30*1000);
+
         		system("echo 1 >/sys/class/gpio/gpio4/value");
         		system("echo 0 >/sys/class/gpio/gpio73/value");
-        		Enter_STR_ResumeMode();
+
+        		break;
 
         		// start wifi
         		//SSTAR_InitHotplugDetect();
