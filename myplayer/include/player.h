@@ -159,6 +159,7 @@ typedef struct {
     int audio_only;
     int video_only;
     int play_mode;
+    int x, y, w, h;
 } player_opts_t;
 
 typedef struct {
