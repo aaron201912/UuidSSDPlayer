@@ -39,6 +39,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <signal.h>
+#include <errno.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -46,8 +47,9 @@
 #include <sys/types.h>
 #include <sys/time.h>
 
-#define CLT_IPC     "/appconfigs/client_input"
-#define SVC_IPC     "/appconfigs/server_input"
+#define CLT_IPC         "/appconfigs/client_input"
+#define SVC_IPC         "/appconfigs/server_input"
+#define MYPLAYER_PATH   "/customer/MyPlayer &"
 
 typedef enum
 {
@@ -169,7 +171,7 @@ public:
             return false;
         }
         if (m_fd < 0) {
-            m_fd = open(m_file.c_str(), O_RDWR | O_NONBLOCK);
+            m_fd = open(m_file.c_str(), O_RDWR | O_CREAT | O_NONBLOCK, S_IRWXU | S_IWOTH);
             printf("IPCInput m_fd = %d\n", m_fd);
         }
         return m_fd >= 0;
@@ -1229,6 +1231,7 @@ void DetectUsbHotplug(UsbParam_t *pstUsbParam)		// action 0, connect; action 1, 
 
 #define USE_POPEN       1
 FILE *player_fd = NULL;
+extern int errno;
 
 static void StartPlayStreamFile(char *pFileName)
 {
@@ -1242,11 +1245,19 @@ static void StartPlayStreamFile(char *pFileName)
 
     if(!i_server.Init()) {
         printf("[%s %d]create i_server fail!\n", __FILE__, __LINE__);
+        fprintf(stderr, "Error：%s\n", strerror(errno));
+        mTextview_msgPtr->setText("Other Error Occur!");
+        mWindow_errMsgPtr->setVisible(true);
+
+        pthread_mutex_lock(&g_playFileMutex);
+        g_bPlayError = true;
+        pthread_mutex_unlock(&g_playFileMutex);
+
         return;
     }
 
     #if USE_POPEN
-    player_fd = popen("./MyPlayer &", "w");
+    player_fd = popen(MYPLAYER_PATH, "w");
     if (NULL == player_fd) {
         printf("my_player is not exit!\n");
         return;
@@ -1280,6 +1291,7 @@ static void StartPlayStreamFile(char *pFileName)
 
     if(!o_client.Init()) {
         printf("[%s %d]my_player process not start!\n", __FILE__, __LINE__);
+        fprintf(stderr, "Error：%s\n", strerror(errno));
         return;
     }
 
@@ -1396,45 +1408,50 @@ static void StopPlayStreamFile()
 #ifdef SUPPORT_PLAYER_PROCESS
     struct timeval time_start, time_wait;
 
+    system("echo 0 > /sys/class/gpio/gpio12/value");
+
     if(!o_client.Init()) {
         printf("my_player is not start!\n");
+        fprintf(stderr, "Error：%s\n", strerror(errno));
         i_server.Term();
-        return;
+    } else {
+        memset(&sendevt, 0, sizeof(IPCEvent));
+        #if USE_POPEN
+        sendevt.EventType = IPC_COMMAND_EXIT;
+        #else
+        sendevt.EventType = IPC_COMMAND_CLOSE;
+        #endif
+        o_client.Send(sendevt);
+
+        #if USE_POPEN
+        memset(&recvevt, 0, sizeof(IPCEvent));
+        gettimeofday(&time_start, NULL);
+        while (i_server.Read(recvevt) <= 0
+               || (recvevt.EventType != IPC_COMMAND_DESTORY)) {
+            usleep(10 * 1000);
+            gettimeofday(&time_wait, NULL);
+            if (time_wait.tv_sec - time_start.tv_sec > 2) {
+                printf("myplayer progress destory failed!\n");
+                break;
+            }
+        }
+        if (recvevt.EventType == IPC_COMMAND_DESTORY) {
+            printf("myplayer progress destory done!\n");
+        }
+        if (player_fd) {
+            pclose(player_fd);
+            player_fd = NULL;
+        }
+        #endif
+
+        i_server.Term();
+        o_client.Term();
+        system("rm -rf /appconfigs/server_input");
+        printf("remove server_input file\n");
     }
 
-    system("echo 0 > /sys/class/gpio/gpio12/value");
     g_bPlaying = false;
     g_bPause = false;
-
-    memset(&sendevt, 0, sizeof(IPCEvent));
-    #if USE_POPEN
-    sendevt.EventType = IPC_COMMAND_EXIT;
-    #else
-    sendevt.EventType = IPC_COMMAND_CLOSE;
-    #endif
-    o_client.Send(sendevt);
-
-    #if USE_POPEN
-    memset(&recvevt, 0, sizeof(IPCEvent));
-    gettimeofday(&time_start, NULL);
-    while (i_server.Read(recvevt) <= 0
-           || (recvevt.EventType != IPC_COMMAND_DESTORY)) {
-        usleep(10 * 1000);
-        gettimeofday(&time_wait, NULL);
-        if (time_wait.tv_sec - time_start.tv_sec > 2) {
-            printf("myplayer progress destory failed!\n");
-            break;
-        }
-    }
-    if (recvevt.EventType == IPC_COMMAND_DESTORY) {
-        printf("myplayer progress destory done!\n");
-    }
-    pclose(player_fd);
-    player_fd = NULL;
-    #endif
-
-    i_server.Term();
-    o_client.Term();
 
     ResetSpeedMode();
     SetPlayingStatus(false);

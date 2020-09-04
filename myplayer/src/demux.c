@@ -66,7 +66,13 @@ static void * demux_thread(void *arg)
 
     //AVPacket *pkt = av_packet_alloc();
     AVPacket packet, *pkt = &packet;
-    CheckFuncResult(pthread_mutex_init(&wait_mutex, NULL));
+
+    ret = pthread_mutex_init(&wait_mutex, NULL);
+    if (ret != 0) {
+        av_log(NULL, AV_LOG_ERROR, "pthread_mutex_init failed!\n");
+        return NULL;
+    }
+
     is->eof = 0;
 
     // 4. 解复用处理
@@ -356,6 +362,13 @@ static int demux_init(player_stat_t *is)
     }
     printf("audio idx: %d,video idx: %d\n",a_idx,v_idx);
 
+    if (p_fmt_ctx->duration == AV_NOPTS_VALUE) {
+        p_fmt_ctx->duration = 0;
+    }
+    if (p_fmt_ctx->start_time == AV_NOPTS_VALUE) {
+        p_fmt_ctx->start_time = 0;
+    }
+
     double totle_seconds = p_fmt_ctx->duration * av_q2d(AV_TIME_BASE_Q);
     printf("start time : %.3f, total time of input file : %0.3f\n", p_fmt_ctx->start_time * av_q2d(AV_TIME_BASE_Q), totle_seconds);
     av_dump_format(p_fmt_ctx, 0, is->filename, 0);
@@ -390,7 +403,7 @@ static int demux_init(player_stat_t *is)
         {
             if (is->p_video_stream->codecpar->width * is->p_video_stream->codecpar->height > 1280 * 720) 
             {
-                if(a_idx != -1)
+                if(a_idx != -1 && strncmp(p_fmt_ctx->iformat->name, "mp3", 3))
                 {
                     printf("soft solution of video cannot over 720P[%d]!\n",is->p_video_stream->codecpar->codec_id);
                     ret = -1;

@@ -574,7 +574,10 @@ static int open_audio_playing(void *arg)
         av_log(NULL, AV_LOG_INFO, "get g_audio_chlayout = %llu\n", g_audio_chlayout);
     }
 
-    my_audio_init(AUDIO_DEV);
+    ret = my_audio_init(AUDIO_DEV);
+    if (ret < 0) {
+        return -1;
+    }
     is->enable_audio=  true;
 
     is->audio_param_tgt.fmt = AUDIO_INPUT_SAMPFMT;
@@ -635,10 +638,14 @@ int my_audio_deinit(void)
     system("echo 0 > /sys/class/gpio/gpio12/value");
 
     /* disable ao channel of */
-    MI_AO_DisableChn(AoDevId, AoChn);
+    CheckFuncResult(MI_AO_DisableChn(AoDevId, AoChn));
 
     /* disable ao device */
-    MI_AO_Disable(AoDevId);
+    CheckFuncResult(MI_AO_Disable(AoDevId));
+
+#ifdef ENABLE_STR
+    CheckFuncResult(MI_AO_DeInitDev());
+#endif
 
     g_audio_chlayout = 0;
     printf("reset g_audio_chlayout [%llu]\n", g_audio_chlayout);
@@ -658,6 +665,13 @@ int my_audio_init(int nAoDevId)
 
     system("echo 1 > /sys/class/gpio/gpio12/value");
 
+#ifdef ENABLE_STR
+    MI_AO_InitParam_t stInitParam;
+    stInitParam.u32DevId = AoDevId;
+    stInitParam.u8Data = NULL;
+    CheckFuncResult(MI_AO_InitDev(&stInitParam));
+#endif
+
     //set Ao Attr struct
     memset(&stSetAttr, 0, sizeof(MI_AUDIO_Attr_t));
     stSetAttr.eBitwidth = E_MI_AUDIO_BIT_WIDTH_16;
@@ -676,23 +690,23 @@ int my_audio_init(int nAoDevId)
     stSetAttr.eSamplerate = E_MI_AUDIO_SAMPLE_RATE_48000;
 
     /* set ao public attr*/
-    MI_AO_SetPubAttr(AoDevId, &stSetAttr);
+    CheckFuncResult(MI_AO_SetPubAttr(AoDevId, &stSetAttr));
 
     /* get ao device*/
-    MI_AO_GetPubAttr(AoDevId, &stGetAttr);
+    CheckFuncResult(MI_AO_GetPubAttr(AoDevId, &stGetAttr));
 
     /* enable ao device */
-    MI_AO_Enable(AoDevId);
+    CheckFuncResult(MI_AO_Enable(AoDevId));
 
     /* enable ao channel of device*/
-    MI_AO_EnableChn(AoDevId, AoChn);
+    CheckFuncResult(MI_AO_EnableChn(AoDevId, AoChn));
 
     /* if test AO Volume */
     s32SetVolumeDb = 0;
-    MI_AO_SetVolume(AoDevId, s32SetVolumeDb);
+    CheckFuncResult(MI_AO_SetVolume(AoDevId, s32SetVolumeDb));
 
     /* get AO volume */
-    MI_AO_GetVolume(AoDevId, &s32GetVolumeDb);
+    CheckFuncResult(MI_AO_GetVolume(AoDevId, &s32GetVolumeDb));
 
     printf("my_player enable audio[%d] done!\n", AoDevId);
 

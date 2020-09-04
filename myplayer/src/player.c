@@ -308,7 +308,11 @@ player_stat_t *player_init(const char *p_input_file)
     packet_queue_put(&is->video_pkt_queue, &v_flush_pkt);
     packet_queue_put(&is->audio_pkt_queue, &a_flush_pkt);
 
-    CheckFuncResult(pthread_cond_init(&is->continue_read_thread,NULL));
+    int ret;
+    ret = pthread_cond_init(&is->continue_read_thread,NULL);
+    if (ret != 0) {
+        goto fail;
+    }
 
     init_clock(&is->video_clk, &is->video_pkt_queue.serial);
     init_clock(&is->audio_clk, &is->audio_pkt_queue.serial);

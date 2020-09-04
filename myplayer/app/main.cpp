@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <string>
@@ -136,7 +137,7 @@ public:
             return false;
         }
         if (m_fd < 0) {
-            m_fd = open(m_file.c_str(), O_RDWR | O_NONBLOCK);
+            m_fd = open(m_file.c_str(), O_RDWR | O_CREAT | O_NONBLOCK, S_IRWXU | S_IWOTH);
             printf("IPCInput m_fd = %d\n", m_fd);
         }
         return m_fd >= 0;
@@ -167,6 +168,7 @@ private:
 
 struct timeval time_now, time_last;
 static bool g_playing = false;
+extern int errno;
 
 int main(int argc, char *argv[]) 
 {
@@ -181,6 +183,7 @@ int main(int argc, char *argv[])
     IPCInput i_client(CLT_IPC);
     if(!i_client.Init()) {
         printf("create myplayer ipc input fail\n");
+        fprintf(stderr, "Error：%s\n", strerror(errno));
         return -1;
     }
 
@@ -189,6 +192,7 @@ int main(int argc, char *argv[])
     #if USE_POPEN
     if(!o_server.Init()) {
         printf("Main Process Not start!!!\n");
+        fprintf(stderr, "Error：%s\n", strerror(errno));
         return -1;
     }
 

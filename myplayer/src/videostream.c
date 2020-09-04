@@ -1319,6 +1319,13 @@ int my_display_set(player_stat_t *is)
 
         MI_GFX_Open();
 
+#ifdef ENABLE_STR
+        MI_DIVP_InitParam_t stInitParam;
+        stInitParam.u32DevId = 0;
+        stInitParam.u8Data = NULL;
+        MI_DIVP_InitDev(&stInitParam);
+#endif
+
         memset(&stInputPortAttr, 0, sizeof(MI_DISP_InputPortAttr_t));
         MI_DISP_GetInputPortAttr(0, 0, &stInputPortAttr);
         stInputPortAttr.u16SrcWidth         = ALIGN_BACK(is->src_width , 32);
@@ -1386,6 +1393,13 @@ int my_display_set(player_stat_t *is)
         MI_SYS_ChnPort_t stDispChnPort;
 
         MI_GFX_Open();
+
+#ifdef ENABLE_STR
+        MI_DIVP_InitParam_t stInitParam;
+        stInitParam.u32DevId = 0;
+        stInitParam.u8Data = NULL;
+        MI_DIVP_InitDev(&stInitParam);
+#endif
 
         memset(&stInputPortAttr, 0, sizeof(MI_DISP_InputPortAttr_t));
         MI_DISP_GetInputPortAttr(0, 0, &stInputPortAttr);
@@ -1493,6 +1507,10 @@ int my_display_unset(player_stat_t *is)
         MI_DIVP_StopChn(0);
         MI_DIVP_DestroyChn(0);
 
+#ifdef ENABLE_STR
+        MI_DIVP_DeInitDev();
+#endif
+
         MI_GFX_Close();
     }else {
 #if USE_DIVP_MODULE
@@ -1516,6 +1534,10 @@ int my_display_unset(player_stat_t *is)
         MI_DIVP_StopChn(0);
         MI_DIVP_DestroyChn(0);
 
+#ifdef ENABLE_STR
+        MI_DIVP_DeInitDev();
+#endif
+
         MI_GFX_Close();
 #endif
     }
@@ -1538,6 +1560,13 @@ int my_video_init(player_stat_t *is)
     MI_SYS_ChnPort_t stDivpChnPort;
 
     MI_GFX_Open();
+
+#ifdef ENABLE_STR
+    MI_DIVP_InitParam_t stInitParam;
+    stInitParam.u32DevId = 0;
+    stInitParam.u8Data = NULL;
+    MI_DIVP_InitDev(&stInitParam);
+#endif
 
     // 1.初始化DISP
     MI_DISP_GetInputPortAttr(0, 0, &stInputPortAttr);
@@ -1619,6 +1648,10 @@ int my_video_deinit(void)
 
     MI_DIVP_StopChn(0);
     MI_DIVP_DestroyChn(0);
+
+#ifdef ENABLE_STR
+    MI_DIVP_DeInitDev();
+#endif
 
     MI_GFX_Close();
 

@@ -4,10 +4,17 @@ CC  = $(CROSS_COMPILE)gcc
 CPP = $(CROSS_COMPILE)g++
 AR  = $(CROSS_COMPILE)ar
 
-PROJECT_PATH = $(CURRENT_PATH)/../../stdc++/zk_full/jni/
+# config for str
+CONFIG_ENABLE_STR = 
 
 # config hdmi or panel display
 CONFIG_SUPPORT_HDMI = 
+
+ifeq ($(CONFIG_ENABLE_STR),enable)
+PROJECT_PATH = $(CURRENT_PATH)/../../stdc++/zk_full_str/jni/
+else
+PROJECT_PATH = $(CURRENT_PATH)/../../stdc++/zk_full/jni/
+endif
 
 COM_FLAGS = -Wall -O2 -fPIC -mcpu=cortex-a9 -mfpu=neon-fp16 -mfloat-abi=hard -mthumb-interwork -marm -g -funwind-tables -ffunction-sections -rdynamic
 C_FLAGS   = $(COM_FLAGS) -std=c11
@@ -36,6 +43,11 @@ CPP_FLAGS += -DSUPPORT_HDMI
 LIB_NAME  += -lmi_hdmi
 else
 LIB_NAME  += -lmi_panel
+endif
+
+ifeq ($(CONFIG_ENABLE_STR),enable)
+C_FLAGS   += -DENABLE_STR
+CPP_FLAGS += -DENABLE_STR
 endif
 
 .PHONY: all prepare clean
