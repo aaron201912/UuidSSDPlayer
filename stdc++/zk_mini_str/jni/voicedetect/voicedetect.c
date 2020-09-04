@@ -645,6 +645,7 @@ static MI_S32 SSTAR_AudioInStop()
     ExecFunc(MI_AI_DisableVqe(AiDevId, AiChn), MI_SUCCESS);
     ExecFunc(MI_AI_DisableChn(AiDevId, AiChn), MI_SUCCESS);
     ExecFunc(MI_AI_Disable(AiDevId), MI_SUCCESS);
+    ExecFunc(MI_AI_DeInitDev(),MI_SUCCESS);
 
     return MI_SUCCESS;
 }
