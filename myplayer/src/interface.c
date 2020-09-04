@@ -20,7 +20,7 @@ static player_stat_t *ssplayer = NULL;
 static bool g_mute = false;
 static int g_rotate = E_MI_DISP_ROTATE_NONE;
 
-player_opts_t g_opts = {0, 0, AV_ONCE};
+player_opts_t g_opts = {0, 0, AV_ONCE, 0, 0, 0, 0};
 
 static void * my_layer_handler(void * arg)
 {
@@ -90,10 +90,20 @@ int my_player_open(const char *fp, uint16_t x, uint16_t y, uint16_t width, uint1
 
     memcpy(&ssplayer->opts, &g_opts, sizeof(player_opts_t));
     ssplayer->display_mode = g_rotate;
-    ssplayer->in_height = height;
-    ssplayer->in_width  = width;
-    ssplayer->pos_x = x;
-    ssplayer->pos_y = y;
+
+    //如果没有提前设置windows大小,默认使用传入的参数
+    if (g_opts.w < 8 || g_opts.h < 8) {
+        ssplayer->in_height = height;
+        ssplayer->in_width  = width;
+        ssplayer->pos_x = x;
+        ssplayer->pos_y = y;
+    } else {
+        ssplayer->in_height = g_opts.h;
+        ssplayer->in_width  = g_opts.w;
+        ssplayer->pos_x = g_opts.x;
+        ssplayer->pos_y = g_opts.y;
+    }
+
     av_log(NULL, AV_LOG_INFO, "set out width/height = [%d %d]\n", ssplayer->in_width, ssplayer->in_height);
 
     if(my_layer_handler(ssplayer) == NULL)
@@ -379,5 +389,50 @@ int my_player_set_mute(bool mute)
     return 0;
 }
 
+int my_player_set_window(int x, int y, int width, int height)
+{
+    if (width < 8 || height < 8) {
+        NANOX_ERR("set window param is invalid!\n");
+        return -1;
+    }
+
+    if (ssplayer == NULL) {
+        g_opts.x = x;
+        g_opts.y = y;
+        g_opts.w = width;
+        g_opts.h = height;
+    } else {
+#if USE_DIVP_MODULE
+        ssplayer->src_width  = width;
+        ssplayer->src_height = height;
+        ssplayer->out_width  = width;
+        ssplayer->out_height = height;
+        ssplayer->pos_x = x;
+        ssplayer->pos_y = y;
+
+        MI_DIVP_OutputPortAttr_t stOutputPortAttr;
+        MI_DISP_InputPortAttr_t stInputPortAttr;
+
+        MI_DIVP_GetOutputPortAttr(0, &stOutputPortAttr);
+        stOutputPortAttr.u32Width  = ALIGN_BACK(ssplayer->src_width , 32);
+        stOutputPortAttr.u32Height = ALIGN_BACK(ssplayer->src_height, 32);
+        MI_DIVP_SetOutputPortAttr(0, &stOutputPortAttr);
+
+        MI_DISP_GetInputPortAttr(0, 0, &stInputPortAttr);
+        stInputPortAttr.u16SrcWidth         = ALIGN_BACK(ssplayer->src_width , 32);
+        stInputPortAttr.u16SrcHeight        = ALIGN_BACK(ssplayer->src_height, 32);
+        stInputPortAttr.stDispWin.u16X      = ssplayer->pos_x;
+        stInputPortAttr.stDispWin.u16Y      = ssplayer->pos_y;
+        stInputPortAttr.stDispWin.u16Width  = ssplayer->out_width;
+        stInputPortAttr.stDispWin.u16Height = ssplayer->out_height;
+        MI_DISP_SetInputPortAttr(DISP_LAYER, DISP_INPUTPORT, &stInputPortAttr);
+#else
+        NANOX_ERR("divp module is not enable!\n");
+#endif
+    }
+    NANOX_LOG("my_player_set_window =  [%d %d %d %d]\n", x, y, width, height);
+
+    return 0;
+}
 
 

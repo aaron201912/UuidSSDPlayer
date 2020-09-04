@@ -42,6 +42,7 @@ extern "C"{
     if (result != SUCCESS)\
     {\
         printf("[%s %d]exec function failed\n", __FUNCTION__, __LINE__);\
+        return -1;\
     }\
 
 /* no AV sync correction is done if below the minimum AV sync threshold */
@@ -159,6 +160,7 @@ typedef struct {
     int audio_only;
     int video_only;
     int play_mode;
+    int x, y, w, h;
 } player_opts_t;
 
 typedef struct {

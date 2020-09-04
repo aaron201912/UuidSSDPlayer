@@ -7,6 +7,8 @@ extern "C"{
 
 #include "player.h"
 
+#define USE_DIVP_MODULE     0
+
 #define HARD_DECODING       1
 #define SOFT_DECODING       0
 

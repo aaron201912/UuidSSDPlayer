@@ -39,6 +39,7 @@ int my_player_set_aodev(int dev);
 int my_player_set_rotate(int rotate);
 int my_player_set_volumn(int volumn);
 int my_player_set_mute(bool mute);
+int my_player_set_window(int x, int y, int width, int height);
 
 
 #ifdef __cplusplus
