@@ -1728,82 +1728,84 @@ static void *PlayFileProc(void *pData)
 			}
 		}
 #ifdef SUPPORT_PLAYER_PROCESS
-		memset(&recvevt, 0, sizeof(IPCEvent));
-	    if (i_server.Read(recvevt) > 0) {
-	    	switch (recvevt.EventType)
-	    	{
-	    		case IPC_COMMAND_GET_DURATION : {
-	    			char totalTime[32];
-	    			long int durationSec = recvevt.stPlData.misc / 1.0;
+        if (g_playStream) {
+            memset(&recvevt, 0, sizeof(IPCEvent));
+            if (i_server.Read(recvevt) > 0) {
+                switch (recvevt.EventType)
+                {
+                    case IPC_COMMAND_GET_DURATION : {
+                        char totalTime[32];
+                        long int durationSec = recvevt.stPlData.misc / 1.0;
 
-	    			if (durationSec / 3600 < 99) {
-						memset(totalTime, 0, sizeof(totalTime));
-						sprintf(totalTime, "%02d:%02d:%02d", durationSec/3600, (durationSec%3600)/60, durationSec%60);
-						mTextview_durationPtr->setText(totalTime);
-						g_duration = durationSec;
-	    				printf("file duration time = %lld\n", g_duration);
-	    			}
-	    		}
-	    		break;
+                        if (durationSec / 3600 < 99) {
+                            memset(totalTime, 0, sizeof(totalTime));
+                            sprintf(totalTime, "%02d:%02d:%02d", durationSec/3600, (durationSec%3600)/60, durationSec%60);
+                            mTextview_durationPtr->setText(totalTime);
+                            g_duration = durationSec;
+                            printf("file duration time = %lld\n", g_duration);
+                        }
+                    }
+                    break;
 
-	    		case IPC_COMMAND_GET_POSITION : {
-	    		    char curTime[32];
-	    		    int curSec = recvevt.stPlData.misc / 1.0;
-	    		    int trackPos;
-	    		    //printf("get video current position time = %d\n", curSec);
-	    		    memset(curTime, 0, sizeof(curTime));
-	    		    sprintf(curTime, "%02d:%02d:%02d", curSec/3600, (curSec%3600)/60, curSec%60);
-	    		    mTextview_curtimePtr->setText(curTime);
+                    case IPC_COMMAND_GET_POSITION : {
+                        char curTime[32];
+                        int curSec = recvevt.stPlData.misc / 1.0;
+                        int trackPos;
+                        //printf("get video current position time = %d\n", curSec);
+                        memset(curTime, 0, sizeof(curTime));
+                        sprintf(curTime, "%02d:%02d:%02d", curSec/3600, (curSec%3600)/60, curSec%60);
+                        mTextview_curtimePtr->setText(curTime);
 
-	    		    trackPos  = (curSec * mSeekbar_progressPtr->getMax()) / g_duration;
-	    		    mSeekbar_progressPtr->setProgress(trackPos);
-	    		}
-	    		break;
+                        trackPos  = (curSec * mSeekbar_progressPtr->getMax()) / g_duration;
+                        mSeekbar_progressPtr->setProgress(trackPos);
+                    }
+                    break;
 
-	    		case IPC_COMMAND_ERROR : {
-	    		    if (recvevt.stPlData.status == -101)
-	    		        mTextview_msgPtr->setText("请检查网络连接！");
-	    		    else if (recvevt.stPlData.status == -2)
-	    		        mTextview_msgPtr->setText("不支持播放720P以上的视频！");
-	    		    else if (recvevt.stPlData.status == -3)
-	    		        mTextview_msgPtr->setText("解码速度不够，请降低视频帧率！");
-	    		    else if (recvevt.stPlData.status == -4)
-	    		        mTextview_msgPtr->setText("读取网络超时！");
-	    		    else
-	    		        mTextview_msgPtr->setText("Other Error Occur!");
+                    case IPC_COMMAND_ERROR : {
+                        if (recvevt.stPlData.status == -101)
+                            mTextview_msgPtr->setText("请检查网络连接！");
+                        else if (recvevt.stPlData.status == -2)
+                            mTextview_msgPtr->setText("不支持播放720P以上的视频！");
+                        else if (recvevt.stPlData.status == -3)
+                            mTextview_msgPtr->setText("解码速度不够，请降低视频帧率！");
+                        else if (recvevt.stPlData.status == -4)
+                            mTextview_msgPtr->setText("读取网络超时！");
+                        else
+                            mTextview_msgPtr->setText("Other Error Occur!");
 
-	    		    mWindow_errMsgPtr->setVisible(true);
+                        mWindow_errMsgPtr->setVisible(true);
 
-	    		    pthread_mutex_lock(&g_playFileMutex);
-	    			g_bPlayError = true;
-	    			pthread_mutex_unlock(&g_playFileMutex);
-	    			printf("[%s] play error!\n", curFileName);
-	    		}
-	    		break;
+                        pthread_mutex_lock(&g_playFileMutex);
+                        g_bPlayError = true;
+                        pthread_mutex_unlock(&g_playFileMutex);
+                        printf("[%s] play error!\n", curFileName);
+                    }
+                    break;
 
-	    		case IPC_COMMAND_COMPLETE : {
-	    			SetPlayingStatus(false);
-	    			mTextview_speedPtr->setText("");
-	    			g_bShowPlayToolBar = FALSE;
+                    case IPC_COMMAND_COMPLETE : {
+                        SetPlayingStatus(false);
+                        mTextview_speedPtr->setText("");
+                        g_bShowPlayToolBar = FALSE;
 
-	    			pthread_mutex_lock(&g_playFileMutex);
-	    			g_bPlayCompleted = true;
-	    			pthread_mutex_unlock(&g_playFileMutex);
-	    			printf("[%s] play complete!\n", curFileName);
-	    		}
-	    		break;
+                        pthread_mutex_lock(&g_playFileMutex);
+                        g_bPlayCompleted = true;
+                        pthread_mutex_unlock(&g_playFileMutex);
+                        printf("[%s] play complete!\n", curFileName);
+                    }
+                    break;
 
-	    		default : break;
-	    	}
-	    }
+                    default : break;
+                }
+            }
+        }
 #endif
-		usleep(100 * 1000);
-	}
+        usleep(100 * 1000);
+    }
 
-	StopPlayFile();
-	g_fileName = curFileName;
-	printf("### PlayFileProc Exit ###\n");
-	return NULL;
+    StopPlayFile();
+    g_fileName = curFileName;
+    printf("### PlayFileProc Exit ###\n");
+    return NULL;
 }
 #endif
 
