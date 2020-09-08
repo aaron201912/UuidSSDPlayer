@@ -77,6 +77,10 @@ double get_master_clock(player_stat_t *is)
 // 返回值：返回上一帧的pts更新值(上一帧pts+流逝的时间)
 double get_clock(play_clock_t *c)
 {
+    if (!c->queue_serial)
+    {
+        return NAN;
+    }
     if (*c->queue_serial != c->serial)
     {
         return NAN;

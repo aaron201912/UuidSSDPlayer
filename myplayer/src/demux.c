@@ -197,7 +197,7 @@ static void * demux_thread(void *arg)
                 av_log(NULL, AV_LOG_ERROR, "ret : %d, feof : %d\n", ret, avio_feof(is->p_fmt_ctx->pb));
             } else {
                 // 针对硬解码, 需要多送几张null包, 唤醒解码线程从vdec取出最后几张frame
-                if (is->video_idx >= 0 && !is->paused && is->eof && !is->video_pkt_queue.size && !is->video_complete) {
+                if (is->video_idx >= 0 && !is->paused && is->eof && !is->video_pkt_queue.size && !is->video_complete && is->decoder_type) {
                     packet_queue_put_nullpacket(&is->video_pkt_queue, is->video_idx);
                 }
             }
@@ -387,6 +387,7 @@ static int demux_init(player_stat_t *is)
     if (a_idx >= 0) {
         is->p_audio_stream = p_fmt_ctx->streams[a_idx];
         is->audio_complete = 0;
+        is->av_sync_type = AV_SYNC_AUDIO_MASTER;
     }
 
     if (v_idx >= 0) {
@@ -434,6 +435,10 @@ static int demux_init(player_stat_t *is)
             }
         }
         is->video_complete = 0;
+
+        if (a_idx < 0) {
+            is->av_sync_type = AV_SYNC_VIDEO_MASTER;
+        }
     }
 
     prctl(PR_SET_NAME, "demux_read");

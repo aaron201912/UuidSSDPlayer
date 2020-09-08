@@ -1321,6 +1321,7 @@ int my_display_set(player_stat_t *is)
 
 #ifdef ENABLE_STR
         MI_DIVP_InitParam_t stInitParam;
+        memset(&stInitParam, 0x0, sizeof(MI_DIVP_InitParam_t));
         stInitParam.u32DevId = 0;
         stInitParam.u8Data = NULL;
         MI_DIVP_InitDev(&stInitParam);
@@ -1396,6 +1397,7 @@ int my_display_set(player_stat_t *is)
 
 #ifdef ENABLE_STR
         MI_DIVP_InitParam_t stInitParam;
+        memset(&stInitParam, 0x0, sizeof(MI_DIVP_InitParam_t));
         stInitParam.u32DevId = 0;
         stInitParam.u8Data = NULL;
         MI_DIVP_InitDev(&stInitParam);
@@ -1563,6 +1565,7 @@ int my_video_init(player_stat_t *is)
 
 #ifdef ENABLE_STR
     MI_DIVP_InitParam_t stInitParam;
+    memset(&stInitParam, 0x0, sizeof(MI_DIVP_InitParam_t));
     stInitParam.u32DevId = 0;
     stInitParam.u8Data = NULL;
     MI_DIVP_InitDev(&stInitParam);

@@ -667,6 +667,7 @@ int my_audio_init(int nAoDevId)
 
 #ifdef ENABLE_STR
     MI_AO_InitParam_t stInitParam;
+    memset(&stInitParam, 0x0, sizeof(MI_AO_InitParam_t));
     stInitParam.u32DevId = AoDevId;
     stInitParam.u8Data = NULL;
     CheckFuncResult(MI_AO_InitDev(&stInitParam));
