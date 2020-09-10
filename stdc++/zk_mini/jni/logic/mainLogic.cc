@@ -107,7 +107,7 @@ const char* IconTab[]={
 		"qrcodeActivity",
 		"animationActivity",
 		"uartActivity",
-		"networkSettingActivity",
+		"networkSettingActivity"
 };
 
 static void onSlideItemClick_Slidewindow1(ZKSlideWindow *pSlideWindow, int index) {

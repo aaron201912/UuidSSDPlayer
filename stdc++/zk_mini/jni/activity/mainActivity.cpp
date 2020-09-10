@@ -242,10 +242,20 @@ void mainActivity::onItemClick(ZKListView *pListView, int index, int id){
 
 void mainActivity::onSlideItemClick(ZKSlideWindow *pSlideWindow, int index) {
     int tablen = sizeof(SSlideWindowItemClickCallbackTab) / sizeof(S_SlideWindowItemClickCallback);
-    for (int i = 0; i < tablen; ++i) {
-        if (SSlideWindowItemClickCallbackTab[i].id == pSlideWindow->getID()) {
-            SSlideWindowItemClickCallbackTab[i].onSlideItemClickCallback(pSlideWindow, index);
-            break;
+
+    for (int i = 0; i < tablen; ++i)
+    {
+        if (SSlideWindowItemClickCallbackTab[i].id == pSlideWindow->getID())
+        {
+        	if (index < (sizeof(IconTab) / sizeof(const char*)))
+        	{
+        		SSlideWindowItemClickCallbackTab[i].onSlideItemClickCallback(pSlideWindow, index);
+        		break;
+        	}
+        	else
+        	{
+        		// do str stuff
+        	}
         }
     }
 }

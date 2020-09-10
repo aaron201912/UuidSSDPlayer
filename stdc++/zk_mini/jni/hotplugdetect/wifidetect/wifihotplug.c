@@ -12,6 +12,7 @@
 #include <ctype.h>
 #include <errno.h>
 #include <pthread.h>
+#include <time.h>
 #include "wifihotplug.h"
 #include "list.h"
 
@@ -70,6 +71,13 @@ static int g_wifiStart = 0;
 //static list_t g_scanResListHead;
 static WifiScanResultListHead_t g_stScanResListHead;
 static ScanResult_t *g_pstScanRes = NULL;
+
+unsigned long GetTickCount()
+{
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (ts.tv_sec * 1000 + ts.tv_nsec / 1000000);
+}
 
 static void ClearScanResult()
 {
@@ -166,14 +174,17 @@ static int WifiInit()
 	}
 
 	// init wlan dev
+	printf("start to init wlan, system time: %ul\n", GetTickCount());
 	if (MI_WLAN_Init(&g_stParm) || MI_WLAN_Open(&g_stOpenParam))
 	{
 		//setWifiSupportStatus(false);
 		g_wifiSupported = 0;
 		printf("open wifi failed\n");
+		printf("wlan init failed, system time: %ul\n", GetTickCount());
 		return -1;
 	}
 
+	printf("wlan init success, system time: %ul\n", GetTickCount());
 	return 0;
 }
 
@@ -441,7 +452,7 @@ static void *WlanWorkProc(void *pdata)
     {
     	if (!access("/sys/bus/usb", F_OK) && !access("/config/wifi", F_OK) && !access("/appconfigs", F_OK))
 		{
-			printf("wifi ko mount ok\n");
+			printf("wifi ko mount ok, currnet tryCnt is %d\n", checkCnt);
 			isWlanInsmode = 1;
 			break;
 		}
