@@ -361,7 +361,7 @@ void mainActivity::onSlideItemClick(ZKSlideWindow *pSlideWindow, int index) {
             	    system("echo out >/sys/class/gpio/gpio5/direction");
             	    system("echo 0 >/sys/class/gpio/gpio5/value");
             	}
-
+            	system("rmmod ssw101b_wifi_usb");
         		Enter_STR_SuspendMode();
         		if (!access("/sys/class/gpio/gpio73", F_OK))
         		{
@@ -376,12 +376,14 @@ void mainActivity::onSlideItemClick(ZKSlideWindow *pSlideWindow, int index) {
         		system("echo mem > /sys/power/state");
         		//usleep(2*1000*1000);
         		printf("resume back\n");
+        		system("echo 0 >/sys/class/gpio/gpio73/value");
         		system("echo 1 >/sys/class/gpio/gpio5/value");
         		Enter_STR_ResumeMode();
         		usleep(30*1000);
+        		system("insmod /config/wifi/ssw101b_wifi_HT40_usb.ko");
 
         		system("echo 1 >/sys/class/gpio/gpio4/value");
-        		system("echo 0 >/sys/class/gpio/gpio73/value");
+
 
         		break;
 
