@@ -183,12 +183,6 @@ static int video_decode_frame(AVCodecContext *p_codec_ctx, packet_queue_t *p_pkt
                     //av_log(NULL, AV_LOG_ERROR, "ret : %d, cann't fetch a frame, try again!\n", ret);
                     break;
                 }
-                else if (ret == MI_ERR_VDEC_FAILED)
-                {
-                    av_log(NULL, AV_LOG_ERROR, "vdec occur fatal erro in decoding!\n");
-                    g_myplayer->play_status = -1;
-                    return 0;
-                }
                 else
                 {
                     av_log(NULL, AV_LOG_ERROR, "video avcodec_receive_frame(): other errors\n");
@@ -240,9 +234,15 @@ static int video_decode_frame(AVCodecContext *p_codec_ctx, packet_queue_t *p_pkt
             //    pkt.pos变量可以标识当前packet在视频文件中的地址偏移
             //printf("send packet to decoder!\n");
             //printf("pkt pos: %lld\n",pkt.pos);
-            if (avcodec_send_packet(p_codec_ctx, &pkt) == AVERROR(EAGAIN))
+            ret = avcodec_send_packet(p_codec_ctx, &pkt);
+            if (ret == AVERROR(EAGAIN))
             {
                 av_log(NULL, AV_LOG_ERROR, "receive_frame and send_packet both returned EAGAIN, which is an API violation.\n");
+            }
+            else if (ret == MI_ERR_VDEC_FAILED)
+            {
+                av_log(NULL, AV_LOG_ERROR, "vdec occur fatal error in decoding!\n");
+                g_myplayer->play_status = -1;
             }
         }
         av_packet_unref(&pkt);

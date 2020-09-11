@@ -367,7 +367,12 @@ int main(int argc, char *argv[])
                 sendevt.EventType = IPC_COMMAND_ERROR;
                 sendevt.stPlData.status = g_myplayer->play_status;
                 o_server.Send(sendevt);
+
+                my_player_close();
+                g_playing = false;
+
                 av_log(NULL, AV_LOG_ERROR, "my_player occur error in playing!\n");
+                av_log(NULL, AV_LOG_ERROR, "please attemp to exit player!\n");
             }
             g_myplayer->play_status = 0;
         }
