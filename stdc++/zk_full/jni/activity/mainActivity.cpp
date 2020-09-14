@@ -141,6 +141,7 @@ typedef enum
   IPC_COMMAND_SETUP_WATERMARK,
   IPC_COMMAND_APP_START,
   IPC_COMMAND_APP_STOP,
+  IPC_COMMAND_UI_EXIT,
   IPC_COMMAND_MAX,
 } IPC_COMMAND_TYPE;
 
@@ -150,7 +151,8 @@ typedef struct {
   char StrData[256];
 } IPCEvent;
 
-#define SVC_IPC "/tmp/brown_svc_input"
+//#define SVC_IPC "/tmp/brown_svc_input"
+#define SSD_IPC "/tmp/ssd_apm_input"
 
 class IPCOutput {
 public:
@@ -300,6 +302,9 @@ void mainActivity::obtainListItemData(ZKListView *pListView,ZKListView::ZKListIt
 
 void mainActivity::onItemClick(ZKListView *pListView, int index, int id){
     int tablen = sizeof(SListViewFunctionsCallbackTab) / sizeof(S_ListViewFunctionsCallback);
+
+    printf("click index:%d, id:%d\n", index, id);
+
     for (int i = 0; i < tablen; ++i) {
         if (SListViewFunctionsCallbackTab[i].id == pListView->getID()) {
             SListViewFunctionsCallbackTab[i].onItemClickCallback(pListView, index, id);
@@ -310,19 +315,21 @@ void mainActivity::onItemClick(ZKListView *pListView, int index, int id){
 
 void mainActivity::onSlideItemClick(ZKSlideWindow *pSlideWindow, int index) {
     int tablen = sizeof(SSlideWindowItemClickCallbackTab) / sizeof(S_SlideWindowItemClickCallback);
+
     for (int i = 0; i < tablen; ++i)
     {
         if (SSlideWindowItemClickCallbackTab[i].id == pSlideWindow->getID())
         {
-            if (index < sizeof(IconTab)/sizeof(char*))
-            {
-                SSlideWindowItemClickCallbackTab[i].onSlideItemClickCallback(pSlideWindow, index);
-                break;
-            }
-            else
-            {
+        	if (index < (sizeof(IconTab) / sizeof(const char*)))
+        	{
+        		SSlideWindowItemClickCallbackTab[i].onSlideItemClickCallback(pSlideWindow, index);
+        		break;
+        	}
+        	else if (index == (sizeof(IconTab) / sizeof(const char*)))
+        	{
+        		//while (!MI_GFX_Close());
                 //browser start
-                IPCOutput o(SVC_IPC);
+        		IPCOutput o(SSD_IPC);
                 if(!o.Init())
                 {
                     printf("Brown process Not start!!!\n");
@@ -331,12 +338,16 @@ void mainActivity::onSlideItemClick(ZKSlideWindow *pSlideWindow, int index) {
                 IPCEvent sendevt;
                 memset(&sendevt,0,sizeof(IPCEvent));
                 sendevt.EventType = IPC_COMMAND;
-                sendevt.Data = IPC_COMMAND_APP_START;  //IPC_COMMAND_APP_STOP to stop browser fg
-
+                sendevt.Data = IPC_COMMAND_UI_EXIT;
                 o.Send(sendevt);
+                printf("UI process send %d to exit\n", IPC_COMMAND_UI_EXIT);
                 SSTAR_DeinitHotPlugDetect();
                 exit(0);
-            }
+        	}
+			else
+			{
+				// do str stuff
+			}
         }
     }
 }

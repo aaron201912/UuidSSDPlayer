@@ -72,6 +72,8 @@ static int g_wifiStart = 0;
 static WifiScanResultListHead_t g_stScanResListHead;
 static ScanResult_t *g_pstScanRes = NULL;
 
+static int  g_staInit = 0;
+
 unsigned long GetTickCount()
 {
     struct timespec ts;
@@ -184,6 +186,7 @@ static int WifiInit()
 		return -1;
 	}
 
+	g_staInit = 1;
 	printf("wlan init success, system time: %ul\n", GetTickCount());
 	return 0;
 }
@@ -218,10 +221,13 @@ static void WifiDeinit()
 	}
 	pthread_mutex_unlock(&g_scanCallbackListMutex);
 
-	MI_WLAN_Close(&g_stOpenParam);
-	sleep(3);			// test if the condition is needed
-	MI_WLAN_DeInit();
-
+	if (g_staInit)
+	{
+		MI_WLAN_Close(&g_stOpenParam);
+		sleep(3);			// test if the condition is needed
+		MI_WLAN_DeInit();
+		g_staInit = 0;
+	}
 	saveWifiConfig();
 
 	g_manuaConnect = 0;
