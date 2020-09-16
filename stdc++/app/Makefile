@@ -3,7 +3,7 @@ TARGET = zkgui
 #赋值对应的路径,此路径需要和本地sdk路径一致
 #PROJECT_PATH=/home/beal.wu/i2m_i6_master/project
 #PROJECT_PATH=/home/koda.xu/I6/master/project
-PROJECT_PATH = ../zk_full/jni/sdkdir
+PROJECT_PATH = ../zk_full_str/jni/sdkdir
 
 ZKGUI_PATH=./zkgui_dir
 ENABLE_HDMI = 0

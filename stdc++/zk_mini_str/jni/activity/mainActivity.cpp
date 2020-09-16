@@ -2,7 +2,12 @@
 /gen auto by zuitools
 ***********************************************/
 #include "mainActivity.h"
-
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 /*TAG:GlobalVariable全局变量*/
 static ZKListView* mListview_indicatorPtr;
 static ZKDigitalClock* mDigitalclock2Ptr;
@@ -113,6 +118,138 @@ typedef struct {
 }S_VideoViewCallback;
 /*TAG:VideoViewCallback*/
 static S_VideoViewCallback SVideoViewCallbackTab[] = {
+};
+
+
+typedef enum
+{
+  IPC_KEYEVENT = 0,
+  IPC_COMMAND,
+  IPC_LOGCMD,
+  IPC_EVENT_MAX,
+} IPC_EVENT_TYPE;
+
+typedef enum
+{
+  IPC_COMMAND_EXIT = 0,
+  IPC_COMMAND_SUSPEND,
+  IPC_COMMAND_RESUME,
+  IPC_COMMAND_RELOAD,
+  IPC_COMMAND_BROWN_GETFOCUS,
+  IPC_COMMAND_BROWN_LOSEFOCUS,
+  IPC_COMMAND_APP_START_DONE,
+  IPC_COMMAND_APP_STOP_DONE,
+  IPC_COMMAND_SETUP_WATERMARK,
+  IPC_COMMAND_APP_START,
+  IPC_COMMAND_APP_STOP,
+  IPC_COMMAND_UI_EXIT,
+  IPC_COMMAND_APP_SUSPEND,
+  IPC_COMMAND_APP_SUSPEND_DONE,
+  IPC_COMMAND_APP_RESUME,
+  IPC_COMMAND_APP_RESUME_DONE,
+  IPC_COMMAND_MAX,
+} IPC_COMMAND_TYPE;
+
+typedef struct {
+  uint32_t EventType;
+  uint32_t Data;
+  char StrData[256];
+} IPCEvent;
+
+#define SSD_IPC "/tmp/ssd_apm_input"
+#define UI_IPC	"/tmp/zkgui_msg_input"
+
+class IPCNameFifo {
+public:
+  IPCNameFifo(const char* file): m_file(file) {
+    unlink(m_file.c_str());
+    printf("mkfifo: %s\n",m_file.c_str());
+    m_valid = !mkfifo(m_file.c_str(), 0777);
+  }
+
+  ~IPCNameFifo() {
+    unlink(m_file.c_str());
+  }
+
+  inline const std::string& Path() { return m_file; }
+  inline bool IsValid() { return m_valid; }
+
+private:
+  bool m_valid;
+  std::string m_file;
+};
+
+class IPCInput {
+public:
+  IPCInput(const std::string& file):m_fd(-1),m_file(file),m_fifo(file.c_str()){
+  printf("construct ipcinput\n");}
+
+  virtual ~IPCInput() {
+    Term();
+  }
+  bool Init() {
+    if (!m_fifo.IsValid()){
+        printf("%s non-existent!!!! \n",m_fifo.Path().c_str());
+        return false;
+    }
+    if (m_fd < 0) {
+      m_fd = open(m_file.c_str(), O_RDWR | O_NONBLOCK);
+    }
+    return m_fd >= 0;
+  }
+
+  int Read(IPCEvent& evt) {
+    if (m_fd >= 0) {
+      return read(m_fd, &evt, sizeof(IPCEvent));
+    }
+    return 0;
+  }
+
+  void Term() {
+    if (m_fd >= 0) {
+      close(m_fd);
+      m_fd = -1;
+    }
+  }
+
+private:
+  int m_fd;
+  std::string m_file;
+  IPCNameFifo m_fifo;
+};
+
+class IPCOutput {
+public:
+  IPCOutput(const std::string& file):m_fd(-1), m_file(file) {
+  }
+
+  virtual ~IPCOutput() {
+    Term();
+  }
+
+  bool Init() {
+    if (m_fd < 0) {
+      m_fd = open(m_file.c_str(), O_WRONLY | O_NONBLOCK);
+    }
+    return m_fd >= 0;
+  }
+
+  void Term() {
+    if (m_fd >= 0) {
+      close(m_fd);
+      m_fd = -1;
+    }
+  }
+
+  void Send(const IPCEvent& evt) {
+    if (m_fd >= 0) {
+      write(m_fd, &evt, sizeof(IPCEvent));
+    }
+  }
+
+private:
+  int m_fd;
+  std::string m_file;
 };
 
 
@@ -278,6 +415,41 @@ void mainActivity::onSlideItemClick(ZKSlideWindow *pSlideWindow, int index) {
             	}
             	system("rmmod ssw101b_wifi_usb");
         		Enter_STR_SuspendMode();
+
+        		IPCOutput o(SSD_IPC);
+				if(!o.Init())
+				{
+					printf("main ipc init fail!!!\n");
+					o.Term();
+				}
+				IPCEvent sendevt;
+				memset(&sendevt,0,sizeof(IPCEvent));
+				sendevt.EventType = IPC_COMMAND;
+				sendevt.Data = IPC_COMMAND_APP_SUSPEND;
+				o.Send(sendevt);
+				printf("UI process send %d to suspend\n", IPC_COMMAND_APP_SUSPEND);
+
+				IPCEvent getevt;
+				IPCInput uiInput(UI_IPC);
+				if(!uiInput.Init())
+				{
+					printf("ui ipc init fail\n");
+					return;
+				}
+
+				memset(&getevt,0,sizeof(IPCEvent));
+				while (1)
+				{
+					if(uiInput.Read(getevt) > 0)
+					{
+						if (getevt.EventType == IPC_COMMAND && getevt.Data == IPC_COMMAND_APP_SUSPEND_DONE)
+						{
+							printf("recv app suspend done msg %d\n", IPC_COMMAND_APP_SUSPEND_DONE);
+							break;
+						}
+					}
+				}
+
         		if (!access("/sys/class/gpio/gpio73", F_OK))
         		{
         			system("echo 1 >/sys/class/gpio/gpio73/value");
@@ -291,6 +463,26 @@ void mainActivity::onSlideItemClick(ZKSlideWindow *pSlideWindow, int index) {
         		system("echo mem > /sys/power/state");
         		//usleep(2*1000*1000);
         		printf("resume back\n");
+
+        		memset(&sendevt,0,sizeof(IPCEvent));
+				sendevt.EventType = IPC_COMMAND;
+				sendevt.Data = IPC_COMMAND_APP_RESUME;
+				o.Send(sendevt);
+				printf("UI process send %d to resume\n", IPC_COMMAND_APP_RESUME);
+
+				memset(&getevt,0,sizeof(IPCEvent));
+				while (1)
+				{
+					if(uiInput.Read(getevt) > 0)
+					{
+						if (getevt.EventType == IPC_COMMAND && getevt.Data == IPC_COMMAND_APP_RESUME_DONE)
+						{
+							printf("recv app resume done msg %d\n", IPC_COMMAND_APP_RESUME_DONE);
+							break;
+						}
+					}
+				}
+
         		system("echo 0 >/sys/class/gpio/gpio73/value");
         		system("echo 1 >/sys/class/gpio/gpio5/value");
         		Enter_STR_ResumeMode();

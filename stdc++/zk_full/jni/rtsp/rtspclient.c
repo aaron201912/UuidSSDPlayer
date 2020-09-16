@@ -21,7 +21,7 @@ typedef struct
 
 static RTSPClientAssembly_t g_stRTSPClientAssembly;
 
-static int OpenCReaderLibrary()
+static int OpenRTSPLibrary()
 {
 	g_stRTSPClientAssembly.pHandle = dlopen("librtsp.so", RTLD_NOW);
 	if(NULL == g_stRTSPClientAssembly.pHandle)
@@ -47,7 +47,7 @@ static int OpenCReaderLibrary()
 	return 0;
 }
 
-static void CloseCReaderLibrary()
+static void CloseRTSPLibrary()
 {
 	if(g_stRTSPClientAssembly.pHandle)
 	{
@@ -59,7 +59,7 @@ static void CloseCReaderLibrary()
 
 int SSTAR_RTSPClinet_Init(const char *liv555Url, const char *configIni, unsigned int width, unsigned int height)
 {
-	if (OpenCReaderLibrary())
+	if (OpenRTSPLibrary())
 		return -1;
 
 	return g_stRTSPClientAssembly.pfnrtsp_init(liv555Url, configIni, width, height);
@@ -67,5 +67,10 @@ int SSTAR_RTSPClinet_Init(const char *liv555Url, const char *configIni, unsigned
 
 void SSTAR_RTSPClient_Deinit()
 {
-	g_stRTSPClientAssembly.pfnrtsp_deinit();
+	if(NULL == g_stRTSPClientAssembly.pfnrtsp_deinit)
+	{
+		g_stRTSPClientAssembly.pfnrtsp_deinit();
+	}
+
+	CloseRTSPLibrary();
 }
