@@ -8,12 +8,16 @@
 #include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 /*TAG:GlobalVariable全局变量*/
 static ZKListView* mListview_indicatorPtr;
 static ZKDigitalClock* mDigitalclock2Ptr;
 static ZKWindow* mWindow2Ptr;
 static ZKSlideWindow* mSlidewindow1Ptr;
 static mainActivity* mActivityPtr;
+
+static struct timeval tv_cur = {0};
+static struct timeval tv_pre = {0};
 
 /*register activity*/
 REGISTER_ACTIVITY(mainActivity);
@@ -412,6 +416,12 @@ void mainActivity::onSlideItemClick(ZKSlideWindow *pSlideWindow, int index) {
 			{
 				//str suspend in
         		printf("suspend in\n");
+        		gettimeofday(&tv_cur, NULL);
+        		printf("tv_cur: %ld,tv_pre: %ld\n",tv_cur.tv_sec,tv_pre.tv_sec);
+
+        		if(tv_pre.tv_sec != 0 && (tv_cur.tv_sec - tv_pre.tv_sec) < 3)
+        			break;
+
             	if (!access("/sys/class/gpio/gpio4", F_OK))
         		{
             		system("echo 0 >/sys/class/gpio/gpio4/value");
@@ -488,7 +498,8 @@ void mainActivity::onSlideItemClick(ZKSlideWindow *pSlideWindow, int index) {
 				sendevt.Data = IPC_COMMAND_APP_RESUME;
 				o.Send(sendevt);
 				printf("UI process send %d to resume\n", IPC_COMMAND_APP_RESUME);
-
+        		system("echo 0 >/sys/class/gpio/gpio73/value");
+        		system("echo 1 >/sys/class/gpio/gpio5/value");
 				memset(&getevt,0,sizeof(IPCEvent));
 				while (1)
 				{
@@ -502,13 +513,18 @@ void mainActivity::onSlideItemClick(ZKSlideWindow *pSlideWindow, int index) {
 					}
 				}
 
-        		system("echo 0 >/sys/class/gpio/gpio73/value");
-        		system("echo 1 >/sys/class/gpio/gpio5/value");
+        		//system("echo 0 >/sys/class/gpio/gpio73/value");
+        		//system("echo 1 >/sys/class/gpio/gpio5/value");
         		Enter_STR_ResumeMode();
         		usleep(30*1000);
-        		system("insmod /config/wifi/ssw101b_wifi_HT40_usb.ko");
+        		//system("insmod /config/wifi/ssw101b_wifi_HT40_usb.ko");
 
         		system("echo 1 >/sys/class/gpio/gpio4/value");
+        		system("insmod /config/wifi/ssw101b_wifi_HT40_usb.ko");
+
+        		gettimeofday(&tv_pre, NULL);
+
+
         		break;
 
         		// start wifi
