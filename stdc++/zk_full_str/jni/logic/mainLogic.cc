@@ -59,6 +59,7 @@ static S_ACTIVITY_TIMEER REGISTER_ACTIVITY_TIMER_TAB[] = {
 
 static void Enter_STR_SuspendMode()
 {
+	MI_DISP_DeInitDev();
     MI_GFX_DeInitDev();
     printf("gfx disable\n");
 }
