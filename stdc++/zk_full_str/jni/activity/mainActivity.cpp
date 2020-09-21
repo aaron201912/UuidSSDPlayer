@@ -2,6 +2,8 @@
 /gen auto by zuitools
 ***********************************************/
 #include "mainActivity.h"
+#include <sys/time.h>
+
 /*TAG:GlobalVariable全局变量*/
 static ZKListView* mListview_indicatorPtr;
 static ZKDigitalClock* mDigitalclock2Ptr;
@@ -265,11 +267,10 @@ void mainActivity::onSlideItemClick(ZKSlideWindow *pSlideWindow, int index) {
         		gettimeofday(&tv_cur, NULL);
         		printf("tv_cur: %ld,tv_pre: %ld\n",tv_cur.tv_sec,tv_pre.tv_sec);
 
-        		if(tv_pre.tv_sec != 0 && (tv_cur.tv_sec - tv_pre.tv_sec) < 3 \
-        				&& tv_cur.tv_sec > tv_pre.tv_sec)
-        			break;
+                if( (tv_pre.tv_sec != 0) && ((tv_cur.tv_sec - tv_pre.tv_sec) < 3)
+                    && (tv_cur.tv_sec > tv_pre.tv_sec) )
+                    break;
 
-            	
 				Enter_STR_SuspendMode();
 
         		//mi deinit

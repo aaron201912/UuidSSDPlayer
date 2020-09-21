@@ -41,6 +41,7 @@ int AudioPlayerDeinit(void)
 {
     ExecFunc(MI_AO_DisableChn(g_AoDevId, g_AoChn), MI_SUCCESS);
     ExecFunc(MI_AO_Disable(g_AoDevId), MI_SUCCESS);
+    ExecFunc(MI_AO_DeInitDev(), MI_SUCCESS);
 
     return 0;
 }

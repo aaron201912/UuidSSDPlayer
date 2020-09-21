@@ -26,7 +26,7 @@ static int OpenRTSPLibrary()
 	g_stRTSPClientAssembly.pHandle = dlopen("librtsp.so", RTLD_NOW);
 	if(NULL == g_stRTSPClientAssembly.pHandle)
 	{
-		printf(" %s: Can not load librtsp.so!\n", __func__);
+		printf(" %s: Can not load librtsp.so!, dlerror: %s\n", __func__, dlerror());
 		return -1;
 	}
 
