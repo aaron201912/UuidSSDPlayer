@@ -139,7 +139,6 @@ static bool onrtspstreamActivityTouchEvent(const MotionEvent &ev) {
 static bool onButtonClick_sys_back(ZKButton *pButton) {
     //LOGD(" ButtonClick sys_back !!!\n");
 	printf("sys_back\n");
-	SSTAR_RTSPClient_Deinit();
 
     return false;
 }

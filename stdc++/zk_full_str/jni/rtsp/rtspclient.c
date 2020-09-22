@@ -67,7 +67,7 @@ int SSTAR_RTSPClinet_Init(const char *liv555Url, const char *configIni, unsigned
 
 void SSTAR_RTSPClient_Deinit()
 {
-	if(NULL == g_stRTSPClientAssembly.pfnrtsp_deinit)
+	if(g_stRTSPClientAssembly.pfnrtsp_deinit)
 	{
 		g_stRTSPClientAssembly.pfnrtsp_deinit();
 	}
