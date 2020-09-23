@@ -267,8 +267,8 @@ void mainActivity::onSlideItemClick(ZKSlideWindow *pSlideWindow, int index) {
         		gettimeofday(&tv_cur, NULL);
         		printf("tv_cur: %ld,tv_pre: %ld\n",tv_cur.tv_sec,tv_pre.tv_sec);
 
-                if( (tv_pre.tv_sec != 0) && ((tv_cur.tv_sec - tv_pre.tv_sec) < 3)
-                    && (tv_cur.tv_sec > tv_pre.tv_sec) )
+                if( (tv_pre.tv_sec != 0) && ((tv_cur.tv_sec - tv_pre.tv_sec) <= 3)
+                    && (tv_cur.tv_sec >= tv_pre.tv_sec) )
                     break;
 
 				Enter_STR_SuspendMode();
