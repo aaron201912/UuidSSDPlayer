@@ -440,7 +440,7 @@ int main(int argc, const char *argv[])
     /* This global variable can be changed in function handling signal */
     running = 1;
     forkPid = createEasyui();
-	signal(SIGCHLD, SIG_IGN);
+	signal(SIGCHLD, SIG_IGN);		// 子进程信息状态被丢弃，自动回收资源
 
 	if (forkPid > 0)
 	{

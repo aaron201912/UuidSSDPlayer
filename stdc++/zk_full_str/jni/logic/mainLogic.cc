@@ -273,6 +273,7 @@ static void Exit_UI_Process()
 	o.Send(sendevt);
 	printf("UI process send %d to exit\n", IPC_COMMAND_UI_EXIT);
 	SSTAR_DeinitHotPlugDetect();
+	MI_DISP_DeInitDev();
 	exit(0);
 }
 
@@ -306,7 +307,7 @@ static void Enter_STR_SuspendMode()
 	}
 	system("rmmod ssw101b_wifi_usb");
 
-    MI_DISP_Disable(0);
+    //MI_DISP_Disable(0);
     MI_DISP_DeInitDev();
 
     MI_GFX_DeInitDev();
@@ -395,11 +396,10 @@ static void Enter_STR_ResumeMode()
 	MI_GFX_Open();
 
 	usleep(30*1000);
+	system("echo 1 >/sys/class/gpio/gpio4/value");
 	printf("begin to insmod wifi ko\n");
 	system("insmod /config/wifi/ssw101b_wifi_HT40_usb.ko");
 	printf("insmod wifi ko success\n");
-
-	system("echo 1 >/sys/class/gpio/gpio4/value");
 
 	// udhcpc
 	pthread_create(&g_getIpThread, NULL, GetIpProc, NULL);
