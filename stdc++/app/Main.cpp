@@ -18,6 +18,7 @@
 #define MAKE_YUYV_VALUE(y,u,v)  ((y) << 24) | ((u) << 16) | ((y) << 8) | (v)
 #define YUYV_BLACK              MAKE_YUYV_VALUE(0,128,128)
 
+#define FD_MAX	1024
 #define SSD_IPC "/tmp/ssd_apm_input"
 #define SVC_IPC "/tmp/brown_svc_input"
 #define UI_IPC	"/tmp/zkgui_msg_input"
@@ -364,6 +365,14 @@ static void daemonize()
     }
 }
 
+void clear_fd()
+{
+	for (int i = 3; i < FD_MAX - 1; i++)
+	{
+		close(i);
+	}
+}
+
 /**
  * \brief Print help for this application
  */
@@ -410,6 +419,7 @@ int createEasyui(void)
             exit(EXIT_SUCCESS);
         }
     #endif
+		clear_fd();
 
 		atexit(server_on_exit);
 

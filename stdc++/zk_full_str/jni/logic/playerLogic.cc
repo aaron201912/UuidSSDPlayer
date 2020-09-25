@@ -649,6 +649,7 @@ void DestroyPlayerDev()
     MI_DIVP_DestroyChn(0);*/
 
     MI_DISP_DisableInputPort(DISP_LAYER, DISP_INPUTPORT);
+    MI_DISP_DeInitDev();
 }
 
 #ifndef SUPPORT_PLAYER_PROCESS

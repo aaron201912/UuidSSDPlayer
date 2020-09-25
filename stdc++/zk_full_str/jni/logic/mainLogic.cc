@@ -274,6 +274,7 @@ static void Exit_UI_Process()
 	printf("UI process send %d to exit\n", IPC_COMMAND_UI_EXIT);
 	SSTAR_DeinitHotPlugDetect();
 	MI_DISP_DeInitDev();
+	MI_GFX_DeInitDev();
 	exit(0);
 }
 
@@ -306,9 +307,6 @@ static void Enter_STR_SuspendMode()
 		system("echo 0 >/sys/class/gpio/gpio5/value");
 	}
 	system("rmmod ssw101b_wifi_usb");
-
-    //MI_DISP_Disable(0);
-    MI_DISP_DeInitDev();
 
     MI_GFX_DeInitDev();
     printf("gfx disable\n");
@@ -407,6 +405,7 @@ static void Enter_STR_ResumeMode()
 
 static void onUI_init(){
     //Tips :添加 UI初始化的显示代码到这里,如:mText1->setText("123");
+	MI_GFX_Open();
 	ShowStatusBar(1, 0, 0);
 }
 
