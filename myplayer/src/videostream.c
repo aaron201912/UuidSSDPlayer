@@ -1306,6 +1306,21 @@ int my_display_set(player_stat_t *is)
 
     av_log(NULL, AV_LOG_WARNING, "display w/h = [%d %d], src w/h = [%d %d]!\n", is->out_width, is->out_height, is->src_width, is->src_height);
 
+#ifdef ENABLE_STR
+    MI_DISP_InitParam_t stInitDispParam;
+    memset(&stInitDispParam, 0x0, sizeof(MI_DISP_InitParam_t));
+    stInitDispParam.u32DevId = 0;
+    stInitDispParam.u8Data = NULL;
+    MI_DISP_InitDev(&stInitDispParam);
+
+    MI_SYS_InitParam_t stInitSysParam;
+    memset(&stInitSysParam, 0x0, sizeof(MI_SYS_InitParam_t));
+    stInitSysParam.u32DevId = 0;
+    stInitSysParam.u8Data = NULL;
+    MI_SYS_InitDev(&stInitSysParam);
+    av_log(NULL, AV_LOG_WARNING, "Init disp and sys module dev!\n");
+#endif
+
     MI_DISP_DisableInputPort(0, 0);
     memset(&stRotateConfig, 0, sizeof(MI_DISP_RotateConfig_t));
 
@@ -1317,15 +1332,21 @@ int my_display_set(player_stat_t *is)
         MI_DISP_InputPortAttr_t stInputPortAttr;
         MI_SYS_ChnPort_t stDispChnPort;
 
-        MI_GFX_Open();
-
 #ifdef ENABLE_STR
-        MI_DIVP_InitParam_t stInitParam;
-        memset(&stInitParam, 0x0, sizeof(MI_DIVP_InitParam_t));
-        stInitParam.u32DevId = 0;
-        stInitParam.u8Data = NULL;
-        MI_DIVP_InitDev(&stInitParam);
+        MI_DIVP_InitParam_t stInitDivpParam;
+        memset(&stInitDivpParam, 0x0, sizeof(MI_DIVP_InitParam_t));
+        stInitDivpParam.u32DevId = 0;
+        stInitDivpParam.u8Data = NULL;
+        MI_DIVP_InitDev(&stInitDivpParam);
+
+        MI_GFX_InitParam_t stInitGfxParam;
+        memset(&stInitGfxParam, 0x0, sizeof(MI_GFX_InitParam_t));
+        stInitGfxParam.u32DevId = 0;
+        stInitGfxParam.u8Data = NULL;
+        MI_GFX_InitDev(&stInitGfxParam);
+        av_log(NULL, AV_LOG_WARNING, "Init divp and gfx module dev!\n");
 #endif
+        MI_GFX_Open();
 
         memset(&stInputPortAttr, 0, sizeof(MI_DISP_InputPortAttr_t));
         MI_DISP_GetInputPortAttr(0, 0, &stInputPortAttr);
@@ -1393,15 +1414,22 @@ int my_display_set(player_stat_t *is)
         MI_DISP_InputPortAttr_t stInputPortAttr;
         MI_SYS_ChnPort_t stDispChnPort;
 
-        MI_GFX_Open();
-
 #ifdef ENABLE_STR
-        MI_DIVP_InitParam_t stInitParam;
-        memset(&stInitParam, 0x0, sizeof(MI_DIVP_InitParam_t));
-        stInitParam.u32DevId = 0;
-        stInitParam.u8Data = NULL;
-        MI_DIVP_InitDev(&stInitParam);
+        MI_DIVP_InitParam_t stInitDivpParam;
+        memset(&stInitDivpParam, 0x0, sizeof(MI_DIVP_InitParam_t));
+        stInitDivpParam.u32DevId = 0;
+        stInitDivpParam.u8Data = NULL;
+        MI_DIVP_InitDev(&stInitDivpParam);
+
+        MI_GFX_InitParam_t stInitGfxParam;
+        memset(&stInitGfxParam, 0x0, sizeof(MI_GFX_InitParam_t));
+        stInitGfxParam.u32DevId = 0;
+        stInitGfxParam.u8Data = NULL;
+        MI_GFX_InitDev(&stInitGfxParam);
+        av_log(NULL, AV_LOG_WARNING, "Init divp and gfx module dev!\n");
 #endif
+
+        MI_GFX_Open();
 
         memset(&stInputPortAttr, 0, sizeof(MI_DISP_InputPortAttr_t));
         MI_DISP_GetInputPortAttr(0, 0, &stInputPortAttr);
@@ -1509,11 +1537,13 @@ int my_display_unset(player_stat_t *is)
         MI_DIVP_StopChn(0);
         MI_DIVP_DestroyChn(0);
 
+        MI_GFX_Close();
+
 #ifdef ENABLE_STR
         MI_DIVP_DeInitDev();
+        MI_GFX_DeInitDev();
+        av_log(NULL, AV_LOG_WARNING, "DeInit divp and gfx module dev!\n");
 #endif
-
-        MI_GFX_Close();
     }else {
 #if USE_DIVP_MODULE
         MI_SYS_ChnPort_t stDispChnPort;
@@ -1536,17 +1566,26 @@ int my_display_unset(player_stat_t *is)
         MI_DIVP_StopChn(0);
         MI_DIVP_DestroyChn(0);
 
+        MI_GFX_Close();
+
 #ifdef ENABLE_STR
         MI_DIVP_DeInitDev();
+        MI_GFX_DeInitDev();
+        av_log(NULL, AV_LOG_WARNING, "DeInit divp and gfx module dev!\n");
 #endif
-
-        MI_GFX_Close();
 #endif
     }
 
     MI_DISP_ClearInputPortBuffer(DISP_LAYER, DISP_INPUTPORT, TRUE);
     //MI_DISP_HideInputPort(DISP_LAYER, DISP_INPUTPORT);
     MI_DISP_DisableInputPort(DISP_LAYER, DISP_INPUTPORT);
+
+#ifdef ENABLE_STR
+    MI_DISP_DeInitDev();
+    MI_SYS_DeInitDev();
+    av_log(NULL, AV_LOG_WARNING, "DeInit disp and sys module dev!\n");
+#endif
+
     return 0;
 }
 
@@ -1561,15 +1600,27 @@ int my_video_init(player_stat_t *is)
     MI_SYS_ChnPort_t stDispChnPort;
     MI_SYS_ChnPort_t stDivpChnPort;
 
-    MI_GFX_Open();
-
 #ifdef ENABLE_STR
-    MI_DIVP_InitParam_t stInitParam;
-    memset(&stInitParam, 0x0, sizeof(MI_DIVP_InitParam_t));
-    stInitParam.u32DevId = 0;
-    stInitParam.u8Data = NULL;
-    MI_DIVP_InitDev(&stInitParam);
+    MI_DIVP_InitParam_t stInitDivpParam;
+    memset(&stInitDivpParam, 0x0, sizeof(MI_DIVP_InitParam_t));
+    stInitDivpParam.u32DevId = 0;
+    stInitDivpParam.u8Data = NULL;
+    MI_DIVP_InitDev(&stInitDivpParam);
+
+    MI_DISP_InitParam_t stInitDispParam;
+    memset(&stInitDispParam, 0x0, sizeof(MI_DISP_InitParam_t));
+    stInitDispParam.u32DevId = 0;
+    stInitDispParam.u8Data = NULL;
+    MI_DISP_InitDev(&stInitDispParam);
+
+    MI_GFX_InitParam_t stInitGfxParam;
+    memset(&stInitGfxParam, 0x0, sizeof(MI_GFX_InitParam_t));
+    stInitGfxParam.u32DevId = 0;
+    stInitGfxParam.u8Data = NULL;
+    MI_GFX_InitDev(&stInitGfxParam);
 #endif
+
+    MI_GFX_Open();
 
     // 1.初始化DISP
     MI_DISP_GetInputPortAttr(0, 0, &stInputPortAttr);
@@ -1652,11 +1703,13 @@ int my_video_deinit(void)
     MI_DIVP_StopChn(0);
     MI_DIVP_DestroyChn(0);
 
+    MI_GFX_Close();
+
 #ifdef ENABLE_STR
     MI_DIVP_DeInitDev();
+    MI_DISP_DeInitDev();
+    MI_GFX_DeInitDev();
 #endif
-
-    MI_GFX_Close();
 
     return MI_SUCCESS;
 }
