@@ -286,6 +286,9 @@ void DestroyV4L2Pipe()
     MI_DISP_DisableInputPort(dispLayer, u32InputPort);
     MI_DIVP_StopChn(DIVP_CHN);
     MI_DIVP_DestroyChn(DIVP_CHN);
+
+    MI_DIVP_DeInitDev();
+    MI_DISP_DeInitDev();
 }
 
 

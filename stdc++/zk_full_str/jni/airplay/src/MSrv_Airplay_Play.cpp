@@ -906,6 +906,8 @@ int Ss_mAirplayServiceClose(void)
 		fStopMediaServer();
 	}
 	nPlayerStatuc = MPLAYER_IDLE;
+
+	MI_DISP_DeInitDev();
 	return 0;
 }
 
