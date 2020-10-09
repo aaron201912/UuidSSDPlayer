@@ -244,6 +244,7 @@ typedef struct {
 
     struct timeval start, now;
     struct timeval tim_open, tim_play;
+    struct timeval buf_start, buf_end;
     pthread_mutex_t audio_mutex, video_mutex;
     player_opts_t opts;
 }   player_stat_t;

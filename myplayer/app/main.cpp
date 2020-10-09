@@ -41,7 +41,8 @@ typedef enum
   IPC_COMMAND_COMPLETE,
   IPC_COMMAND_CREATE,
   IPC_COMMAND_DESTORY,
-  IPC_COMMAND_EXIT
+  IPC_COMMAND_EXIT,
+  IPC_COMMAND_PANT
 } IPC_COMMAND_TYPE;
 
 typedef struct{
@@ -165,8 +166,10 @@ private:
 };
 
 #define USE_POPEN       1
+#define PANT_TIME       5
 
 struct timeval time_now, time_last;
+struct timeval pant_start, pant_wait, pant_end;
 static bool g_playing = false;
 extern int errno;
 
@@ -201,12 +204,15 @@ int main(int argc, char *argv[])
     o_server.Send(sendevt);
     #endif
 
+    gettimeofday(&pant_start, NULL);
+    gettimeofday(&pant_wait, NULL);
+
     while(!bExit)
     {
         memset(&recvevt, 0, sizeof(IPCEvent));
         if(i_client.Read(recvevt) > 0)
         {
-            printf("get event type = [%d]\n", recvevt.EventType);
+            av_log(NULL, AV_LOG_VERBOSE, "get event type = [%d]\n", recvevt.EventType);
             switch(recvevt.EventType)
             {
                 case IPC_COMMAND_OPEN:
@@ -315,11 +321,19 @@ int main(int argc, char *argv[])
                     my_player_set_mute(recvevt.stPlData.mute);
                 break;
 
-                case IPC_COMMAND_EXIT:
+                case IPC_COMMAND_EXIT: {
                     my_player_close();
                     g_playing = false;
                     bExit = true;
                     av_log(NULL, AV_LOG_WARNING, "##### MyPlayer Exit #####\n");
+                }
+                break;
+
+                case IPC_COMMAND_PANT: {
+                    gettimeofday(&pant_wait, NULL);
+                    int ack_time = (pant_wait.tv_sec - pant_end.tv_sec) * 1000 + (pant_wait.tv_usec - pant_end.tv_usec) / 1000;
+                    av_log(NULL, AV_LOG_VERBOSE, "receive pant ack signal [%dms]\n", ack_time);
+                }
                 break;
 
                 default: break;
@@ -377,15 +391,49 @@ int main(int argc, char *argv[])
             g_myplayer->play_status = 0;
         }
 
+        //增加心跳包机制
+        gettimeofday(&pant_end, NULL);
+        if (pant_end.tv_sec - pant_start.tv_sec >= PANT_TIME) {
+            if(!o_server.Init()) {
+                av_log(NULL, AV_LOG_ERROR, "Main Process Not start!!!\n");
+                continue;
+            }
+            memset(&sendevt,0,sizeof(IPCEvent));
+            sendevt.EventType = IPC_COMMAND_PANT;
+            o_server.Send(sendevt);
+
+            gettimeofday(&pant_start, NULL);
+            av_log(NULL, AV_LOG_VERBOSE, "my_player send pant signal!\n");
+        }
+
+        if (g_playing && !bExit && pant_end.tv_sec - pant_wait.tv_sec >= 2 * PANT_TIME) {
+            av_log(NULL, AV_LOG_ERROR, "get pant ack signal form main time out!\n");
+            bExit = true;
+        }
+
+        if (!g_playing && !bExit && pant_end.tv_sec - pant_start.tv_sec >= 3) {
+            av_log(NULL, AV_LOG_ERROR, "wake up my_player time out!\n");
+            bExit = true;
+        }
+
         usleep(10 * 1000);
     }
 
-    printf("Player is exit: %d\n", bExit);
+    printf("MyPlayer is exit: %d\n", bExit);
 
     #if USE_POPEN
-    memset(&sendevt,0,sizeof(IPCEvent));
-    sendevt.EventType = IPC_COMMAND_DESTORY;
-    o_server.Send(sendevt);
+    if (g_playing) {
+        my_player_close();
+        g_playing = false;
+    }
+
+    if(!o_server.Init()) {
+        printf("Main Process Not start!!!\n");
+    } else {
+        memset(&sendevt,0,sizeof(IPCEvent));
+        sendevt.EventType = IPC_COMMAND_DESTORY;
+        o_server.Send(sendevt);
+    }
     #endif
 
     o_server.Term();

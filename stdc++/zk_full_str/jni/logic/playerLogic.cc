@@ -69,7 +69,8 @@ typedef enum
   IPC_COMMAND_COMPLETE,
   IPC_COMMAND_CREATE,
   IPC_COMMAND_DESTORY,
-  IPC_COMMAND_EXIT
+  IPC_COMMAND_EXIT,
+  IPC_COMMAND_PANT
 } IPC_COMMAND_TYPE;
 
 typedef struct{
@@ -329,6 +330,7 @@ static bool g_bPlayError = false;
 static RepeatMode_e g_eRepeatMode = LIST_REPEAT_MODE;
 static SkipMode_e g_eSkipMode = NO_SKIP;
 static pthread_mutex_t g_playFileMutex;
+static bool g_bPantStatus = false;
 
 extern void GetPrevFile(char *pCurFileFullName, char *pPrevFileFullName, int prevFilePathLen);
 extern void GetNextFile(char *pCurFileFullName, char *pNextFileFullName, int nextFilePathLen);
@@ -1231,6 +1233,7 @@ void DetectUsbHotplug(UsbParam_t *pstUsbParam)		// action 0, connect; action 1, 
 }
 
 #define USE_POPEN       1
+#define PANT_TIME       5
 FILE *player_fd = NULL;
 extern int errno;
 
@@ -1244,28 +1247,22 @@ static void StartPlayStreamFile(char *pFileName)
     ResetSpeedMode();
     system("echo 1 > /sys/class/gpio/gpio12/value");
 
+    memset(&recvevt, 0, sizeof(IPCEvent));
+
     if(!i_server.Init()) {
         printf("[%s %d]create i_server fail!\n", __FILE__, __LINE__);
         fprintf(stderr, "Error：%s\n", strerror(errno));
-        mTextview_msgPtr->setText("Other Error Occur!");
-        mWindow_errMsgPtr->setVisible(true);
-
-        pthread_mutex_lock(&g_playFileMutex);
-        g_bPlayError = true;
-        pthread_mutex_unlock(&g_playFileMutex);
-
-        return;
+        goto next;
     }
 
     #if USE_POPEN
     player_fd = popen(MYPLAYER_PATH, "w");
     if (NULL == player_fd) {
         printf("my_player is not exit!\n");
-        return;
+        goto next;
     }
     printf("popen myplayer progress done!\n");
 
-    memset(&recvevt, 0, sizeof(IPCEvent));
     gettimeofday(&time_start, NULL);
     while (i_server.Read(recvevt) <= 0
            || (recvevt.EventType != IPC_COMMAND_CREATE)) {
@@ -1276,6 +1273,7 @@ static void StartPlayStreamFile(char *pFileName)
             break;
         }
     }
+next:
     if (recvevt.EventType == IPC_COMMAND_CREATE) {
         printf("myplayer progress create success!\n");
     } else {
@@ -1655,11 +1653,14 @@ static void *PlayFileProc(void *pData)
 	SkipMode_e eSkipMode = NO_SKIP;
 	bool bPlayCompleted = false;
 	bool bPlayError = false;
+    struct timeval pant_start, pant_wait;
 	printf("get in PlayFileProc!\n");
 	strncpy(curFileName, pFileName, sizeof(curFileName));
 	RepeatMode_e eRepeatMode = LIST_REPEAT_MODE;
 	StartPlayFile(curFileName);
 	AutoDisplayToolbar();
+
+    gettimeofday(&pant_start, NULL);
 
 	while (!g_bPlayFileThreadExit)
 	{
@@ -1787,6 +1788,7 @@ static void *PlayFileProc(void *pData)
                         SetPlayingStatus(false);
                         mTextview_speedPtr->setText("");
                         g_bShowPlayToolBar = FALSE;
+                        g_bPantStatus = false;
 
                         pthread_mutex_lock(&g_playFileMutex);
                         g_bPlayCompleted = true;
@@ -1795,8 +1797,33 @@ static void *PlayFileProc(void *pData)
                     }
                     break;
 
+                    case IPC_COMMAND_PANT : {
+                        g_bPantStatus = true;
+                        gettimeofday(&pant_start, NULL);
+                        if(!o_client.Init()) {
+                            printf("[%s %d]my_player process not start!\n", __FILE__, __LINE__);
+                            fprintf(stderr, "Error：%s\n", strerror(errno));
+                        } else {
+                            memset(&sendevt, 0, sizeof(IPCEvent));
+                            sendevt.EventType = IPC_COMMAND_PANT;
+                            o_client.Send(sendevt);
+                        }
+                    }
+                    break;
+
                     default : break;
                 }
+            }
+
+            //心跳包判断
+            gettimeofday(&pant_wait, NULL);
+            if (pant_wait.tv_sec - pant_start.tv_sec > 2 * PANT_TIME && g_bPantStatus) {
+                mTextview_msgPtr->setText("Other Error Occur!");
+                mWindow_errMsgPtr->setVisible(true);
+                pthread_mutex_lock(&g_playFileMutex);
+                g_bPlayError = true;
+                pthread_mutex_unlock(&g_playFileMutex);
+                printf("myplayer has exit abnormallity!\n");
             }
         }
 #endif
@@ -1805,6 +1832,7 @@ static void *PlayFileProc(void *pData)
 
     StopPlayFile();
     g_fileName = curFileName;
+    g_bPantStatus = false;
     printf("### PlayFileProc Exit ###\n");
     return NULL;
 }

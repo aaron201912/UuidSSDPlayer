@@ -224,11 +224,16 @@ static void * demux_thread(void *arg)
                 && is->audio_pkt_queue.size + is->video_pkt_queue.size < MIN_QUEUE_SIZE) {
                 av_log(NULL, AV_LOG_WARNING, "no packets wait for buffer!\n");
                 is->no_pkt_buf = 1;
+                gettimeofday(&is->buf_start, NULL);
+            } else {
+                gettimeofday(&is->buf_end, NULL);
+                if (is->buf_end.tv_sec - is->buf_start.tv_sec > PLAYER_STRT_TIMEOUT) {
+                    is->no_pkt_buf = 0;
+                }
             }
         }
 
         // 4.3 根据当前packet类型(音频、视频、字幕)，将其存入对应的packet队列
-
         if (pkt->stream_index == is->audio_idx && !is->opts.video_only)
         {
             packet_queue_put(&is->audio_pkt_queue, pkt);
