@@ -54,12 +54,12 @@ static int audio_decode_frame(AVCodecContext *p_codec_ctx, packet_queue_t *p_pkt
         {
             //if (d->queue->abort_request)
             //    return -1;
-            pthread_mutex_lock(&g_myplayer->audio_mutex);
+            /*pthread_mutex_lock(&g_myplayer->audio_mutex);
             if (g_myplayer->seek_flags & (1 << 5)) {
                 pthread_mutex_unlock(&g_myplayer->audio_mutex);
                 break;
             }
-            pthread_mutex_unlock(&g_myplayer->audio_mutex);
+            pthread_mutex_unlock(&g_myplayer->audio_mutex);*/
             // 3.2 一个音频packet含一至多个音频frame，每次avcodec_receive_frame()返回一个frame，此函数返回。
             // 下次进来此函数，继续获取一个frame，直到avcodec_receive_frame()返回AVERROR(EAGAIN)，
             // 表示解码器需要填入新的音频packet
@@ -274,10 +274,10 @@ replay:
         return -1;
 
 recheck:
-    while (is->seek_flags & (1 << 5)) {
+    /*while (is->seek_flags & (1 << 5)) {
         pthread_cond_signal(&is->audio_frm_queue.cond);
         av_usleep(10 * 1000);
-    }
+    }*/
 
     while(is->no_pkt_buf && !is->abort_request) {
         av_usleep(10 * 1000);
