@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 /*TAG:GlobalVariable全局变量*/
 static ZKListView* mListview_indicatorPtr;
