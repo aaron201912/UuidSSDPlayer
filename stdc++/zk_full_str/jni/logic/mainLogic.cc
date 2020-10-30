@@ -218,7 +218,10 @@ int checkShellResult(char const* cmd, char const*key)
         }
 
 		if (strstr(tmp, key))
+		{
+			pclose(fp);
 			return 0;
+		}
     }
 
     printf("exec cmd: %s ,not find %s item\n", cmd, key);
@@ -400,7 +403,11 @@ static void Enter_STR_ResumeMode()
 	printf("insmod wifi ko success\n");
 
 	// udhcpc
-	pthread_create(&g_getIpThread, NULL, GetIpProc, NULL);
+	if (SSTAR_GetWifiLastConnStatus())
+	{
+		printf("start thread to get ip\n");
+		pthread_create(&g_getIpThread, NULL, GetIpProc, NULL);
+	}
 }
 
 static void onUI_init(){

@@ -737,6 +737,7 @@ MI_S32 SSTAR_DestroyVdec2DispPipe(MI_S32 s32VdecChn, MI_S32 s32DivpChn)
     MI_DISP_DisableInputPort(0, 0);
 
     MI_VDEC_DeInitDev();
+    MI_DISP_DeInitDev();
 
     return MI_SUCCESS;
 }

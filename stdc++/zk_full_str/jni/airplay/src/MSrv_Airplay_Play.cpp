@@ -271,7 +271,7 @@ int  mDLNAPlayPlayback_IsStopped()
 
 int Ss_DLNA_ServiceClose(void)
 {
-	fpZmDLNAServiceClose fsZmDLNAServiceClose=  (fpZmDLNAServiceClose)dlsym(m_pLibHandle, "ZmDLNAServiceClose");
+	fpZmDLNAServiceClose fsZmDLNAServiceClose=  (fpZmDLNAServiceClose)dlsym(m_pLibdlnaHandle, "ZmDLNAServiceClose");
 	if(fsZmDLNAServiceClose)
 	{
 		fsZmDLNAServiceClose();
@@ -905,6 +905,13 @@ int Ss_mAirplayServiceClose(void)
 		//Ss_pthread_finish();
 		fStopMediaServer();
 	}
+
+	if(m_pLibHandle)
+	{
+		dlclose(m_pLibHandle);
+		m_pLibHandle = NULL;
+	}
+
 	nPlayerStatuc = MPLAYER_IDLE;
 
 	MI_DISP_DeInitDev();
