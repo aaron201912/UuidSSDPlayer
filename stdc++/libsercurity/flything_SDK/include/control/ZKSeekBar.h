@@ -63,7 +63,7 @@ protected:
 	virtual bool onTouchEvent(const MotionEvent &ev);
 
 private:
-	void _section_(zk) parseSeekBarAttributeFromJson(const Json::Value &json);
+	void parseSeekBarAttributeFromJson(const Json::Value &json);
 };
 
 #endif /* _CONTROL_ZKSEEKBAR_H_ */

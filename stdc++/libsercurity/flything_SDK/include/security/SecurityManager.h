@@ -29,11 +29,9 @@ public:
 
 	/**
 	 * @brief 获取机器唯一ID码
+	 * @return devID长度
 	 */
-	bool getDevID(uint8_t devID[8]);
-
-	void forbidExecute(const char *pPara = NULL);
-	void permitExecute(const char *pPara = NULL);
+	int getDevID(uint8_t devID[16]);
 
 private:
 	SecurityManager();

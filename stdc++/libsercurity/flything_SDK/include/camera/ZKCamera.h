@@ -38,7 +38,6 @@ typedef enum {
 class CameraCtrl;
 
 class ZKCamera {
-	typedef unsigned char	BYTE;
 public:
 	ZKCamera();
 	virtual ~ZKCamera();
@@ -94,10 +93,6 @@ private:
 
 	void initDisp();
 	void deinitDisp();
-
-	bool convertYUYVToRGB24(const BYTE *pYUYV, BYTE *pRGB24, int width, int height);
-	bool convertYUYVIToYUYVP(const BYTE *pYUYVI, BYTE *pYUYVP, int width, int height);
-	bool convertNV12ToRGB24(const BYTE *pNV12, BYTE *pRGB24, int width, int height);
 
 	typedef enum {
 		E_CAMERA_REQ_START_PREVIEW,
@@ -159,14 +154,10 @@ private:
 	IPictureCallback *mPictureCallbackPtr;
 	IErrorCodeCallback *mErrorCodeCallbackPtr;
 
-	BYTE *mPictureDataPtr;
+	uint8_t *mPictureDataPtr;
 
-	int mDisplayLayer;
 	LayoutPosition mPreviewPos;
 	LayoutPosition mCropPos;
-
-	BYTE *mPreviewDataYUVPtr;
-	int mIndexOfData;
 
 	int mRetryCount;
 	int mSkipFrames;

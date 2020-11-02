@@ -197,15 +197,14 @@ public:
 	 */
 	void updateLocalesCode(const char *code);
 
+	bool initEasyUI();
+	void deinitEasyUI();
+	void runEasyUI();
 	void reqExit();
 
 private:
 	EasyUIContext();
 	~EasyUIContext();
-
-	bool initEasyUI();
-	void deinitEasyUI();
-	void runEasyUI();
 
 	bool initLib();
 	void deinitLib();

@@ -147,6 +147,11 @@ public:
 	 */
 	void setAlpha(uint8_t alpha);
 
+	/**
+	 * @brief 出蜂鸣器声音
+	 */
+	void beep();
+
 	virtual const char* getClassName() const { return NULL; }
 
 public:
@@ -202,7 +207,7 @@ protected:
 	bool hasTimer(int id);
 
 private:
-	void _section_(zk) parseBaseAttributeFromJson(const Json::Value &json);
+	void parseBaseAttributeFromJson(const Json::Value &json);
 
 protected:
 	ZKBaseData *d_ptr;

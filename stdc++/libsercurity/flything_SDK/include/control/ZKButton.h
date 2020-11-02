@@ -34,6 +34,12 @@ public:
 	 */
 	void setButtonStatusPic(int status, const char *pPicPath);
 
+	/**
+	 * @brief 设置图标位置
+	 * @param position 位置
+	 */
+	void setIconPosition(const LayoutPosition &position);
+
 protected:
 	ZKButton(ZKBase *pParent, ZKBasePrivate *pBP);
 
@@ -43,7 +49,7 @@ protected:
 	virtual void onDraw(ZKCanvas *pCanvas);
 
 private:
-	void _section_(zk) parseButtonAttributeFromJson(const Json::Value &json);
+	void parseButtonAttributeFromJson(const Json::Value &json);
 };
 
 #endif /* _CONTROL_ZKBUTTON_H_ */

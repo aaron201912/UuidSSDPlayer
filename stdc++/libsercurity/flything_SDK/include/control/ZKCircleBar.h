@@ -68,7 +68,7 @@ protected:
 	virtual bool onTouchEvent(const MotionEvent &ev);
 
 private:
-	void _section_(zk) parseCircleBarAttributeFromJson(const Json::Value &json);
+	void parseCircleBarAttributeFromJson(const Json::Value &json);
 };
 
 #endif /* _CONTROL_ZKCIRCLEBAR_H_ */

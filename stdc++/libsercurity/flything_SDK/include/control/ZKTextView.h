@@ -80,6 +80,24 @@ public:
 	 */
 	void getTextExtent(const char *text, int &w, int &h);
 
+	/**
+	 * @brief 设置文本大小
+	 * @param size 文本大小
+	 */
+	void setTextSize(uint32_t size);
+
+	/**
+	 * @brief 设置文本行间距
+	 * @param space 间距值
+	 */
+	void setTextRowSpace(int space);
+
+	/**
+	 * @brief 设置文本列间距
+	 * @param space 间距值
+	 */
+	void setTextColSpace(int space);
+
 public:
 	/**
 	 * @brief 文本内容改变监听接口
@@ -103,7 +121,7 @@ protected:
 	virtual void onTimer(int id);
 
 private:
-	void _section_(zk) parseTextViewAttributeFromJson(const Json::Value &json);
+	void parseTextViewAttributeFromJson(const Json::Value &json);
 };
 
 #endif /* _CONTROL_ZKTEXTVIEW_H_ */

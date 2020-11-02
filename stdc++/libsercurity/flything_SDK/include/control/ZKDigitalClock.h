@@ -33,7 +33,7 @@ protected:
 	virtual void onTimer(int id);
 
 private:
-	void _section_(zk) parseDigitalClockAttributeFromJson(const Json::Value &json);
+	void parseDigitalClockAttributeFromJson(const Json::Value &json);
 };
 
 #endif /* _CONTROL_ZKDIGITALCLOCK_H_ */

@@ -37,7 +37,7 @@ protected:
 
 private:
 	const char* getClassName() const { return NULL; }
-	void _section_(zk) parseMainWindowAttributeFromJson(const Json::Value &json);
+	void parseMainWindowAttributeFromJson(const Json::Value &json);
 
 	void notifyTimerListener(int id);
 };

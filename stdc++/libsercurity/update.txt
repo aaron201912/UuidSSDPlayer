@@ -1,3 +1,8 @@
+2020-11-02
+1. 文本添加设置行、列间距接口 ZKTextView::setTextRowSpace、ZKTextView::setTextColSpace
+2. 列表添加设置惯性滑动减速比例接口 ZKListView::setDecRatio
+
+
 2020-08-24
 1. 修复窗口位置变动时，窗口上的控件焦点未变化，导致第一次点击控件不响应事件
 

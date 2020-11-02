@@ -158,6 +158,12 @@ public:
 	 */
 	int getFirstVisibleItemOffset() const;
 
+	/**
+	 * @brief 设置惯性滑动减速比例
+	 * @param ratio 减速比例 范围： 0 < ratio < 1
+	 */
+	void setDecRatio(float ratio);
+
 protected:
 	ZKListView(ZKBase *pParent, ZKBasePrivate *pBP);
 
@@ -169,7 +175,7 @@ protected:
 	virtual void onTimer(int id);
 
 private:
-	void _section_(zk) parseListViewAttributeFromJson(const Json::Value &json);
+	void parseListViewAttributeFromJson(const Json::Value &json);
 };
 
 #endif /* _CONTROL_ZKLISTVIEW_H_ */

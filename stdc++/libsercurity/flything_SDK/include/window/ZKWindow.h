@@ -58,8 +58,8 @@ protected:
 	bool checkHideModalWindow(int x, int y);
 
 private:
-	void _section_(zk) parseWindowAttributeFromJson(const Json::Value &json);
-	void _section_(zk) parseControlsFromJson(const Json::Value &json);
+	void parseWindowAttributeFromJson(const Json::Value &json);
+	void parseControlsFromJson(const Json::Value &json);
 };
 
 #endif /* _WINDOW_ZKWINDOW_H_ */

@@ -17,12 +17,6 @@ typedef long ret_t;
 struct _bitmap_t;
 struct _message_t;
 
-#ifdef USE_ENCRYPT
-#define _section_(S) __attribute__ ((__section__(".text"#S)))
-#else
-#define _section_(S)
-#endif
-
 #define ZK_DECLARE_PRIVATE(Class) \
 	inline Class##Private* d_func() { return reinterpret_cast<Class##Private *>(d_ptr); } \
 	inline const Class##Private* d_func() const { return reinterpret_cast<const Class##Private *>(d_ptr); } \

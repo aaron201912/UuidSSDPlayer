@@ -90,7 +90,7 @@ protected:
 	virtual void onDraw(ZKCanvas *pCanvas);
 
 private:
-	void _section_(zk) parseDiagramAttributeFromJson(const Json::Value &json);
+	void parseDiagramAttributeFromJson(const Json::Value &json);
 };
 
 #endif /* _CONTROL_ZKDIAGRAM_H_ */

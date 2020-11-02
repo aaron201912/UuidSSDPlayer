@@ -78,7 +78,7 @@ protected:
 	virtual void onTimer(int id);
 
 private:
-	void _section_(zk) parseSlideWindowAttributeFromJson(const Json::Value &json);
+	void parseSlideWindowAttributeFromJson(const Json::Value &json);
 };
 
 #endif /* _WINDOW_ZKSLIDEWINDOW_H_ */

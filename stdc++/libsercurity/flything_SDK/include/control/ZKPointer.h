@@ -38,7 +38,7 @@ protected:
 	virtual void onTimer(int id);
 
 private:
-	void _section_(zk) parsePointerAttributeFromJson(const Json::Value &json);
+	void parsePointerAttributeFromJson(const Json::Value &json);
 };
 
 #endif /* _CONTROL_ZKPOINTER_H_ */
