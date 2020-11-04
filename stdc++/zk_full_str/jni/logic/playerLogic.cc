@@ -2343,9 +2343,15 @@ static void onProgressChanged_Seekbar_volumn(ZKSeekBar *pSeekBar, int progress) 
 	printf("voice changed!!!!!!!!\n");
 	g_s32VolValue = GetPlayerVolumn();
 	if (g_s32VolValue)
+	{
 		vol = g_s32VolValue * (MAX_ADJUST_AO_VOLUME - MIN_ADJUST_AO_VOLUME) / 100 + MIN_ADJUST_AO_VOLUME;
+		g_bMute = false;
+	}
 	else
+	{
 		vol = MIN_AO_VOLUME;
+		g_bMute = true;
+	}
 
 	memset(&stAoState, 0, sizeof(MI_AO_ChnState_t));
 	if (MI_SUCCESS == MI_AO_QueryChnStat(AUDIO_DEV, AUDIO_CHN, &stAoState))
@@ -2354,6 +2360,8 @@ static void onProgressChanged_Seekbar_volumn(ZKSeekBar *pSeekBar, int progress) 
 		MI_AO_SetMute(AUDIO_DEV, g_bMute);
 	}
 #endif
+
+	SetMuteStatus(g_bMute);
 #endif
 }
 static bool onButtonClick_Button_confirm(ZKButton *pButton) {

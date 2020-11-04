@@ -359,8 +359,10 @@ int my_player_set_volumn(int volumn)
             vol = volumn * (MAX_ADJUST_AO_VOLUME - MIN_ADJUST_AO_VOLUME) / 100 + MIN_ADJUST_AO_VOLUME;
             vol = (vol > MAX_ADJUST_AO_VOLUME) ? MAX_ADJUST_AO_VOLUME : vol;
             vol = (vol < MIN_ADJUST_AO_VOLUME) ? MIN_ADJUST_AO_VOLUME : vol;
+            g_mute = false;
         } else {
             vol = MIN_AO_VOLUME;
+            g_mute = true;
         }
 
         memset(&stAoState, 0, sizeof(MI_AO_ChnState_t));
