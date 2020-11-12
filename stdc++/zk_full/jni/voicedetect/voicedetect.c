@@ -530,7 +530,7 @@ static MI_S32 SSTAR_AudioInStart()
     stAiSetAttr.eWorkmode = E_MI_AUDIO_MODE_I2S_MASTER;
     //stAiSetAttr.eWorkmode = E_MI_AUDIO_MODE_I2S_SLAVE;
     stAiSetAttr.u32ChnCnt = 2;
-    //stAiSetAttr.u32ChnCnt = 4;
+    //stAiSetAttr.u32ChnCnt = 4;		// 4dmic
     stAiSetAttr.u32FrmNum = 16;
     stAiSetAttr.u32PtNumPerFrm = AUDIO_PT_NUMBER_FRAME;
 
