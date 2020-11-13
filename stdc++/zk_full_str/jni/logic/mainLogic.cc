@@ -350,13 +350,19 @@ static void Enter_STR_SuspendMode()
 
 	if (!access("/sys/class/gpio/gpio73", F_OK))
 	{
-		system("echo 1 >/sys/class/gpio/gpio73/value");
+		system("echo 0 >/sys/class/gpio/gpio73/value");
+	}
+
+	if (!access("/sys/class/gpio/gpio14", F_OK))
+	{
+		system("echo 0 >/sys/class/gpio/gpio14/value");
 	}
 }
 
 static void Enter_STR_ResumeMode()
 {
-	system("echo 0 >/sys/class/gpio/gpio73/value");
+	system("echo 1 >/sys/class/gpio/gpio73/value");
+	system("echo 1 >/sys/class/gpio/gpio14/value");
 	system("echo 1 >/sys/class/gpio/gpio5/value");
 
 	IPCOutput o(SSD_IPC);

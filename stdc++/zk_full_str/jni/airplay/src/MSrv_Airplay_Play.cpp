@@ -191,7 +191,9 @@ void Ss_DLNA_pthread_close(void)
 	}
 	nPlayerStatuc = MPLAYER_IDLE;
 	//deinit sdk
-	Ss_Player_DeInit(1);
+
+	printf("Ss_DLNA_pthread_close: Ss_Player_DeInit\n");
+	//Ss_Player_DeInit(1);		// has deinited, not needed
 }
 
 void mDLNAPlayback_Open(char *url,char *MetaData, float fPosition)
@@ -327,7 +329,7 @@ int Ss_DLNA_ServiceStart(void)
 
     if(m_pLibdlnaHandle == NULL)
     {
-		m_pLibdlnaHandle = dlopen(dlaname, RTLD_LAZY);
+		m_pLibdlnaHandle = dlopen(dlaname, RTLD_NOW);
 	}
     if(m_pLibdlnaHandle != NULL)
     {
@@ -611,6 +613,7 @@ void VideoMirroringProcess(void *cls, const void *buffer, int buflen, int payloa
 
 		if(IsH264ModeChange(data,spsnalsize))
 		{
+			printf("VideoMirroringProcess: H264ModeChange, Ss_Player_DeInit\n");
 			Ss_Player_DeInit(1);
 			printf("width = %d , hight = %d \n",gVedioWidth,gVedioHeight);
             Ss_Player_Init(gVedioWidth, gVedioHeight, 1);
@@ -648,6 +651,7 @@ void VideoMirroringStop(void *cls)
     }
 #endif
     printf("=====video_mirroring_stop=1=======\r\n");
+    printf("VideoMirroringStop: Ss_Player_DeInit\n");
 	Ss_Player_DeInit(1);
 	//Ss_pthread_finish();
 	printf("=====video_mirroring_stop=2=======\r\n");
@@ -862,7 +866,7 @@ void Airplay_setosversion(void *cls,double osversion)
 
     if(m_pLibHandle == NULL)
     {
-        m_pLibHandle = dlopen(dllname, RTLD_LAZY);
+        m_pLibHandle = dlopen(dllname, RTLD_NOW);
     }
     if(m_pLibHandle != NULL)
     {
@@ -914,6 +918,7 @@ int Ss_mAirplayServiceClose(void)
 
 	nPlayerStatuc = MPLAYER_IDLE;
 
+	printf("Ss_mAirplayServiceClose: MI_DISP_DeInitDev!!!!!!\n");
 	MI_DISP_DeInitDev();
 	return 0;
 }

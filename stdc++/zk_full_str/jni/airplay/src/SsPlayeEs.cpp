@@ -146,14 +146,16 @@ int Ss_Player_DeInit(int flag)
     stDstChnPort.u32DevId = 0;
     stDstChnPort.u32ChnId = 0;
     stDstChnPort.u32PortId = 0;
-    STCHECKRESULT(MI_SYS_UnBindChnPort(&stSrcChnPort, &stDstChnPort));
+    MI_SYS_UnBindChnPort(&stSrcChnPort, &stDstChnPort);
 
-    STCHECKRESULT(MI_DISP_ClearInputPortBuffer(0, 0, TRUE));
-    STCHECKRESULT(MI_DISP_DisableInputPort(0, 0));
+    MI_DISP_ClearInputPortBuffer(0, 0, TRUE);
+    MI_DISP_DisableInputPort(0, 0);
 
-    STCHECKRESULT(MI_VDEC_StopChn(0));
-    STCHECKRESULT(MI_VDEC_DestroyChn(0));
-    if(flag) MI_VDEC_DeInitDev();
+    MI_VDEC_StopChn(0);
+    MI_VDEC_DestroyChn(0);
+    if(flag)
+    	MI_VDEC_DeInitDev();
+
     NANOX_ICAST("Ss_Player_DeInit leave\n");
     return 0;
 }

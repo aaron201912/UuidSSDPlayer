@@ -513,14 +513,12 @@ static MI_S32 SSTAR_AudioInStart()
     MI_AI_CHN AiChn = 0;
     MI_AUDIO_Attr_t stAiSetAttr;
     MI_SYS_ChnPort_t stAiChn0OutputPort0;
-    MI_AI_VqeConfig_t stAiVqeConfig;
 
     //Ao
     MI_AUDIO_DEV AoDevId = AO_DEV_ID;
     MI_AO_CHN AoChn = 0;
     MI_S16 s16CompressionRatioInput[5] = {-70, -60, -30, 0, 0};
     MI_S16 s16CompressionRatioOutput[5] = {-70, -45, -18, 0, 0};
-
 
     //set ai attr
     memset(&stAiSetAttr, 0, sizeof(MI_AUDIO_Attr_t));
@@ -541,80 +539,14 @@ static MI_S32 SSTAR_AudioInStart()
     stAiChn0OutputPort0.u32ChnId = AiChn;
     stAiChn0OutputPort0.u32PortId = 0;
 
-    //ai vqe
-    memset(&stAiVqeConfig, 0, sizeof(MI_AI_VqeConfig_t));
-    stAiVqeConfig.bHpfOpen = FALSE;
-    stAiVqeConfig.bAnrOpen = FALSE;
-    stAiVqeConfig.bAgcOpen = TRUE;
-    stAiVqeConfig.bEqOpen = FALSE;
-    //stAiVqeConfig.bAecOpen = FALSE;
-    stAiVqeConfig.bAecOpen = TRUE;
-
-    stAiVqeConfig.s32FrameSample = 128;
-    stAiVqeConfig.s32WorkSampleRate = AUDIO_SAMPLE_RATE;
-
-    //Hpf
-    stAiVqeConfig.stHpfCfg.eMode = E_MI_AUDIO_ALGORITHM_MODE_USER;
-    stAiVqeConfig.stHpfCfg.eHpfFreq = E_MI_AUDIO_HPF_FREQ_120;
-
-    //Anr
-    stAiVqeConfig.stAnrCfg.eMode= E_MI_AUDIO_ALGORITHM_MODE_USER;
-    stAiVqeConfig.stAnrCfg.eNrSpeed = E_MI_AUDIO_NR_SPEED_LOW;
-    stAiVqeConfig.stAnrCfg.u32NrIntensity = 5;            //[0, 30]
-    stAiVqeConfig.stAnrCfg.u32NrSmoothLevel = 10;          //[0, 10]
-
-    //Agc
-    stAiVqeConfig.stAgcCfg.eMode = E_MI_AUDIO_ALGORITHM_MODE_USER;
-    stAiVqeConfig.stAgcCfg.s32NoiseGateDb = -30;           //[-80, 0], NoiseGateDb disable when value = -80
-    stAiVqeConfig.stAgcCfg.s32TargetLevelDb =   0;       //[-80, 0]
-    stAiVqeConfig.stAgcCfg.stAgcGainInfo.s32GainInit = 1;  //[-20, 30]
-    stAiVqeConfig.stAgcCfg.stAgcGainInfo.s32GainMax =  15; //[0, 30]
-    stAiVqeConfig.stAgcCfg.stAgcGainInfo.s32GainMin = -5; //[-20, 30]
-    stAiVqeConfig.stAgcCfg.u32AttackTime = 1;              //[1, 20]
-    memcpy(stAiVqeConfig.stAgcCfg.s16Compression_ratio_input, s16CompressionRatioInput, sizeof(s16CompressionRatioInput));
-    memcpy(stAiVqeConfig.stAgcCfg.s16Compression_ratio_output, s16CompressionRatioOutput, sizeof(s16CompressionRatioOutput));
-    stAiVqeConfig.stAgcCfg.u32DropGainMax = 60;            //[0, 60]
-    stAiVqeConfig.stAgcCfg.u32NoiseGateAttenuationDb = 10;  //[0, 100]
-    stAiVqeConfig.stAgcCfg.u32ReleaseTime = 10;             //[1, 20]
-    stAiVqeConfig.u32ChnNum = 1;
-    //Eq
-    stAiVqeConfig.stEqCfg.eMode = E_MI_AUDIO_ALGORITHM_MODE_USER;
-    for (i = 0; i < sizeof(stAiVqeConfig.stEqCfg.s16EqGainDb) / sizeof(stAiVqeConfig.stEqCfg.s16EqGainDb[0]); i++)
-    {
-       stAiVqeConfig.stEqCfg.s16EqGainDb[i] = 5;
-    }
-
-    // aec
-    memset(&stAiVqeConfig.stAecCfg, 0, sizeof(MI_AI_AecConfig_t));
-    stAiVqeConfig.stAecCfg.u32AecSupfreq[0] = 20;
-    stAiVqeConfig.stAecCfg.u32AecSupfreq[1] = 40;
-    stAiVqeConfig.stAecCfg.u32AecSupfreq[2] = 60;
-    stAiVqeConfig.stAecCfg.u32AecSupfreq[3] = 80;
-    stAiVqeConfig.stAecCfg.u32AecSupfreq[4] = 100;
-    stAiVqeConfig.stAecCfg.u32AecSupfreq[5] = 120;
-    for (i = 0; i < sizeof(stAiVqeConfig.stAecCfg.u32AecSupIntensity) / sizeof(stAiVqeConfig.stAecCfg.u32AecSupIntensity[0]); i++)
-	{
-    	stAiVqeConfig.stAecCfg.u32AecSupIntensity[i] = 4;
-	}
-
     ExecFunc(MI_AI_SetPubAttr(AiDevId, &stAiSetAttr), MI_SUCCESS);
     ExecFunc(MI_AI_Enable(AiDevId), MI_SUCCESS);
     ExecFunc(MI_AI_EnableChn(AiDevId, AiChn), MI_SUCCESS);
 
-#if 1
 #if USE_AMIC
     ExecFunc(MI_AI_SetVqeVolume(AiDevId, 0, 9), MI_SUCCESS);
 #else
     ExecFunc(MI_AI_SetVqeVolume(AiDevId, 0, 4), MI_SUCCESS);
-#endif
-
-    s32Ret = MI_AI_SetVqeAttr(AiDevId, AiChn, AoDevId, AoChn, &stAiVqeConfig);
-    if (s32Ret != MI_SUCCESS)
-    {
-        ST_ERR("%#x\n", s32Ret);
-    }
-    ExecFunc(MI_AI_EnableVqe(AiDevId, AiChn), MI_SUCCESS);
-
 #endif
 
     for (i = 0; i < stAiSetAttr.u32ChnCnt; i++)
@@ -642,7 +574,6 @@ static MI_S32 SSTAR_AudioInStop()
     g_stAudioInThreadData.bExit = true;
     pthread_join(g_stAudioInThreadData.pt, NULL);
 
-    ExecFunc(MI_AI_DisableVqe(AiDevId, AiChn), MI_SUCCESS);
     ExecFunc(MI_AI_DisableChn(AiDevId, AiChn), MI_SUCCESS);
     ExecFunc(MI_AI_Disable(AiDevId), MI_SUCCESS);
     ExecFunc(MI_AI_DeInitDev(),MI_SUCCESS);
