@@ -46,6 +46,18 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/time.h>
+#include <sys/prctl.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+
+struct shared_use_st
+{
+    int  written;    //作为一个标志，非0：表示可读，0表示可写
+    bool flag;
+};
+
+struct shared_use_st *shm_addr = NULL;
+int shm_id = 0;
 
 #define CLT_IPC         "/appconfigs/client_input"
 #define SVC_IPC         "/appconfigs/server_input"
@@ -120,18 +132,10 @@ public:
 
     int Send(const IPCEvent& evt) {
         if (m_fd >= 0) {
-            ret = write(m_fd, &evt, sizeof(IPCEvent));
-            //printf("write %d byte to %s\n", ret, m_file.c_str());
-        } else {
-            ret = -1;
-            //printf("%s can't be writed!\n", m_file.c_str());
+            return write(m_fd, &evt, sizeof(IPCEvent));
         }
-        return ret;
-    }
-
-    void DeInit() {
-        m_fd = -1;
-        printf("%s deinit!\n", m_file.c_str());
+        printf("write %s failed!\n", m_file.c_str());
+        return -1;
     }
 
 private:
@@ -1241,7 +1245,9 @@ static void StartPlayStreamFile(char *pFileName)
 {
     printf("Start to StartPlayStreamFile\n");
 #ifdef SUPPORT_PLAYER_PROCESS
+    int ret;
     struct timeval time_start, time_wait;
+    void *shm = NULL;
 
     mWindow_errMsgPtr->setVisible(false);
     ResetSpeedMode();
@@ -1256,6 +1262,24 @@ static void StartPlayStreamFile(char *pFileName)
     }
 
     #if USE_POPEN
+    //创建共享内存
+    shm_id = shmget((key_t)1234, sizeof(struct shared_use_st), 0666 | IPC_CREAT);
+    if(shm_id < 0) {
+        fprintf(stderr, "shmget failed\n");
+        goto next;
+    }
+
+    //将共享内存连接到当前进程的地址空间
+    shm = shmat(shm_id, (void*)NULL, 0);
+    if(shm < 0) {
+        fprintf(stderr, "shmat failed\n");
+        goto next;
+    }
+
+    shm_addr = (struct shared_use_st *)shm;
+    memset(shm_addr, 0x0, sizeof(struct shared_use_st));
+    printf("shared memory attached at %x\n", (int)shm);
+
     player_fd = popen(MYPLAYER_PATH, "w");
     if (NULL == player_fd) {
         printf("my_player is not exit!\n");
@@ -1277,6 +1301,22 @@ next:
     if (recvevt.EventType == IPC_COMMAND_CREATE) {
         printf("myplayer progress create success!\n");
     } else {
+        if (shm_addr) {
+            //把共享内存从当前进程中分离
+            ret = shmdt((void *)shm_addr);
+            if (ret < 0) {
+                fprintf(stderr, "shmdt failed\n");
+            }
+
+            //删除共享内存
+            ret = shmctl(shm_id, IPC_RMID, NULL);
+            if(ret < 0) {
+                fprintf(stderr, "shmctl(IPC_RMID) failed\n");
+            }
+        }
+        shm_addr = NULL;
+        shm_id = 0;
+
         mTextview_msgPtr->setText("Other Error Occur!");
         mWindow_errMsgPtr->setVisible(true);
 
@@ -1405,6 +1445,7 @@ static void StopPlayStreamFile()
 {
     printf("Start to StopPlayStreamFile\n");
 #ifdef SUPPORT_PLAYER_PROCESS
+    int ret;
     struct timeval time_start, time_wait;
 
     system("echo 0 > /sys/class/gpio/gpio12/value");
@@ -1425,8 +1466,8 @@ static void StopPlayStreamFile()
         #if USE_POPEN
         memset(&recvevt, 0, sizeof(IPCEvent));
         gettimeofday(&time_start, NULL);
-        while (i_server.Read(recvevt) <= 0
-               || (recvevt.EventType != IPC_COMMAND_DESTORY)) {
+        while ((i_server.Read(recvevt) <= 0 || recvevt.EventType != IPC_COMMAND_DESTORY) &&
+               (shm_addr->written || !shm_addr->flag)) {
             usleep(10 * 1000);
             gettimeofday(&time_wait, NULL);
             if (time_wait.tv_sec - time_start.tv_sec > 2) {
@@ -1434,9 +1475,26 @@ static void StopPlayStreamFile()
                 break;
             }
         }
-        if (recvevt.EventType == IPC_COMMAND_DESTORY) {
+        if (shm_addr->flag || recvevt.EventType == IPC_COMMAND_DESTORY) {
             printf("myplayer progress destory done!\n");
         }
+
+        if (shm_addr) {
+            //把共享内存从当前进程中分离
+            ret = shmdt((void *)shm_addr);
+            if (ret < 0) {
+                fprintf(stderr, "shmdt failed\n");
+            }
+
+            //删除共享内存
+            ret = shmctl(shm_id, IPC_RMID, NULL);
+            if(ret < 0) {
+                fprintf(stderr, "shmctl(IPC_RMID) failed\n");
+            }
+        }
+        shm_addr = NULL;
+        shm_id = 0;
+
         if (player_fd) {
             pclose(player_fd);
             player_fd = NULL;

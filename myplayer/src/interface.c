@@ -130,17 +130,7 @@ int my_player_close(void)
 
     pthread_mutex_lock(&myplayer_mutex);
 
-    if (ssplayer->enable_video) {
-        ret = my_display_unset(ssplayer);
-        av_log(NULL, AV_LOG_INFO, "my_display_unset done!\n"); 
-    }
-
     ret = player_deinit(ssplayer);
-
-    if (ssplayer->enable_audio) {
-        ret = my_audio_deinit();
-        av_log(NULL, AV_LOG_INFO, "my_audio_deinit done!\n");
-    }
 
     memset(&g_opts, 0x0, sizeof(player_opts_t));
 
