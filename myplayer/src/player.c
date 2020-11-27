@@ -148,8 +148,10 @@ static void audio_decoder_abort(player_stat_t *is)
     packet_queue_flush(&is->audio_pkt_queue);
     printf("3.audio packet_queue_flush exit!\n");
 
-    my_audio_deinit();
-    av_log(NULL, AV_LOG_INFO, "my_audio_deinit done!\n");
+    if (is->enable_audio) {
+        my_audio_deinit();
+        av_log(NULL, AV_LOG_INFO, "my_audio_deinit done!\n");
+    }
 
     avcodec_free_context(&is->p_acodec_ctx);
     printf("4.audio avcodec_free_context exit!\n");
@@ -175,8 +177,10 @@ static void video_decoder_abort(player_stat_t *is)
     packet_queue_flush(&is->video_pkt_queue);
     printf("4.video packet_queue_flush free!\n");
 
-    my_display_unset(is);
-    av_log(NULL, AV_LOG_INFO, "my_display_unset done!\n"); 
+    if (is->enable_video) {
+        my_display_unset(is);
+        av_log(NULL, AV_LOG_INFO, "my_display_unset done!\n");
+    }
 
     avcodec_free_context(&is->p_vcodec_ctx);
     printf("5.video avcodec_free_context exit!\n");

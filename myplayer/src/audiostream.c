@@ -52,8 +52,9 @@ static int audio_decode_frame(AVCodecContext *p_codec_ctx, packet_queue_t *p_pkt
 
         while (1)
         {
-            //if (d->queue->abort_request)
-            //    return -1;
+            if (p_pkt_queue->abort_request) {
+                return -1;
+            }
             /*pthread_mutex_lock(&g_myplayer->audio_mutex);
             if (g_myplayer->seek_flags & (1 << 5)) {
                 pthread_mutex_unlock(&g_myplayer->audio_mutex);
@@ -94,6 +95,8 @@ static int audio_decode_frame(AVCodecContext *p_codec_ctx, packet_queue_t *p_pkt
             else
             {
                 av_log(NULL, AV_LOG_ERROR, "audio avcodec_receive_frame(): other errors\n");
+                g_myplayer->play_status = -1;
+                av_usleep(10 * 1000);
                 continue;
             }
         }

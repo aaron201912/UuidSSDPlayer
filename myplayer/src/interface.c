@@ -37,6 +37,7 @@ static void * my_layer_handler(void * arg)
     ret = open_video(mplayer);
     if (ret < 0) {
         av_log(NULL, AV_LOG_ERROR, "open_video failed!\n");
+        mplayer->audio_idx = -1;
         return NULL;
     }
     av_log(NULL, AV_LOG_INFO, "open_video successful\n");
@@ -120,7 +121,7 @@ int my_player_open(const char *fp, uint16_t x, uint16_t y, uint16_t width, uint1
 int my_player_close(void)
 {
     if(ssplayer == NULL) {
-        av_log(NULL, AV_LOG_ERROR, "my_player_close failed\n");
+        av_log(NULL, AV_LOG_WARNING, "myplayer has been closed!\n");
         return -1;
     }
 
@@ -243,6 +244,12 @@ int my_player_seek(double time)
         return -1;
     }
 
+    if (ssplayer->seek_by_bytes) {
+        av_log(NULL, AV_LOG_WARNING, "this file don't support to seek!\n");
+        pthread_mutex_unlock(&myplayer_mutex);
+        return -1;
+    }
+
     pos = get_master_clock(ssplayer);
     if (isnan(pos))
         pos = (double)ssplayer->seek_pos / AV_TIME_BASE;
@@ -252,7 +259,7 @@ int my_player_seek(double time)
     if (ssplayer->p_fmt_ctx->duration != AV_NOPTS_VALUE && pos >= ssplayer->p_fmt_ctx->duration / (double)AV_TIME_BASE)
         pos = ssplayer->p_fmt_ctx->duration / (double)AV_TIME_BASE;
     NANOX_MARK("start to seek to %.3f\n", pos);
-    stream_seek(ssplayer, (int64_t)(pos * AV_TIME_BASE), (int64_t)(time * AV_TIME_BASE), 0);
+    stream_seek(ssplayer, (int64_t)(pos * AV_TIME_BASE), (int64_t)(time * AV_TIME_BASE), ssplayer->seek_by_bytes);
 
     pthread_mutex_unlock(&myplayer_mutex);
 
@@ -271,6 +278,12 @@ int my_player_seek2time(double time)
         return -1;
     }
 
+    if (ssplayer->seek_by_bytes) {
+        av_log(NULL, AV_LOG_WARNING, "this file don't support to seek!\n");
+        pthread_mutex_unlock(&myplayer_mutex);
+        return -1;
+    }
+
     pos = get_master_clock(ssplayer);
     if (isnan(pos))
     {
@@ -283,7 +296,7 @@ int my_player_seek2time(double time)
     if (ssplayer->p_fmt_ctx->duration != AV_NOPTS_VALUE && time >= ssplayer->p_fmt_ctx->duration / (double)AV_TIME_BASE)
         target= ssplayer->p_fmt_ctx->duration / (double)AV_TIME_BASE;
     NANOX_MARK("start to seek2 to %.3f\n", target);
-    stream_seek(ssplayer, (int64_t)(target * AV_TIME_BASE), (int64_t)(diff * AV_TIME_BASE), 0);
+    stream_seek(ssplayer, (int64_t)(target * AV_TIME_BASE), (int64_t)(diff * AV_TIME_BASE), ssplayer->seek_by_bytes);
 
     pthread_mutex_unlock(&myplayer_mutex);
 
