@@ -216,6 +216,7 @@ typedef struct {
     int audio_complete, video_complete;
     int seek_req;
     int seek_flags;
+    int seek_by_bytes;
     int av_sync_type;
     int64_t seek_pos;
     int64_t seek_rel;

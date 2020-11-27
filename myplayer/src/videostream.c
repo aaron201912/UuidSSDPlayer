@@ -155,9 +155,9 @@ static int video_decode_frame(AVCodecContext *p_codec_ctx, packet_queue_t *p_pkt
 
         while (1)
         {
-            //if(p_pkt_queue->abort_request) {
-            //    return -1;
-            //}
+            if(p_pkt_queue->abort_request) {
+                return -1;
+            }
             /*pthread_mutex_lock(&g_myplayer->video_mutex);
             if (g_myplayer->seek_flags & (1 << 6)) {
                 pthread_mutex_unlock(&g_myplayer->video_mutex);
@@ -186,6 +186,8 @@ static int video_decode_frame(AVCodecContext *p_codec_ctx, packet_queue_t *p_pkt
                 else
                 {
                     av_log(NULL, AV_LOG_ERROR, "video avcodec_receive_frame(): other errors\n");
+                    g_myplayer->play_status = -1;
+                    av_usleep(10 * 1000);
                     continue;
                 }
             }
@@ -216,7 +218,9 @@ static int video_decode_frame(AVCodecContext *p_codec_ctx, packet_queue_t *p_pkt
             pthread_mutex_unlock(&g_myplayer->video_mutex);
 
             // 复位解码器内部状态/刷新内部缓冲区。
+            p_codec_ctx->flags |= (1 << 7);
             avcodec_flush_buffers(p_codec_ctx);
+            p_codec_ctx->flags &= ~(1 << 7);
 
             printf("avcodec_flush_buffers for video!\n");
         }
@@ -1246,7 +1250,7 @@ static int open_video_stream(player_stat_t *is)
     //printf("bistream width : %d, height : %d\n", is->p_vcodec_ctx->coded_width,is->p_vcodec_ctx->coded_height);
 
     // 2. 创建视频解码线程
-    prctl(PR_SET_NAME, "video_decode_tid");
+    prctl(PR_SET_NAME, "video_decode");
     ret = pthread_create(&is->video_decode_tid, NULL, video_decode_thread, (void *)is);
     if (ret != 0) {
         av_log(NULL, AV_LOG_ERROR, "video_decode_thread create failed!\n");

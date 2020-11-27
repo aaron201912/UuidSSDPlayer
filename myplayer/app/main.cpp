@@ -404,11 +404,9 @@ int main(int argc, char *argv[])
         // 每秒更新一次播放时间发送给UI
         gettimeofday(&time_now, NULL);
         if (time_now.tv_sec - time_last.tv_sec >= 1 && g_playing) {
-            double position;
-            if(!o_server.Init()) {
-                printf("Main Process Not start!!!\n");
-                g_ipc_error = true;
-            } else {
+            time_last.tv_sec = time_now.tv_sec;
+            if(o_server.Init()) {
+                double position;
                 int ret = my_player_getposition(&position);
                 if (ret >= 0) {
                     memset(&sendevt,0,sizeof(IPCEvent));
@@ -417,13 +415,14 @@ int main(int argc, char *argv[])
                     o_server.Send(sendevt);
                     //av_log(NULL, AV_LOG_WARNING, "send current position time[%0.3lf]\n", sendevt.stPlData.misc);
                 }
-                time_last.tv_sec = time_now.tv_sec;
             }
         }
 
         // 异常处理或者播放完成
         if (g_myplayer && g_playing) {
             if (g_myplayer->play_status > 0) {
+                g_myplayer->play_status = 0;
+
                 if(!o_server.Init()) {
                     printf("Main Process Not start!!!\n");
                     g_ipc_error = true;
@@ -435,6 +434,8 @@ int main(int argc, char *argv[])
                     av_log(NULL, AV_LOG_INFO, "my_player has played complete!\n");
                 }
             } else if (g_myplayer->play_status < 0) {
+                g_myplayer->play_status = 0;
+
                 if(!o_server.Init()) {
                     printf("Main Process Not start!!!\n");
                     g_ipc_error = true;
@@ -453,26 +454,28 @@ int main(int argc, char *argv[])
                     av_log(NULL, AV_LOG_ERROR, "please attemp to exit player!\n");
                 }
             }
-            g_myplayer->play_status = 0;
         }
 
         //增加心跳包机制
         gettimeofday(&pant_end, NULL);
-        if (pant_end.tv_sec - pant_start.tv_sec >= PANT_TIME) {
-            if(!o_server.Init()) {
-                av_log(NULL, AV_LOG_ERROR, "Main Process Not start!!!\n");
-                g_ipc_error = true;
-            } else {
+        if (g_playing && pant_end.tv_sec - pant_start.tv_sec >= PANT_TIME) {
+            if(o_server.Init()) {
                 memset(&sendevt,0,sizeof(IPCEvent));
                 sendevt.EventType = IPC_COMMAND_PANT;
                 o_server.Send(sendevt);
 
-                gettimeofday(&pant_start, NULL);
                 av_log(NULL, AV_LOG_VERBOSE, "my_player send pant signal!\n");
             }
+            gettimeofday(&pant_start, NULL);
         }
 
-        if (g_playing && !bExit && pant_end.tv_sec - pant_wait.tv_sec >= 2 * PANT_TIME) {
+        if (g_playing && g_pantflag && pant_end.tv_sec - pant_wait.tv_sec >= 2 * PANT_TIME) {
+            if(o_server.Init()) {
+                memset(&sendevt,0,sizeof(IPCEvent));
+                sendevt.EventType = IPC_COMMAND_ERROR;
+                sendevt.stPlData.status = -1;
+                o_server.Send(sendevt);
+            }
             av_log(NULL, AV_LOG_ERROR, "get pant ack signal form main time out!\n");
             g_ipc_error = true;
         }
@@ -484,9 +487,9 @@ int main(int argc, char *argv[])
 
         //进程间通讯异常处理
         if (g_ipc_error) {
-        #if USE_POPEN
+#if USE_POPEN
             bExit = true;
-        #endif
+#endif
             if (g_playing) {
                 my_player_close();
                 g_playing = false;

@@ -1258,7 +1258,7 @@ static void StartPlayStreamFile(char *pFileName)
     if(!i_server.Init()) {
         printf("[%s %d]create i_server fail!\n", __FILE__, __LINE__);
         fprintf(stderr, "Error：%s\n", strerror(errno));
-        goto next;
+        return;
     }
 
     #if USE_POPEN
@@ -1450,24 +1450,16 @@ static void StopPlayStreamFile()
 
     system("echo 0 > /sys/class/gpio/gpio12/value");
 
-    if(!o_client.Init()) {
-        printf("my_player is not start!\n");
-        fprintf(stderr, "Error：%s\n", strerror(errno));
-        i_server.Term();
-    } else {
+    if(o_client.Init()) {
         memset(&sendevt, 0, sizeof(IPCEvent));
         #if USE_POPEN
         sendevt.EventType = IPC_COMMAND_EXIT;
-        #else
-        sendevt.EventType = IPC_COMMAND_CLOSE;
-        #endif
         o_client.Send(sendevt);
 
-        #if USE_POPEN
         memset(&recvevt, 0, sizeof(IPCEvent));
         gettimeofday(&time_start, NULL);
         while ((i_server.Read(recvevt) <= 0 || recvevt.EventType != IPC_COMMAND_DESTORY) &&
-               (shm_addr->written || !shm_addr->flag)) {
+               (shm_addr && (shm_addr->written || !shm_addr->flag))) {
             usleep(10 * 1000);
             gettimeofday(&time_wait, NULL);
             if (time_wait.tv_sec - time_start.tv_sec > 2) {
@@ -1475,37 +1467,57 @@ static void StopPlayStreamFile()
                 break;
             }
         }
-        if (shm_addr->flag || recvevt.EventType == IPC_COMMAND_DESTORY) {
-            printf("myplayer progress destory done!\n");
-        }
+        #else
+        sendevt.EventType = IPC_COMMAND_CLOSE;
+        o_client.Send(sendevt);
 
-        if (shm_addr) {
-            //把共享内存从当前进程中分离
-            ret = shmdt((void *)shm_addr);
-            if (ret < 0) {
-                fprintf(stderr, "shmdt failed\n");
+        memset(&recvevt, 0, sizeof(IPCEvent));
+        gettimeofday(&time_start, NULL);
+        while (i_server.Read(recvevt) <= 0 || recvevt.EventType != IPC_COMMAND_ACK) {
+            usleep(10 * 1000);
+            gettimeofday(&time_wait, NULL);
+            if (time_wait.tv_sec - time_start.tv_sec > 2) {
+                printf("myplayer progress close failed!\n");
+                break;
             }
-
-            //删除共享内存
-            ret = shmctl(shm_id, IPC_RMID, NULL);
-            if(ret < 0) {
-                fprintf(stderr, "shmctl(IPC_RMID) failed\n");
-            }
-        }
-        shm_addr = NULL;
-        shm_id = 0;
-
-        if (player_fd) {
-            pclose(player_fd);
-            player_fd = NULL;
         }
         #endif
-
-        i_server.Term();
-        o_client.Term();
-        system("rm -rf /appconfigs/server_input");
-        printf("remove server_input file\n");
+    } else {
+        printf("my_player is not start!\n");
+        fprintf(stderr, "Error：%s\n", strerror(errno));
     }
+
+    #if USE_POPEN
+    if ((shm_addr && shm_addr->flag) || recvevt.EventType == IPC_COMMAND_DESTORY) {
+        printf("myplayer progress destory done!\n");
+    }
+
+    if (shm_addr) {
+        //把共享内存从当前进程中分离
+        ret = shmdt((void *)shm_addr);
+        if (ret < 0) {
+            fprintf(stderr, "shmdt failed\n");
+        }
+
+        //删除共享内存
+        ret = shmctl(shm_id, IPC_RMID, NULL);
+        if(ret < 0) {
+            fprintf(stderr, "shmctl(IPC_RMID) failed\n");
+        }
+    }
+    shm_addr = NULL;
+    shm_id = 0;
+
+    if (player_fd) {
+        pclose(player_fd);
+        player_fd = NULL;
+    }
+
+    i_server.Term();
+    o_client.Term();
+    system("rm -rf /appconfigs/server_input");
+    printf("remove server_input file\n");
+    #endif
 
     g_bPlaying = false;
     g_bPause = false;
