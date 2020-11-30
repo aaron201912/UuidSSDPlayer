@@ -1,3 +1,7 @@
+2020-11-28
+1. 支持ARGB1555
+
+
 2020-11-02
 1. 文本添加设置行、列间距接口 ZKTextView::setTextRowSpace、ZKTextView::setTextColSpace
 2. 列表添加设置惯性滑动减速比例接口 ZKListView::setDecRatio
