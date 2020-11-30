@@ -358,10 +358,12 @@ int my_player_set_volumn(int volumn)
         MI_S32 vol;
         MI_AO_ChnState_t stAoState;
 
-        if (volumn) {
-            vol = volumn * (MAX_ADJUST_AO_VOLUME - MIN_ADJUST_AO_VOLUME) / 100 + MIN_ADJUST_AO_VOLUME;
-            vol = (vol > MAX_ADJUST_AO_VOLUME) ? MAX_ADJUST_AO_VOLUME : vol;
-            vol = (vol < MIN_ADJUST_AO_VOLUME) ? MIN_ADJUST_AO_VOLUME : vol;
+        if (volumn > 0) {
+            //vol = volumn * (MAX_ADJUST_AO_VOLUME - MIN_ADJUST_AO_VOLUME) / 100 + MIN_ADJUST_AO_VOLUME;
+            //vol = (vol > MAX_ADJUST_AO_VOLUME) ? MAX_ADJUST_AO_VOLUME : vol;
+            //vol = (vol < MIN_ADJUST_AO_VOLUME) ? MIN_ADJUST_AO_VOLUME : vol;
+            vol = (int)(log10(volumn * 1.0) * 45 - 60);
+            vol = (vol > 30) ? 30 : vol;
             g_mute = false;
         } else {
             vol = MIN_AO_VOLUME;
