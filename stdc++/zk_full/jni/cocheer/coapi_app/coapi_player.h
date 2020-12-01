@@ -15,8 +15,16 @@ void dev_player_start(char *toneurl, char *audiourl);
 */
 void dev_player_local_start(char *play_file);
 
-/* 播放器是否正在播放 */
-int dev_player_is_play(void);
+/* 播放角色 */
+typedef enum DEV_PLAY_ROLE_{
+    SYSTEM_PLAY_ROLE     = 0,
+    MEDIA_PLAY_ROLE      = 1,
+    PLAY_ROLE_END  
+}dev_play_role_e;
+/* 
+* 播放器是否正在播放 
+*/
+int dev_player_is_play(dev_play_role_e role);
 /******************************************************************/
 /********************** USED BY COAPI *****************************/
 /****************** need to be compeleted *************************/

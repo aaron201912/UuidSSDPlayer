@@ -29,6 +29,8 @@ typedef void (*webclient_cbk)(char *data, unsigned int datalen);
 
 int coapi_download_start(char *purl,webclient_cbk func_cbk);
 
+int coapi_download_stop(void);
+
 struct webclient_session *coapi_url_open(const char *url);
 
 int coapi_url_close(struct webclient_session *session);

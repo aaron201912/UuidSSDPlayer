@@ -8,6 +8,7 @@ extern "C" {
 
 int coapi_register_status(void);
 void coapi_init(char *device_id, char *ssid, const char *pAppKey, const char *pSecretKey, dev_comm *pDev);
+int coapi_deinit(void);
 void dev_bindcode_cb(int status, char *url,char *code);
 
 

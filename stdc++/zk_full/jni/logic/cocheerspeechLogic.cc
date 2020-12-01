@@ -48,8 +48,6 @@
 #include <netinet/in.h>
 #include <pthread.h>
 
-#include "coapi_app/coapi_speech.h"
-#include "coapi_app/coapi_app.h"
 #include "coapi_api/coapi_common.h"
 #include "coapi_api/coapi_cmd.h"
 #include "coapi_api/coapi_audio.h"
@@ -57,21 +55,23 @@
 #include "coapi_api/coapi_logic.h"
 #include "coapi_api/coapi_timer.h"
 #include "coapi_api/coapi_register.h"
-#include "coapi_app/coapi_comm.h"
 #include "coapi_api/coapi_bindcode.h"
-//#include "coapi_app/coapi_button.h"
-#include "coapi_app/coapi_player.h"
-#include "coapi_app/audio.h"
-
 #include "coapi_api/coapi_devbind.h"
 #include "coapi_api/coapi_tts.h"
-#include "coapi_api/coapi_register.h"
-#include "coapi_app/coapi_record.h"
 #include "coapi_api/coapi_devsta.h"
-#include "coapi_api/coapi_common.h"
-// #include "coapi_app/coapi_network_cfg.h"
+
+#include "coapi_app/coapi_app.h"
+#include "coapi_app/coapi_comm.h"
+//#include "coapi_app/coapi_button.h"
+#include "coapi_app/coapi_player.h"
+#include "coapi_app/coapi_audio_plat.h"
+#include "coapi_app/coapi_app.h"
+#include "coapi_app/coapi_record.h"
+#include "coapi_app/coapi_speech.h"
+//#include "coapi_app/coapi_network_cfg.h"
 
 #include "appconfig.h"
+#include "statusbarconfig.h"
 
 static pthread_t g_threadCocheer = 0;
 static bool g_bExit = false;
@@ -102,7 +102,7 @@ static S_ACTIVITY_TIMEER REGISTER_ACTIVITY_TIMER_TAB[] = {
 
 static int reg = -1;
 static unsigned char boot_completed = 0;
-static bool maikefengBtIsRedy		= true;
+//static bool maikefengBtIsRedy		= true;
 
 #if USE_AMIC
 static MicInputType_e g_eMicType = E_AMIC_MONO_MODE;
@@ -112,7 +112,11 @@ static MicInputType_e g_eMicType = E_DMIC_STEREO_MODE;
 
 void cb_stop_record(){
 	mmaikefengBtPtr->setSelected(false);
-	maikefengBtIsRedy		= true;
+//	maikefengBtIsRedy		= true;
+}
+
+void cb_start_record(void){
+	mmaikefengBtPtr->setSelected(true);
 }
 
 void clean_speek_text(void){
@@ -137,6 +141,52 @@ void cb_flash_speek_text(char* text){
 	} else {
 		mTextView1Ptr->setText(text);
 	}
+}
+
+
+/**
+ * @breif 与云端的连接回调
+ * 连接上云端后所有coapi的功能才能使用
+ * 如需判断是否已经连接上云端使用coapi_logic.h的coapi_connect_status()
+ * 函数主动查询,比回调实时性更好
+ */
+static void coapp_connect_cb(unsigned char status)
+{
+	switch(status) {
+		case 0:
+			LOGD("未连接 ");
+			break;
+		case 1:
+			LOGD("连接中 ");
+			break;
+		case 2:
+			LOGD("已连接 ");
+			break;
+		case 3:
+			LOGD("链接关闭 ");
+			break;
+		case 4:
+			LOGD("网络差，信号弱 ");
+			break;
+		case 5:
+			LOGD("重新连接");
+			break;
+		case 6:
+		default:
+			LOGD("未知状态 ");
+			break;
+	}
+}
+
+/*
+ * @brief 获取网络状态，由开发者实现函数体逻辑
+ * @return 0: 网络断开
+ *         1: 网络连接
+ * 注意事项: 函数体的运行逻辑尽量简单，不能有耗时的操作，运行耗时<10毫秒
+ */
+static int coapp_wifi_cb(void)
+{
+	return 1;
 }
 
 static int get_dev_net_mac(char *szMac)
@@ -191,18 +241,23 @@ static int get_dev_net_mac(char *szMac)
 
 static void *CocheerSpeechProc(void *pData)
 {
-	char    *p_devid = "123456789012";
+	char    p_devid[13] ={0};
+	
 
 	audioInit(g_eMicType);
+	get_dev_net_mac(p_devid);
 	coapi_init(p_devid, NULL, g_pAppKey, g_pSecretKey, &g_dev);
-	// char    p_devid[13] ={0};
-	// get_dev_net_mac(p_devid);
+	coapi_speech_init();
+	coapi_record_create();
 
 	while (!g_bExit)
 	{
 		if (!g_bSignedIn)
 		{
-			if (coapi_register_status() != AUTH_STATE_AUTH_OK && coapi_register_status() != AUTH_STATE_HAS_AUTH)
+			int retRegister = coapi_register_status();
+			//printf("retRegister = %d\n", retRegister);
+
+			if (retRegister != AUTH_STATE_AUTH_OK && retRegister != AUTH_STATE_HAS_AUTH)
 			{
 				usleep(100000);
 			}
@@ -210,6 +265,10 @@ static void *CocheerSpeechProc(void *pData)
 			{
 				g_bSignedIn = true;
 				mTextView3Ptr->setText("已登录");
+				
+				/* 开始播放欢迎词 */
+				printf("welcome\n");
+				dev_player_local_start(WELCOME_WAV);		// 此处封装指定路径
 				break;
 			}
 		}
@@ -224,7 +283,18 @@ static void *CocheerSpeechProc(void *pData)
  */
 static void onUI_init(){
     //Tips :添加 UI初始化的显示代码到这里,如:mText1Ptr->setText("123");
-	// sign in once
+
+}
+
+/**
+ * 当切换到该界面时触发
+ */
+static void onUI_intent(const Intent *intentPtr) {
+    if (intentPtr != NULL) {
+        //TODO
+    }
+
+    // sign in once
 	if (g_bSignedIn)
 	{
 		mTextView3Ptr->setText("已登录");
@@ -240,6 +310,14 @@ static void onUI_init(){
 		if (!mkdir(COCHEER_AUDIO_DIR, 0777))
 		{
 			printf("create %s success\n", COCHEER_AUDIO_DIR);
+
+			if (access(COCHEER_WAV_DIR, R_OK))
+			{
+				if (!mkdir(COCHEER_WAV_DIR, 0777))
+					printf("create %s success\n", COCHEER_WAV_DIR);
+				else
+					return;
+			}
 		}
 		else
 		{
@@ -250,15 +328,6 @@ static void onUI_init(){
 	g_bExit = false;
 	mTextView3Ptr->setText("正在登录···");
 	pthread_create(&g_threadCocheer, NULL, CocheerSpeechProc, NULL);
-}
-
-/**
- * 当切换到该界面时触发
- */
-static void onUI_intent(const Intent *intentPtr) {
-    if (intentPtr != NULL) {
-        //TODO
-    }
 }
 
 /*
@@ -279,8 +348,12 @@ static void onUI_hide() {
  * 当界面完全退出时触发
  */
 static void onUI_quit() {
+	// 登录成功，退出时停止播放；登录未成功，退出时deinit，停止底层的连接动作
+
 	if (g_bSignedIn)
 		dev_player_stop();
+//	else
+//		coapi_deinit();
 
 	g_bExit = true;
 	if (g_threadCocheer)
@@ -288,6 +361,8 @@ static void onUI_quit() {
 		pthread_join(g_threadCocheer, NULL);
 		g_threadCocheer = 0;
 	}
+
+	ShowStatusBar(1, 0, 0);
 }
 
 /**
@@ -359,7 +434,8 @@ static bool onButtonClick_maikefengBt(ZKButton *pButton) {
 	LOGD(" ButtonClick maikefengBt !!!\n");
 	if (!g_bSignedIn)
 		return false;
-
+		
+#if 0		// wake up by voice
 	pButton->setSelected(true);
 	if( (pButton->isSelected()) && (maikefengBtIsRedy == true)) {
 		maikefengBtIsRedy = false;			/* 防止重复点击 */
@@ -373,7 +449,7 @@ static bool onButtonClick_maikefengBt(ZKButton *pButton) {
 		//LOGD("=================== coapi_speech_stop \n\n");
 		//coapi_speech_stop();
 	}
-
+#endif
     return false;
 }
 

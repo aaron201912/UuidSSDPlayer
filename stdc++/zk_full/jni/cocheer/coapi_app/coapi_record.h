@@ -7,7 +7,8 @@ extern "C" {
 
 typedef int (*cap_feed_cb)(char *buf,int size,int status);
 
-int coapi_record_create(cap_feed_cb cap_cb);
+void coapi_record_init(cap_feed_cb cap_cb);
+int coapi_record_create(void);
 int coapi_record_destroy(void);
 
 #ifdef __cplusplus

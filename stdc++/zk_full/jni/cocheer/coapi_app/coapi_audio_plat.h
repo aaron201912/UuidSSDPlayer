@@ -11,8 +11,8 @@
  Information is unlawful and strictly prohibited. Sigmastar hereby reserves the
  rights to any and all damages, losses, costs and expenses resulting therefrom.
 */
-#ifndef __AUDIO_H_
-#define __AUDIO_H_
+#ifndef __COAPI_AUDIO_PLAT_H_
+#define __COAPI_AUDIO_PLAT_H_
 
 #ifdef __cplusplus
 extern "C" {
@@ -39,8 +39,6 @@ extern "C" {
 #include "mi_sys.h"
 #include "mi_ai.h"
 #include "mi_ao.h"
-
-void cb_stop_record(void);		/* 在mainLogic.cc实现 */
 
 #if defined(HDMI)
 #include "mi_hdmi.h"
@@ -116,6 +114,32 @@ void cb_stop_record(void);		/* 在mainLogic.cc实现 */
 #define LEFT_PCM                    "/customer/CoAPI/left_pcm.pcm"
 #define RIGHT_PCM                   "/customer/CoAPI/right_pcm.pcm"
 #define AEC_PCM                     "/customer/CoAPI/aec_pcm.pcm"
+
+#define COCHEER_WAV_DIR           	"/customer/CoAPI/res"
+#define WELCOME_WAV                 "/customer/CoAPI/res/welcome.wav"
+#define WAKE_UP_WAV                 "/customer/CoAPI/res/wakeup.wav"
+#define LIGHT_ON                    "/customer/CoAPI/res/light_on.wav"
+#define LIGHT_OFF                   "/customer/CoAPI/res/light_off.wav"
+#define CURTAIN_ON                  "/customer/CoAPI/res/chuanglian_on.wav"
+#define CURTAIN_OFF                 "/customer/CoAPI/res/chuanglian_off.wav"
+#define AIR_CONDITIONING_ON         "/customer/CoAPI/res/kongtiao_on.wav"
+#define AIR_CONDITIONING_OFF        "/customer/CoAPI/res/kongtiao_off.wav"
+#define TEMPRATURE_UP               "/customer/CoAPI/res/wendu_gao.wav"
+#define TEMPRATURE_DOWN             "/customer/CoAPI/res/wendu_low.wav"
+#define FLOOR_HEAT_ON               "/customer/CoAPI/res/floor_heat_open.wav"
+#define FLOOR_HEAT_OFF              "/customer/CoAPI/res/floor_heat_off.wav"
+#define FRESH_AIR_ON                "/customer/CoAPI/res/fresh_air_open.wav"
+#define FRESH_AIR_OFF               "/customer/CoAPI/res/fresh_air_off.wav"
+#define WARM_MODE                   "/customer/CoAPI/res/warm_mode.wav"
+#define BRIGHT_MODE                 "/customer/CoAPI/res/bright_mode.wav"
+#define HOME_MODE                   "/customer/CoAPI/res/home_mode.wav"
+#define LEAVE_HOME_MODE             "/customer/CoAPI/res/leave_home_mode.wav"
+#define VOLUME_UP                   "/customer/CoAPI/res/volume_up.wav"
+#define VOLUME_DOWN                 "/customer/CoAPI/res/volume_down.wav"
+#define PLAYER_PAUSE                "/customer/CoAPI/res/player_pause.wav"
+#define PLAYER_RESUME               "/customer/CoAPI/res/player_resume.wav"
+
+
 
 typedef enum
 {
@@ -333,6 +357,7 @@ typedef void (*output_chn_pcm_data_cb)(chn_pcm_adta_t pcm_data_addr, unsigned in
 typedef struct start_ai_arg_type{
     output_chn_pcm_data_cb  pcm_output_cb;
 }start_ai_arg_t;
+
 /*
 * ai 开启 （开始录音）
 */
@@ -342,6 +367,24 @@ void* start_ai(void* start_ai_arg);
 */
 void stop_ai(void);
 /******************************************************** MP3 播放相关 ****************************************************/
+//#define BUFSIZE 8192
+#define BUFSIZE (10240)                              /* 10K */
+/*
+ * This is a private message structure. A generic pointer to this structure
+ * is passed to each of the callback functions. Put here any data you need
+ * to access from within the callbacks.
+ */
+struct buffer
+{
+    FILE            *fp;                            /* file pointer*/
+    unsigned int    flen;                           /* file length*/
+    unsigned int    fpos;                           /* current position*/
+    unsigned char   fbuf[BUFSIZE];                  /* buffer*/
+    unsigned int    fbsize;                         /* indeed size of buffer */
+    unsigned char   init;
+};
+typedef struct buffer mp3_file;
+
 /*
 * 播放mp3
 */

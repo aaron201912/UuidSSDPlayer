@@ -59,8 +59,8 @@ INCLUDE_DIR := -I$(EASYUI_COMMON_INCLUDE) \
 					-I ../jni/airplay/include	\
 					-I ../jni/cocheer
 		
-LDFLAGS =  -leasyui -pthread -lmi_sys -lmi_disp -lmi_panel -lmi_ao -lmi_gfx -lmi_divp -lmi_vdec -lmi_common -lmi_wlan -lcjson -lstdc++ -lmi_ai -ldl -lrt -lcocheer -shared -fPIC
-LDFLAGS += -L$(ZKSW_PREBUILT_LIB_PATH)/system -L. -L ../jni/sdkdir/lib -L ../jni/cocheer
+LDFLAGS =  -leasyui -pthread -lmi_sys -lmi_disp -lmi_panel -lmi_ao -lmi_gfx -lmi_divp -lmi_vdec -lmi_common -lmi_wlan -lcjson -lstdc++ -lmi_ai -ldl -lrt -lcocheer -lmad -shared -fPIC
+LDFLAGS += -L$(ZKSW_PREBUILT_LIB_PATH)/system -L. -L ../jni/sdkdir/lib -L ../jni/cocheer -L ../jni/cocheer/mad
 
 INCLUDE_DIR += -I ../jni/player -I ../jni/player/ffmpeg -I ../jni/player/ffmpeg/include -I ../jni/player/mediastream -I ../jni/player/imagedata
 INCLUDE_DIR += -I ../jni/v4l2/inc -I ../jni/v4l2/inc/uvc -I ../jni/v4l2/inc/video -I ../jni/v4l2/src -I ../jni/v4l2/src/control -I ../jni/v4l2/src/gcc \
