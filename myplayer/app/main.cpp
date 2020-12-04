@@ -85,7 +85,7 @@ public:
 
     bool Init() {
         if (m_fd < 0) {
-            m_fd = open(m_file.c_str(), O_WRONLY | O_NONBLOCK);
+            m_fd = open(m_file.c_str(), O_WRONLY | O_NONBLOCK, S_IWUSR | S_IWOTH);
             printf("IPCOutput m_fd = %d\n", m_fd);
         }
         return m_fd >= 0;
@@ -421,8 +421,6 @@ int main(int argc, char *argv[])
         // 异常处理或者播放完成
         if (g_myplayer && g_playing) {
             if (g_myplayer->play_status > 0) {
-                g_myplayer->play_status = 0;
-
                 if(!o_server.Init()) {
                     printf("Main Process Not start!!!\n");
                     g_ipc_error = true;
@@ -431,11 +429,10 @@ int main(int argc, char *argv[])
                     sendevt.EventType = IPC_COMMAND_COMPLETE;
                     sendevt.stPlData.status = (g_myplayer->audio_complete | g_myplayer->video_complete);
                     o_server.Send(sendevt);
+                    g_myplayer->play_status = 0;
                     av_log(NULL, AV_LOG_INFO, "my_player has played complete!\n");
                 }
             } else if (g_myplayer->play_status < 0) {
-                g_myplayer->play_status = 0;
-
                 if(!o_server.Init()) {
                     printf("Main Process Not start!!!\n");
                     g_ipc_error = true;
@@ -444,6 +441,8 @@ int main(int argc, char *argv[])
                     sendevt.EventType = IPC_COMMAND_ERROR;
                     sendevt.stPlData.status = g_myplayer->play_status;
                     o_server.Send(sendevt);
+
+                    g_myplayer->play_status = 0;
 
                     my_player_close();
                     g_playing  = false;

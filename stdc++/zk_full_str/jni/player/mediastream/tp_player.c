@@ -1,178 +1,3 @@
-#ifdef SUPPORT_PLAYER_PROCESS
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <string>
-#include <stdbool.h>
-#include <stdint.h>
-#include <string.h>
-#include <signal.h>
-#include <pthread.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/time.h>
-
-#define CLT_IPC     "/appconfigs/client_input"
-#define SVC_IPC     "/appconfigs/server_input"
-
-typedef enum
-{
-  IPC_COMMAND_OPEN,
-  IPC_COMMAND_CLOSE,
-  IPC_COMMAND_PAUSE,
-  IPC_COMMAND_RESUME,
-  IPC_COMMAND_SEEK,
-  IPC_COMMAND_SEEK2TIME,
-  IPC_COMMAND_GET_POSITION,
-  IPC_COMMAND_GET_DURATION,
-  IPC_COMMAND_MAX,
-  IPC_COMMAND_ACK,
-  IPC_COMMAND_SET_VOLUMN,
-  IPC_COMMAND_SET_MUTE,
-  IPC_COMMAND_ERROR,
-  IPC_COMMAND_COMPLETE,
-  IPC_COMMAND_CREATE,
-  IPC_COMMAND_DESTORY,
-  IPC_COMMAND_EXIT
-} IPC_COMMAND_TYPE;
-
-typedef struct{
-    int x;
-    int y;
-    int width;
-    int height;
-    double misc;
-    int aodev, volumn;
-    int status;
-    int rotate;
-    bool mute;
-    bool audio_only, video_only;
-    int  play_mode;
-    char filePath[512];
-}stPlayerData;
-
-typedef struct {
-    unsigned int EventType;
-    stPlayerData stPlData;
-} IPCEvent;
-
-class IPCOutput {
-public:
-    IPCOutput(const std::string& file):m_fd(-1), m_file(file) {
-    }
-
-    virtual ~IPCOutput() {
-        Term();
-    }
-
-    bool Init() {
-        if (m_fd < 0) {
-            m_fd = open(m_file.c_str(), O_WRONLY | O_NONBLOCK);
-            printf("IPCOutput m_fd = %d\n", m_fd);
-        }
-        return m_fd >= 0;
-    }
-
-    void Term() {
-        if (m_fd >= 0) {
-            close(m_fd);
-        }
-        m_fd = -1;
-        printf("%s term!\n", m_file.c_str());
-    }
-
-    int Send(const IPCEvent& evt) {
-        if (m_fd >= 0) {
-            ret = write(m_fd, &evt, sizeof(IPCEvent));
-            //printf("write %d byte to %s\n", ret, m_file.c_str());
-        } else {
-            ret = -1;
-            //printf("%s can't be writed!\n", m_file.c_str());
-        }
-        return ret;
-    }
-
-    void DeInit() {
-        m_fd = -1;
-        printf("%s deinit!\n", m_file.c_str());
-    }
-
-private:
-    int m_fd, ret;
-    std::string m_file;
-};
-
-class IPCNameFifo {
-public:
-    IPCNameFifo(const char* file): m_file(file) {
-        unlink(m_file.c_str());
-        m_valid = !mkfifo(m_file.c_str(), 0777);
-    }
-
-    ~IPCNameFifo() {
-    unlink(m_file.c_str());
-}
-
-inline const std::string& Path() { return m_file; }
-inline bool IsValid() { return m_valid; }
-
-private:
-    bool m_valid;
-    std::string m_file;
-};
-
-class IPCInput {
-public:
-    IPCInput(const std::string& file):m_fd(-1),m_file(file),m_fifo(file.c_str()){}
-
-    virtual ~IPCInput() {
-        Term();
-    }
-
-    bool Init() {
-        if (!m_fifo.IsValid()){
-            printf("%s non-existent!!!! \n",m_fifo.Path().c_str());
-            return false;
-        }
-        if (m_fd < 0) {
-            m_fd = open(m_file.c_str(), O_RDWR | O_NONBLOCK);
-            printf("IPCInput m_fd = %d\n", m_fd);
-        }
-        return m_fd >= 0;
-    }
-
-    int Read(IPCEvent& evt) {
-        if (m_fd >= 0) {
-            return read(m_fd, &evt, sizeof(IPCEvent));
-        }
-        printf("read %s failed!\n", m_file.c_str());
-        return 0;
-    }
-
-    void Term() {
-        if (m_fd >= 0) {
-            close(m_fd);
-        }
-        m_fd = -1;
-        printf("%s term!\n", m_file.c_str());
-    }
-
-private:
-    int m_fd, ret;
-    std::string m_file;
-    IPCNameFifo m_fifo;
-};
-
-IPCEvent i_recvevt;
-IPCEvent o_sendevt;
-IPCInput  tp_server(SVC_IPC);
-IPCOutput tp_client(CLT_IPC);
-
-static int g_status = 0;
-
-#endif
 #if defined(SUPPORT_CLOUD_PLAY_MODULE) || defined(SUPPORT_PLAYER_MODULE)
 #include "tp_player.h"
 #include "player.h"
@@ -258,7 +83,7 @@ static int sstar_video_init(void)
 
         MI_SYS_SetChnOutputPortDepth(&stDivpChnPort, 0, 3);
         MI_SYS_BindChnPort(&stDivpChnPort, &stDispChnPort, 30, 30);
-    
+
         stRotateConfig.eRotateMode = E_MI_DISP_ROTATE_NONE;
     }
     else
@@ -532,49 +357,49 @@ static int sstar_video_display(void *pData, bool bState)
             {
                 memcpy(stBufInfo.stFrameData.pVirAddr[1] + index * stBufInfo.stFrameData.u32Stride[1], 
                        pFrame->data[1] + index * stBufInfo.stFrameData.u16Width,
-                       stBufInfo.stFrameData.u16Width);    
+                       stBufInfo.stFrameData.u16Width);
             }
         } else {
             SS_Vdec_BufInfo *stVdecBuf = (SS_Vdec_BufInfo *)pFrame->opaque;
             MI_S32 s32Len = pFrame->width * pFrame->height;
 
-			// bframe buf is meta data, inject function isn't supported, so using memory copy
-			if (stVdecBuf->bType)
-			{
-				mi_vdec_DispFrame_t *pstVdecInfo = (mi_vdec_DispFrame_t *)stVdecBuf->stVdecBufInfo.stMetaData.pVirAddr;
+            // bframe buf is meta data, inject function isn't supported, so using memory copy
+            if (stVdecBuf->bType)
+            {
+                mi_vdec_DispFrame_t *pstVdecInfo = (mi_vdec_DispFrame_t *)stVdecBuf->stVdecBufInfo.stMetaData.pVirAddr;
 
-				#if 1
-				MI_SYS_MemcpyPa(stBufInfo.stFrameData.phyAddr[0],
-								pstVdecInfo->stFrmInfo.phyLumaAddr ,
-								s32Len);
-				MI_SYS_MemcpyPa(stBufInfo.stFrameData.phyAddr[1],
-								pstVdecInfo->stFrmInfo.phyChromaAddr,
-								s32Len / 2);
-				#else
-				void *vdec_vir_addr;
-				MI_SYS_Mmap(pstVdecInfo->stFrmInfo.phyLumaAddr, ALIGN_UP(s32Len + s32Len / 2, 4096), &vdec_vir_addr, FALSE);
-				memcpy(stBufInfo.stFrameData.pVirAddr[0], vdec_vir_addr, s32Len);
-				memcpy(stBufInfo.stFrameData.pVirAddr[1], vdec_vir_addr + s32Len, s32Len / 2);
-				MI_SYS_Munmap(vdec_vir_addr, ALIGN_UP(s32Len + s32Len / 2, 4096));
-				#endif
+                #if 1
+                MI_SYS_MemcpyPa(stBufInfo.stFrameData.phyAddr[0],
+                                pstVdecInfo->stFrmInfo.phyLumaAddr,
+                                s32Len);
+                MI_SYS_MemcpyPa(stBufInfo.stFrameData.phyAddr[1],
+                                pstVdecInfo->stFrmInfo.phyChromaAddr,
+                                s32Len / 2);
+                #else
+                void *vdec_vir_addr;
+                MI_SYS_Mmap(pstVdecInfo->stFrmInfo.phyLumaAddr, ALIGN_UP(s32Len + s32Len / 2, 4096), &vdec_vir_addr, FALSE);
+                memcpy(stBufInfo.stFrameData.pVirAddr[0], vdec_vir_addr, s32Len);
+                memcpy(stBufInfo.stFrameData.pVirAddr[1], vdec_vir_addr + s32Len, s32Len / 2);
+                MI_SYS_Munmap(vdec_vir_addr, ALIGN_UP(s32Len + s32Len / 2, 4096));
+                #endif
 
-				sstar_buffer_putback(pFrame);
-			}
-			else
-			{
-				#if 0
-				if (MI_SUCCESS != MI_SYS_ChnPortInjectBuf(stVdecBuf->stVdecHandle, &stInputChnPort))
-					av_log(NULL, AV_LOG_ERROR, "MI_SYS_ChnPortInjectBuf failed!\n");
-				#else
-				MI_SYS_MemcpyPa(stBufInfo.stFrameData.phyAddr[0],
-								stVdecBuf->stVdecBufInfo.stFrameData.phyAddr[0],
-								s32Len);
-				MI_SYS_MemcpyPa(stBufInfo.stFrameData.phyAddr[1],
-								stVdecBuf->stVdecBufInfo.stFrameData.phyAddr[1],
-								s32Len / 2);
-				sstar_buffer_putback(pFrame);
-				#endif
-			}
+                sstar_buffer_putback(pFrame);
+            }
+            else
+            {
+                #if 0
+                if (MI_SUCCESS != MI_SYS_ChnPortInjectBuf(stVdecBuf->stVdecHandle, &stInputChnPort))
+                    av_log(NULL, AV_LOG_ERROR, "MI_SYS_ChnPortInjectBuf failed!\n");
+                #else
+                MI_SYS_MemcpyPa(stBufInfo.stFrameData.phyAddr[0],
+                                stVdecBuf->stVdecBufInfo.stFrameData.phyAddr[0],
+                                s32Len);
+                MI_SYS_MemcpyPa(stBufInfo.stFrameData.phyAddr[1],
+                                stVdecBuf->stVdecBufInfo.stFrameData.phyAddr[1],
+                                s32Len / 2);
+                sstar_buffer_putback(pFrame);
+                #endif
+            }
         }
 
         MI_SYS_ChnInputPortPutBuf(hHandle ,&stBufInfo , FALSE);
@@ -734,141 +559,13 @@ static void player_control_callback(player_stat_t *is, player_control_t *func)
         }
     }
 }
-#else
-static bool enable_listen = false, g_exit = false;
-static pthread_t idle_tid;
-static void * tp_idle_thread(void *arg)
-{
-    player_control_t *func_t = (player_control_t *)arg;
-
-    printf("tp_idle_thread start\n");
-
-    while (!g_exit)
-    {
-        if (enable_listen) {
-            if (tp_server.Read(i_recvevt) > 0) {
-                if (i_recvevt.EventType == IPC_COMMAND_COMPLETE) {
-                    printf("receive message of playing completely!\n");
-                    func_t->fpPlayComplete();
-                } else if (i_recvevt.EventType == IPC_COMMAND_ERROR) {
-                    printf("receive message of error in playing!\n");
-                    func_t->fpPlayError(i_recvevt.stPlData.status);
-                }
-            }
-        }
-        usleep(100 * 1000);
-    }
-
-    printf("### tp_idle_thread exit ###\n");
-    return NULL;
-}
 #endif
 
-#define USE_POPEN       1
-FILE *tp_fd = NULL;
 
 int tp_player_open(char *fp, uint16_t x, uint16_t y, uint16_t width, uint16_t height, void *parg)
 {
-#ifdef SUPPORT_PLAYER_PROCESS
-    printf("tp_player_open start!\n");
-
-    struct timeval time_start, time_wait;
-
-    player_control_t *func_t = (player_control_t *)parg;
-
-    if(!tp_server.Init()) {
-        printf("[%s %d]create i_server fail!\n", __FILE__, __LINE__);
-        return -1;
-    }
-
-    #if USE_POPEN
-    tp_fd = popen("./MyPlayer &", "w");
-    if (tp_fd == NULL) {
-        printf("my_player is not exit!\n");
-        return -1;
-    }
-    printf("popen myplayer progress done!\n");
-
-    memset(&i_recvevt, 0, sizeof(IPCEvent));
-    gettimeofday(&time_start, NULL);
-    while (tp_server.Read(i_recvevt) <= 0
-           || (i_recvevt.EventType != IPC_COMMAND_CREATE)) {
-        usleep(10 * 1000);
-        gettimeofday(&time_wait, NULL);
-        if (time_wait.tv_sec - time_start.tv_sec > 2) {
-            printf("myplayer progress destory failed!\n");
-            break;
-        }
-    }
-    if (i_recvevt.EventType == IPC_COMMAND_CREATE) {
-        printf("myplayer progress create success!\n");
-    } else {
-        func_t->fpPlayError(-1);
-        return -1;
-    }
-    #endif
-
-    if(!tp_client.Init()) {
-        printf("[%s %d]my_player is not start!\n", __FILE__, __LINE__);
-        return -1;
-    }
-
-    g_exit = false;
-    int ret = pthread_create(&idle_tid, NULL, tp_idle_thread, (void *)parg);
-    if (ret != 0) {
-        printf("[%s %d]create tp_idle_thread failed!\n", __FILE__, __LINE__);
-        return -1;
-    }
-
-    memset(&o_sendevt, 0, sizeof(IPCEvent));
-    o_sendevt.EventType = IPC_COMMAND_OPEN;
-    strcpy(o_sendevt.stPlData.filePath, fp);
-    // 旋转开关
-    #if ENABLE_ROTATE
-    o_sendevt.stPlData.rotate = E_MI_DISP_ROTATE_270;
-    #else
-    o_sendevt.stPlData.rotate = E_MI_DISP_ROTATE_NONE;
-    #endif
-    o_sendevt.stPlData.x = x;
-    o_sendevt.stPlData.y = y;
-    o_sendevt.stPlData.width  = width;
-    o_sendevt.stPlData.height = height;
-    o_sendevt.stPlData.aodev = AUDIO_DEV;
-    o_sendevt.stPlData.audio_only = false;
-    o_sendevt.stPlData.video_only = false;
-    o_sendevt.stPlData.play_mode  = 0;    // 0: 单次播放,1: 循环播放(seek to start)
-    tp_client.Send(o_sendevt);
-    printf("tp_player try to open file: %s\n", fp);
-
-    memset(&i_recvevt, 0, sizeof(IPCEvent));
-    while (tp_server.Read(i_recvevt) <= 0
-           || ((i_recvevt.EventType != IPC_COMMAND_ACK)
-           && (i_recvevt.EventType != IPC_COMMAND_ERROR))) {
-        usleep(10 * 1000);
-        gettimeofday(&time_wait, NULL);
-        if (time_wait.tv_sec - time_start.tv_sec > 10) {
-            memset(&o_sendevt, 0, sizeof(IPCEvent));
-            #if USE_POPEN
-            o_sendevt.EventType = IPC_COMMAND_EXIT;
-            #else
-            o_sendevt.EventType = IPC_COMMAND_CLOSE;
-            #endif
-            tp_client.Send(o_sendevt);
-            break;
-        }
-    }
-    if (i_recvevt.EventType == IPC_COMMAND_ACK) {
-        printf("receive ack from my_player!\n");
-    } else if (i_recvevt.EventType == IPC_COMMAND_ERROR) {
-        g_status = i_recvevt.stPlData.status;
-        printf("my_player occur error [%d]!\n", g_status);
-        func_t->fpPlayError(g_status);
-    }
-
-    enable_listen = true;
-    return 0;
-#else
-    int ret = -1;
+#ifndef SUPPORT_PLAYER_PROCESS
+    int ret;
     player_control_t *func_t = (player_control_t *)parg;
 
     if (g_is != NULL) {
@@ -898,78 +595,29 @@ int tp_player_open(char *fp, uint16_t x, uint16_t y, uint16_t width, uint16_t he
 
     ret = open_demux(g_is);
     if (ret < 0) {
-        goto fail;
+        return -1;
     }
 
     ret = open_video(g_is);
     if (ret < 0) {
-        goto fail;
+        g_is->play_error = ret;
+        return -1;
     }
 
     ret = open_audio(g_is);
     if (ret < 0) {
-        goto fail;
+        g_is->play_error = ret;
+        return -1;
     }
 
     g_loop_flag = 1;
-
-    return 0;
-fail:
-    tp_player_close();
-    return ret;
 #endif
+    return 0;
 }
 
 int tp_player_close(void)
 {
-#ifdef SUPPORT_PLAYER_PROCESS
-    struct timeval time_start, time_wait;
-
-    if(!tp_client.Init()) {
-        printf("my_player is not start!\n");
-        tp_server.Term();
-        return -1;
-    }
-    memset(&o_sendevt, 0, sizeof(IPCEvent));
-    #if USE_POPEN
-    o_sendevt.EventType = IPC_COMMAND_EXIT;
-    #else
-    o_sendevt.EventType = IPC_COMMAND_CLOSE;
-    #endif
-    tp_client.Send(o_sendevt);
-
-    #if USE_POPEN
-    memset(&i_recvevt, 0, sizeof(IPCEvent));
-    gettimeofday(&time_start, NULL);
-    while (tp_server.Read(i_recvevt) <= 0
-           || (i_recvevt.EventType != IPC_COMMAND_DESTORY)) {
-        usleep(10 * 1000);
-        gettimeofday(&time_wait, NULL);
-        if (time_wait.tv_sec - time_start.tv_sec > 2) {
-            printf("myplayer progress destory failed!\n");
-            break;
-        }
-    }
-    if (i_recvevt.EventType == IPC_COMMAND_DESTORY) {
-        printf("myplayer progress destory done!\n");
-    }
-    pclose(tp_fd);
-    tp_fd = NULL;
-    #endif
-
-    printf("tp_player_close done!\n");
-
-    g_exit = true;
-    pthread_join(idle_tid, NULL);
-    enable_listen = false;
-
-    tp_server.Term();
-    tp_client.Term();
-
-    return 0;
-#else
-    int ret = -1;
-
+#ifndef SUPPORT_PLAYER_PROCESS
     if (!g_is) {
         printf("\033[31;2mtp_player_close failed!\n\033[0m");
         return -1;
@@ -980,42 +628,23 @@ int tp_player_close(void)
     //sstar_video_deinit();
     sstar_audio_deinit();
     g_is = NULL;
-    ret = 0;
-
-    return ret;
 #endif
+    return 0;
 }
 
-int tp_player_status(int *status)
+int tp_player_status(void)
 {
-#ifdef SUPPORT_PLAYER_PROCESS
-    memset(&i_recvevt, 0, sizeof(IPCEvent));
-    if (tp_server.Read(i_recvevt) > 0) {
-        if (i_recvevt.EventType == IPC_COMMAND_ERROR) {
-            printf("my_player occur error in playing!\n");
-        } else if (i_recvevt.EventType == IPC_COMMAND_COMPLETE){
-            printf("my_player has played completely!\n");
-        }
-        *status = i_recvevt.stPlData.status;
-    } else {
-        *status = 0;
-    }
-
-    if (g_status < 0) {
-        *status = g_status;
-    }
-    return 0;
-#else
+#ifndef SUPPORT_PLAYER_PROCESS
     if (g_is != NULL)
     {
         //stream_seek(g_is, g_is->p_fmt_ctx->start_time, 0, 0);
-        if (g_is->audio_complete && g_is->video_complete) {
+        if ((g_is->enable_video || g_is->enable_audio) && g_is->audio_complete && g_is->video_complete) {
             return 1;
         } else {
-            return 0;
+            return g_is->play_error;
         }
     }
-    return -1;
 #endif
+    return 0;
 }
 #endif

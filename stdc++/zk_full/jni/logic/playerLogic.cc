@@ -116,7 +116,7 @@ public:
 
     bool Init() {
         if (m_fd < 0) {
-            m_fd = open(m_file.c_str(), O_WRONLY | O_NONBLOCK);
+            m_fd = open(m_file.c_str(), O_WRONLY | O_NONBLOCK, S_IWUSR | S_IWOTH);
             printf("IPCOutput m_fd = %d\n", m_fd);
         }
         return m_fd >= 0;

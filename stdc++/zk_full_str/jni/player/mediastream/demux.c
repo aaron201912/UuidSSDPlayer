@@ -268,12 +268,8 @@ static int demux_init(player_stat_t *is)
 
     // 1. 构建AVFormatContext
     // 1.1 打开视频文件：读取文件头，将文件格式信息存储在"fmt context"中
-#if 0
-    err = avformat_open_input(&p_fmt_ctx, is->filename, NULL, NULL);
-#else
-    av_dict_set(&is->p_dict, "buffer_size", "1024000", 0);  //设置udp的接收缓冲
+    //av_dict_set(&is->p_dict, "buffer_size", "1024000", 0);  //设置udp的接收缓冲
     err = avformat_open_input(&p_fmt_ctx, is->filename, NULL, &is->p_dict);
-#endif
     if (err < 0)
     {
         if (err == -101)
@@ -317,7 +313,8 @@ static int demux_init(player_stat_t *is)
         printf("conformance_window_flag = %d\n", head_info->conformance_window_flag);
     }
 
-    is->seek_by_bytes = !!(p_fmt_ctx->flags & AVFMT_TS_DISCONT) && strcmp("ogg", p_fmt_ctx->iformat->name);
+    is->seek_by_bytes = !!(p_fmt_ctx->iformat->flags & AVFMT_TS_DISCONT) && strcmp("ogg", p_fmt_ctx->iformat->name);
+    //av_log(NULL, AV_LOG_WARNING, "seek_by_bytes value = %d\n", is->seek_by_bytes);
 
     // get media duration
     if (is->p_fmt_ctx->start_time == AV_NOPTS_VALUE)

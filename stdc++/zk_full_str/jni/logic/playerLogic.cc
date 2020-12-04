@@ -116,7 +116,7 @@ public:
 
     bool Init() {
         if (m_fd < 0) {
-            m_fd = open(m_file.c_str(), O_WRONLY | O_NONBLOCK);
+            m_fd = open(m_file.c_str(), O_WRONLY | O_NONBLOCK, S_IWUSR | S_IWOTH);
             printf("IPCOutput m_fd = %d\n", m_fd);
         }
         return m_fd >= 0;
@@ -456,7 +456,14 @@ MI_S32 StartPlayAudio()
     MI_S32 s32SetVolumeDb;
     MI_S32 s32GetVolumeDb;
 
+    MI_AO_InitParam_t stInitParam;
+
     system("echo 1 > /sys/class/gpio/gpio12/value");
+
+    memset(&stInitParam, 0x0, sizeof(MI_AO_InitParam_t));
+    stInitParam.u32DevId = AoDevId;
+    stInitParam.u8Data = NULL;
+    MI_AO_InitDev(&stInitParam);
 
     //set Ao Attr struct
     memset(&stSetAttr, 0, sizeof(MI_AUDIO_Attr_t));
@@ -518,17 +525,19 @@ void StopPlayAudio()
 
     /* disable ao device */
     MI_AO_Disable(AoDevId);
+
+    MI_AO_DeInitDev();
 }
 
 MI_S32 StartPlayVideo()
 {
     MI_DISP_ShowInputPort(DISP_LAYER, DISP_INPUTPORT);
-	return 0;
+    return 0;
 }
 
 void StopPlayVideo()
 {
-	MI_DISP_ClearInputPortBuffer(DISP_LAYER, DISP_INPUTPORT, TRUE);
+    MI_DISP_ClearInputPortBuffer(DISP_LAYER, DISP_INPUTPORT, TRUE);
     MI_DISP_HideInputPort(DISP_LAYER, DISP_INPUTPORT);
 }
 
@@ -545,6 +554,11 @@ MI_S32 CreatePlayerDev()
     MI_DISP_RotateConfig_t stRotateConfig;*/
 
     MI_DISP_InputPortAttr_t stInputPortAttr;
+    MI_DISP_InitParam_t stInitDispParam;
+    memset(&stInitDispParam, 0x0, sizeof(MI_DISP_InitParam_t));
+    stInitDispParam.u32DevId = 0;
+    stInitDispParam.u8Data = NULL;
+    MI_DISP_InitDev(&stInitDispParam);
 
     system("echo 12 > /sys/class/gpio/export");
     system("echo out > /sys/class/gpio/gpio12/direction");
@@ -670,6 +684,18 @@ static MI_S32 SetVideoDisplay(void)
         MI_DISP_InputPortAttr_t stInputPortAttr;
         MI_SYS_ChnPort_t stDispChnPort;
         MI_SYS_ChnPort_t stDivpChnPort;
+        MI_SYS_InitParam_t stInitSysParam;
+        MI_GFX_InitParam_t stInitGfxParam;
+
+        memset(&stInitGfxParam, 0x0, sizeof(MI_GFX_InitParam_t));
+        stInitGfxParam.u32DevId = 0;
+        stInitGfxParam.u8Data = NULL;
+        MI_GFX_InitDev(&stInitGfxParam);
+
+        memset(&stInitSysParam, 0x0, sizeof(MI_SYS_InitParam_t));
+        stInitSysParam.u32DevId = 0;
+        stInitSysParam.u8Data = NULL;
+        MI_SYS_InitDev(&stInitSysParam);
 
         MI_GFX_Open();
 
@@ -781,10 +807,15 @@ static MI_S32 ResetVideoDisplay(void)
 
         MI_DIVP_StopChn(0);
         MI_DIVP_DestroyChn(0);
+        MI_DIVP_DeInitDev();
+
         MI_GFX_Close();
+        MI_GFX_DeInitDev();
     }
 
     MI_DISP_DisableInputPort(DISP_LAYER, DISP_INPUTPORT);
+
+    MI_SYS_DeInitDev();
 
     return MI_SUCCESS;
 }

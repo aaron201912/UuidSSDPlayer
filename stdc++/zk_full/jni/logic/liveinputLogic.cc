@@ -47,7 +47,8 @@ static S_ACTIVITY_TIMEER REGISTER_ACTIVITY_TIMER_TAB[] = {
  */
 static void onUI_init(){
     //Tips :添加 UI初始化的显示代码到这里,如:mText1Ptr->setText("123");
-	g_address = "http://122.112.182.239/mp4/test.m3u8";
+	//g_address = "http://122.112.182.239/mp4/test.m3u8";
+	g_address = "http://124.71.177.235/t/tcl/video.m3u8";
 }
 
 /**

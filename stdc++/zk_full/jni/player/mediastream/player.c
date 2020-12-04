@@ -461,6 +461,11 @@ void toggle_pause(player_stat_t *is)
 // 此处输入的pos定义为相对总时长的相对位置
 void stream_seek(player_stat_t *is, int64_t pos, int64_t rel, int seek_by_bytes)
 {
+    if (is->seek_by_bytes) {
+        av_log(NULL, AV_LOG_WARNING, "this file isn't supported to seek!\n");
+        return;
+    }
+
     if (!is->seek_req) {
         is->seek_pos = pos;
         is->seek_rel = rel;

@@ -7,7 +7,7 @@
 
 extern AVPacket a_flush_pkt, v_flush_pkt;
 
-#define PLAYER_STRT_TIMEOUT  10  //单位秒
+#define PLAYER_STRT_TIMEOUT  8  //单位秒
 
 static int decode_interrupt_cb(void *ctx)
 {
@@ -296,8 +296,8 @@ static int demux_init(player_stat_t *is)
                 av_log(NULL, AV_LOG_ERROR, "network can't reachable!\n");
                 is->play_status = err;
             } else {
-                printf("avformat_open_input(%s) failed %d\n",is->filename,err);
-                is->play_status = -1;
+                printf("avformat_open_input(%s) failed %d\n", is->filename, err);
+                is->play_status = err;
             }
         }
         ret = err;

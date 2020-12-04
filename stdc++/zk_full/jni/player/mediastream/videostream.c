@@ -172,6 +172,8 @@ static int video_decode_frame(AVCodecContext *p_codec_ctx, packet_queue_t *p_pkt
                 else
                 {
                     av_log(NULL, AV_LOG_ERROR, "video avcodec_receive_frame(): other errors\n");
+                    g_myplayer->play_error = -1;
+                    av_usleep(10 * 1000);
                     continue;
                 }
             }
@@ -195,12 +197,14 @@ static int video_decode_frame(AVCodecContext *p_codec_ctx, packet_queue_t *p_pkt
             pthread_mutex_lock(&g_myplayer->video_mutex);
             if ((g_myplayer->seek_flags & (1 << 6)) && p_codec_ctx->frame_number > 1) {
                 g_myplayer->seek_flags &= ~(1 << 6);
-                frame_queue_flush(&g_myplayer->video_frm_queue);
+                //frame_queue_flush(&g_myplayer->video_frm_queue);
             }
             pthread_mutex_unlock(&g_myplayer->video_mutex);
 
             // 复位解码器内部状态/刷新内部缓冲区。
+            //p_codec_ctx->flags |= (1 << 7);
             avcodec_flush_buffers(p_codec_ctx);
+            //p_codec_ctx->flags &= ~(1 << 7);
 
             printf("avcodec_flush_buffers for video!\n");
         }
@@ -445,7 +449,7 @@ retry:
         return;
 recheck:
     while (is->seek_flags & (1 << 6)) {
-        is->start_play = false;
+        //is->start_play = false;
         pthread_cond_signal(&is->video_frm_queue.cond);
         av_usleep(10 * 1000);
     }

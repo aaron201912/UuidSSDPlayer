@@ -31,8 +31,8 @@ CONFIG_PLAYER_SWITCH := "enable"
 #CONFIG_PLAYER_SWITCH :=
 
 #cloudplay功能启用开关
-#CONFIG_CLOUD_PLAY_SWITCH := "enable"
-CONFIG_CLOUD_PLAY_SWITCH :=
+CONFIG_CLOUD_PLAY_SWITCH := "enable"
+#CONFIG_CLOUD_PLAY_SWITCH :=
 
 #myplayer多进程功能启用开关
 CONFIG_MULTIPROC_SWITCH := "enable"
@@ -70,8 +70,6 @@ INCLUDE_DIR += -I ../jni/hotplugdetect -I ../jni/hotplugdetect/common -I ../jni/
 ifneq ($(CONFIG_PLAYER_SWITCH),)
 CFLAGS+=-DSUPPORT_PLAYER_MODULE
 CXXFLAGS+=-DSUPPORT_PLAYER_MODULE
-
-#LDFLAGS += -lavformat -lavcodec -lavutil -lswscale -lswresample -L../jni/player/ffmpeg/lib
 endif
 
 ifneq ($(CONFIG_CLOUD_PLAY_SWITCH),)
@@ -82,6 +80,8 @@ endif
 ifneq ($(CONFIG_MULTIPROC_SWITCH),)
 CFLAGS+=-DSUPPORT_PLAYER_PROCESS
 CXXFLAGS+=-DSUPPORT_PLAYER_PROCESS
+else
+LDFLAGS += -lavformat -lavcodec -lavutil -lswscale -lswresample -L../jni/player/ffmpeg/lib
 endif
 
 TARGET=../libs/armeabi/libzkgui.so

@@ -63,7 +63,7 @@ extern "C"{
 #define MAX_AUDIO_FRAME_SIZE 192000
 
 #define MIN_QUEUE_SIZE      (50 * 1024)
-#define MAX_QUEUE_SIZE      (6 * 1024 * 1024)
+#define MAX_QUEUE_SIZE      (3 * 1024 * 1024)
 #define MIN_VIDEO_FRAMES    30
 #define MIN_AUDIO_FRAMES    30
 
