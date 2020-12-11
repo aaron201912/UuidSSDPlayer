@@ -325,21 +325,21 @@ int StartPlay(Player *poPlayer)
 
 	printf("StartPlay() start\n");
 	poPlayer->m_bStop = FALSE;
-	
+
 	while(1)
 	{
-		if(poPlayer->m_nPlayStatus == PLAY_STATUS_PAUSE)
-		{
-			usleep(10000);
-			continue;
-		}
-		
 		if(poPlayer->m_nPlayStatus == PLAY_STATUS_STOPPED)
 		{
 			//printf("Stop!!\n");
 			break;
 		}
-			
+
+		if(poPlayer->m_nPlayStatus == PLAY_STATUS_PAUSE)
+		{
+			usleep(30000);
+			continue;
+		}
+
 		//get TTS data
 		if (!list_empty(&poPlayer->m_audioListHead))
 		{

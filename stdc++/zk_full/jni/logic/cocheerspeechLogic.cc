@@ -248,7 +248,7 @@ static void *CocheerSpeechProc(void *pData)
 	get_dev_net_mac(p_devid);
 	coapi_init(p_devid, NULL, g_pAppKey, g_pSecretKey, &g_dev);
 	coapi_speech_init();
-	coapi_record_create();
+	coapi_record_create(0);
 
 	while (!g_bExit)
 	{

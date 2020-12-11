@@ -271,7 +271,7 @@ int  mDLNAPlayPlayback_IsStopped()
 
 int Ss_DLNA_ServiceClose(void)
 {
-	fpZmDLNAServiceClose fsZmDLNAServiceClose=  (fpZmDLNAServiceClose)dlsym(m_pLibHandle, "ZmDLNAServiceClose");
+	fpZmDLNAServiceClose fsZmDLNAServiceClose=  (fpZmDLNAServiceClose)dlsym(m_pLibdlnaHandle, "ZmDLNAServiceClose");
 	if(fsZmDLNAServiceClose)
 	{
 		fsZmDLNAServiceClose();
