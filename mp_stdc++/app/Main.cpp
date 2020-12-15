@@ -12,6 +12,7 @@
 #include <wait.h>
 
 #include <sys/prctl.h>
+#include "mi_sys.h"
 
 
 
@@ -233,12 +234,12 @@ void handler(int signo)
         while((id=waitpid(child_pid,NULL,WNOHANG))>0)
         {
             syslog(LOG_INFO, "wait child success:%d", id);
-            
+
         }
         syslog(LOG_INFO, "child quit!%d", getpid());
         child_pid = 0;
     }
-    
+
 }
 
 
@@ -342,10 +343,9 @@ void print_help(void)
 int createEasyui(void)
 {
 
-    int pid; 
+    int pid;
 
     pid = fork();
-
     /* An error occurred */
     if (pid < 0) {
         exit(EXIT_FAILURE);
@@ -371,8 +371,10 @@ int createEasyui(void)
             exit(EXIT_SUCCESS);
         }
     #endif
+        //for sys release mma/mmu
+        MI_SYS_Init();
         prctl(PR_SET_NAME, "zkgui_ui", NULL, NULL, NULL);
-        if (EASYUICONTEXT->initEasyUI()) 
+        if (EASYUICONTEXT->initEasyUI())
         {
             EASYUICONTEXT->runEasyUI();
             EASYUICONTEXT->deinitEasyUI();
@@ -402,14 +404,17 @@ int main(int argc, const char *argv[])
     stDispPubAttr.eIntfSync = E_MI_DISP_OUTPUT_USER;
     stDispPubAttr.u32BgColor = YUYV_BLACK;
 
-    sstar_disp_init(&stDispPubAttr);
     //signal(SIGCHLD,handler);
 
     child_pid = createEasyui();
-    
+
+    if(child_pid > 0)
+    {
+        sstar_disp_init(&stDispPubAttr);
+    }
     signal(SIGCHLD,handler);
 
-    
+
     IPCEvent getevt;
 
     IPCInput ssdinput(SSD_IPC);
@@ -421,7 +426,7 @@ int main(int argc, const char *argv[])
 
     //syslog(LOG_INFO, "ssdinput end");
     /* Never ending loop of server */
-    while (running == 1) 
+    while (running == 1)
     {
 
         /* TODO: dome something useful here */
@@ -438,7 +443,7 @@ int main(int argc, const char *argv[])
             {
                 //syslog(LOG_ERR,"Browser Stop done!!!!");
                 child_pid = createEasyui();
-            
+
             }
 
         }
@@ -449,7 +454,7 @@ int main(int argc, const char *argv[])
          * signal is received. */
         sleep(delay);
     }
-    
+
     /* Write system log and close it. */
     //syslog(LOG_INFO, "Stopped %s", app_name);
     //closelog();
