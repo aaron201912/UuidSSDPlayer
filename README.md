@@ -2,8 +2,9 @@
 
 stdc++/uclibc++:
 
-    UuidSSDPlayer为加密版本的全功能播放器，包含链接标准c++库的版本和链接uclibc++的版本，分别对应于std++目录和uclibc++目录。
+    UuidSSDPlayer为加密版本的全功能播放器，包含链接标准c++库的版本和链接uclibc++的版本，分别对应于stdc++目录和uclibc++目录。
     目录下有libsercurity，app，zk_full三个目录。
+    注：新增mp_stdc++目录，记录sdk v008版本对应的demo。
 
     libsercurity：存放编译libzkgui.so所依赖的zk_sdk头文件和libeasyui.so，以及运行时依赖的libs。随zk_sdk发布来同步更新。
                   注：运行时依赖的libeasyui.so为加密版本的lib，与参与编译的libeasyui.so不同，不可混淆。
