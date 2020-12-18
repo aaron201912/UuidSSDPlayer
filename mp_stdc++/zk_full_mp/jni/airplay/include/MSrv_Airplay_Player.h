@@ -165,6 +165,7 @@ typedef struct
 extern int gVedioWidth;
 extern int gVedioHeight;
 extern int gnDLNAStartFlag;
+extern char gsd20xipaddr[32];
 //----------------------------------------------------
 int  ZyDLNAServiceStart(char * friendly_name,int nflag = 0);
 int ZyDLNAServiceClose(void);

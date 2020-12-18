@@ -77,6 +77,10 @@ double get_master_clock(player_stat_t *is)
 // 返回值：返回上一帧的pts更新值(上一帧pts+流逝的时间)
 double get_clock(play_clock_t *c)
 {
+    if (!c->queue_serial)
+    {
+        return NAN;
+    }
     if (*c->queue_serial != c->serial)
     {
         return NAN;
@@ -394,21 +398,25 @@ int player_deinit(player_stat_t *is)
         av_dict_free(&is->p_dict);
         printf("04.av_dict_free finish!\n");
 
+        if (is->p_fmt_ctx->opaque)
+            av_freep(&is->p_fmt_ctx->opaque);
+        printf("05.av_freep p_fmt_ctx opaque finish\n");
+
         avformat_close_input(&is->p_fmt_ctx);
-        printf("05.avformat_close_input finish!\n");
+        printf("06.avformat_close_input finish!\n");
     }
     /* free all pictures */
     packet_queue_destroy(&is->video_pkt_queue);
-    printf("06.video packet_queue_destroy!\n");
+    printf("07.video packet_queue_destroy!\n");
     
     packet_queue_destroy(&is->audio_pkt_queue);
-    printf("07.audio packet_queue_destroy!\n");
+    printf("08.audio packet_queue_destroy!\n");
     
     frame_queue_destory(&is->video_frm_queue);
-    printf("08.video frame_queue_destory!\n");
+    printf("09.video frame_queue_destory!\n");
     
     frame_queue_destory(&is->audio_frm_queue);
-    printf("09.audio frame_queue_destory!\n");
+    printf("10.audio frame_queue_destory!\n");
 
     pthread_mutex_destroy(&is->audio_mutex);
     pthread_mutex_destroy(&is->video_mutex);
@@ -416,13 +424,13 @@ int player_deinit(player_stat_t *is)
     pthread_cond_destroy(&is->video_cond);
     
     pthread_cond_destroy(&is->continue_read_thread);
-    printf("10.read pthread_cond_destroy!\n");
+    printf("11.read pthread_cond_destroy!\n");
     
     av_free(is->filename);  
-    printf("11.av_free filename!\n");
+    printf("12.av_free filename!\n");
     
     av_freep(&is);
-    printf("12.av_free is!\n");
+    printf("13.av_free is!\n");
 
     printf("##### player_deinit exit #####\n");
 
@@ -453,6 +461,11 @@ void toggle_pause(player_stat_t *is)
 // 此处输入的pos定义为相对总时长的相对位置
 void stream_seek(player_stat_t *is, int64_t pos, int64_t rel, int seek_by_bytes)
 {
+    if (is->seek_by_bytes) {
+        av_log(NULL, AV_LOG_WARNING, "this file isn't supported to seek!\n");
+        return;
+    }
+
     if (!is->seek_req) {
         is->seek_pos = pos;
         is->seek_rel = rel;

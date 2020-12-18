@@ -52,6 +52,9 @@ static MI_WLAN_ConnectParam_t g_stConnParam;
 static MI_WLAN_Status_t  g_stStatus;
 static pthread_mutex_t g_connParamMutex;
 
+static pthread_t g_wlanThread = 0;
+static int g_wlanThreadRun = 0;
+
 static pthread_t g_connThread = 0;
 static int g_connThreadRun = 0;
 static list_t g_connCallbackListHead;
@@ -67,6 +70,7 @@ static int g_wifiStart = 0;
 //static list_t g_scanResListHead;
 static WifiScanResultListHead_t g_stScanResListHead;
 static ScanResult_t *g_pstScanRes = NULL;
+static int  g_staInit = 0;
 
 static void ClearScanResult()
 {
@@ -92,7 +96,7 @@ static void SaveScanResult(char *curSsid, MI_WLAN_ScanResult_t *pstScanResult)
 		char *pSsid = (char*)pstScanResult->stAPInfo[i].au8SSId;
 		char saveSsid[MI_WLAN_MAX_SSID_LEN] = {0};
 
-		if (pSsid && strcmp(pSsid, "\"\""))
+		if (pSsid && strcmp(pSsid, "\"\"") && strlen(pSsid))
 		{
 			WifiScanResultListData_t *pstScanResData = NULL;
 			int len = strlen(pSsid);
@@ -167,19 +171,11 @@ static int WifiInit()
 	{
 		//setWifiSupportStatus(false);
 		g_wifiSupported = 0;
-		printf("not support wifi\n");
+		printf("open wifi failed\n");
 		return -1;
 	}
 
-	pthread_mutex_init(&g_connParamMutex, NULL);
-	pthread_mutex_init(&g_connCallbackListMutex, NULL);
-	pthread_mutex_init(&g_scanCallbackListMutex, NULL);
-	INIT_LIST_HEAD(&g_connCallbackListHead);
-	INIT_LIST_HEAD(&g_scanCallbackListHead);
-
-	INIT_LIST_HEAD(&g_stScanResListHead.scanResListHead);
-	g_stScanResListHead.scanResCnt = 0;
-
+	g_staInit = 1;
 	return 0;
 }
 
@@ -213,14 +209,13 @@ static void WifiDeinit()
 	}
 	pthread_mutex_unlock(&g_scanCallbackListMutex);
 
-	pthread_mutex_destroy(&g_connCallbackListMutex);
-	pthread_mutex_destroy(&g_scanCallbackListMutex);
-	pthread_mutex_destroy(&g_connParamMutex);
-
-	MI_WLAN_Close();
-	sleep(3);			// test if the condition is needed
-	MI_WLAN_DeInit();
-
+	if (g_staInit)
+	{
+		MI_WLAN_Close(&g_stOpenParam);
+		sleep(3);			// test if the condition is needed
+		MI_WLAN_DeInit();
+		g_staInit = 0;
+	}
 	saveWifiConfig();
 
 	g_manuaConnect = 0;
@@ -281,7 +276,7 @@ static void *WifiConnectProc(void *pdata)
 					newConnect = 1;
 			}
 
-			MI_WLAN_GetStatus(&stStatus);
+			MI_WLAN_GetStatus(g_hWlan, &stStatus);
 
 			if(stStatus.stStaStatus.state == WPA_COMPLETED)
 			{
@@ -374,7 +369,7 @@ static void *WifiScanProc(void *pdata)
 		memcpy(&stConnParam, &g_stConnParam, sizeof(MI_WLAN_ConnectParam_t));
 		pthread_mutex_unlock(&g_connParamMutex);
 
-	    	list_t *pos = NULL;
+	    list_t *pos = NULL;
 		registModuleCnt = 0;
 		pthread_mutex_lock(&g_scanCallbackListMutex);
 		list_for_each(pos, &g_scanCallbackListHead)
@@ -427,6 +422,11 @@ static void *WifiScanProc(void *pdata)
 					g_pstScanRes = NULL;
 				}
 			}
+			else
+			{
+				usleep(50000);
+				continue;
+			}
 		}
 
 		usleep(3000000);	// 3s扫描一次
@@ -436,46 +436,95 @@ static void *WifiScanProc(void *pdata)
 	return NULL;
 }
 
+static void *WlanWorkProc(void *pdata)
+{
+    printf("Exec WlanWorkProc\n");
+    int checkCnt = 40;
+    int isWlanInsmode = 0;
 
+    while (g_wlanThreadRun)
+    {
+    	if (!access("/sys/bus/usb", F_OK) && !access("/config/wifi", F_OK) && !access("/appconfigs", F_OK))
+		{
+			printf("wifi ko mount ok\n");
+			isWlanInsmode = 1;
+			break;
+		}
+		else
+		{
+			if (!checkCnt)
+			{
+				printf("wifi check failed\n");
+				return NULL;
+			}
+
+			checkCnt--;
+		}
+
+		usleep(500000);
+    }
+
+    if (isWlanInsmode)
+    {
+    	// create thread to connect default AP, then start check
+		// 1. read config from profile (check profile, backup profile, get supported & enabled info)
+		// 2. creat thread (wlan init & connect default connParam, check connect status in while,
+    	// 	  exec callback if connect status changed
+
+    	if (WifiInit())
+		{
+			printf("wifi profile is not exsit or broken.\n");
+			return NULL;
+		}
+
+		g_connThreadRun = 1;
+		pthread_create(&g_connThread, NULL, WifiConnectProc, NULL);
+		if (!g_connThread)
+		{
+			printf("create check hotplug thread failed\n");
+			return NULL;
+		}
+
+		g_scanThreadRun = 1;
+		pthread_create(&g_scanThread, NULL, WifiScanProc, NULL);
+		if (!g_scanThread)
+		{
+			printf("create check hotplug thread failed\n");
+			return NULL;
+		}
+    }
+
+	printf("exit waln work thread proc\n");
+	return NULL;
+}
 
 int Wifi_StartCheckHotplug()
 {
-	// create thread to connect default AP, then start check
-	// 1. read config from profile (check profile, backup profile, get supported & enabled info)
-	// 2. creat thread (wlan init & connect default connParam, check connect status in while, exec callback if connect status changed
+	pthread_mutex_init(&g_connParamMutex, NULL);
+	pthread_mutex_init(&g_connCallbackListMutex, NULL);
+	pthread_mutex_init(&g_scanCallbackListMutex, NULL);
+	INIT_LIST_HEAD(&g_connCallbackListHead);
+	INIT_LIST_HEAD(&g_scanCallbackListHead);
+	INIT_LIST_HEAD(&g_stScanResListHead.scanResListHead);
+	g_stScanResListHead.scanResCnt = 0;
 
-	if (WifiInit())
-	{
-		printf("wifi profile is not exsit or broken.\n");
-		return -1;
-	}
-
-	g_connThreadRun = 1;
-	pthread_create(&g_connThread, NULL, WifiConnectProc, NULL);
-	if (!g_connThread)
+	g_wlanThreadRun = 1;
+	pthread_create(&g_wlanThread, NULL, WlanWorkProc, NULL);
+	if (!g_wlanThread)
 	{
 		printf("create check hotplug thread failed\n");
 		return -1;
 	}
 
-	g_scanThreadRun = 1;
-	pthread_create(&g_scanThread, NULL, WifiScanProc, NULL);
-	if (!g_scanThread)
-	{
-		printf("create check hotplug thread failed\n");
-		return -1;
-	}
-
-	g_wifiStart = 1;
 	return 0;
 }
 
 void Wifi_StopCheckHotplug()
 {
 	// exit thread
-	g_wifiStart = 0;
 	g_connThreadRun = 0;
 	g_scanThreadRun = 0;
+	g_wlanThreadRun = 0;
 
 	if (g_connThread)
 	{
@@ -494,6 +543,18 @@ void Wifi_StopCheckHotplug()
 	}
 
 	WifiDeinit();
+
+	if (g_wlanThread)
+	{
+		printf("check hotplug thread is exiting\n");
+		pthread_join(g_wlanThread, NULL);
+		g_wlanThread = 0;
+		printf("check hotplug thread exit\n");
+	}
+
+	pthread_mutex_destroy(&g_connCallbackListMutex);
+	pthread_mutex_destroy(&g_scanCallbackListMutex);
+	pthread_mutex_destroy(&g_connParamMutex);
 }
 
 int Wifi_RegisterConnectCallback(WifiConnCallback pfnCallback)
@@ -502,35 +563,41 @@ int Wifi_RegisterConnectCallback(WifiConnCallback pfnCallback)
 
 	printf("Enter Wifi_RegisterConnectCallback\n");
 
-	if (g_wifiStart)
+	if (!pfnCallback)
+		return -1;
+
+	pstConnCallbackData = (WifiConnCallbackListData_t*)malloc(sizeof(WifiConnCallbackListData_t));
+	memset(pstConnCallbackData, 0, sizeof(WifiConnCallbackListData_t));
+	pstConnCallbackData->pfnCallback = pfnCallback;
+
+	pthread_mutex_lock(&g_connCallbackListMutex);
+	WifiConnCallbackListData_t *pos = NULL;
+
+	// debug0
+	printf("Wifi_RegisterConnectCallback  debug0...\n");
+
+	list_for_each_entry(pos, &g_connCallbackListHead, callbackList)
 	{
-		if (!pfnCallback)
-			return -1;
-
-		pstConnCallbackData = (WifiConnCallbackListData_t*)malloc(sizeof(WifiConnCallbackListData_t));
-		memset(pstConnCallbackData, 0, sizeof(WifiConnCallbackListData_t));
-		pstConnCallbackData->pfnCallback = pfnCallback;
-
-		pthread_mutex_lock(&g_connCallbackListMutex);
-		WifiConnCallbackListData_t *pos = NULL;
-
-		list_for_each_entry(pos, &g_connCallbackListHead, callbackList)
+		if (pos->pfnCallback == pfnCallback)
 		{
-			if (pos->pfnCallback == pfnCallback)
-			{
-				printf("have registered wifi connect callback\n");
-				pthread_mutex_unlock(&g_connCallbackListMutex);
-				return 0;
-			}
+			printf("have registered wifi connect callback\n");
+			pthread_mutex_unlock(&g_connCallbackListMutex);
+			return 0;
 		}
-
-		list_add_tail(&pstConnCallbackData->callbackList, &g_connCallbackListHead);
-		pthread_mutex_unlock(&g_connCallbackListMutex);
-
-		pthread_mutex_lock(&g_connParamMutex);
-		g_registerConnChanged = 1;
-		pthread_mutex_unlock(&g_connParamMutex);
 	}
+
+	// debug1
+	printf("Wifi_RegisterConnectCallback  debug1...\n");
+
+	list_add_tail(&pstConnCallbackData->callbackList, &g_connCallbackListHead);
+	pthread_mutex_unlock(&g_connCallbackListMutex);
+
+	// debug2
+	printf("Wifi_RegisterConnectCallback  debug1...\n");
+
+	pthread_mutex_lock(&g_connParamMutex);
+	g_registerConnChanged = 1;
+	pthread_mutex_unlock(&g_connParamMutex);
 
 	printf("Leave Wifi_RegisterConnectCallback\n");
 
@@ -542,9 +609,6 @@ void Wifi_UnRegisterConnectCallback(WifiConnCallback pfnCallback)
 	WifiConnCallbackListData_t *pstConnCallbackData = NULL;
 	list_t *pListPos = NULL;
 	list_t *pListPosN = NULL;
-
-	if (!g_wifiStart)
-		return;
 
 	pthread_mutex_lock(&g_connParamMutex);
 	g_registerConnChanged = 0;
@@ -570,31 +634,28 @@ int Wifi_RegisterScanCallback(WifiScanCallback pfnCallback)
 
 	printf("Enter Wifi_RegisterScanCallback\n");
 
-	if (g_wifiStart)
+	if (!pfnCallback)
+		return -1;
+
+	pstScanCallbackData = (WifiScanCallbackListData_t*)malloc(sizeof(WifiScanCallbackListData_t));
+	memset(pstScanCallbackData, 0, sizeof(WifiScanCallbackListData_t));
+	pstScanCallbackData->pfnCallback = pfnCallback;
+
+	pthread_mutex_lock(&g_scanCallbackListMutex);
+	WifiScanCallbackListData_t *pos = NULL;
+
+	list_for_each_entry(pos, &g_scanCallbackListHead, callbackList)
 	{
-		if (!pfnCallback)
-			return -1;
-
-		pstScanCallbackData = (WifiScanCallbackListData_t*)malloc(sizeof(WifiScanCallbackListData_t));
-		memset(pstScanCallbackData, 0, sizeof(WifiScanCallbackListData_t));
-		pstScanCallbackData->pfnCallback = pfnCallback;
-
-		pthread_mutex_lock(&g_scanCallbackListMutex);
-		WifiScanCallbackListData_t *pos = NULL;
-
-		list_for_each_entry(pos, &g_scanCallbackListHead, callbackList)
+		if (pos->pfnCallback == pfnCallback)
 		{
-			if (pos->pfnCallback == pfnCallback)
-			{
-				printf("have registered wifi scan callback\n");
-				pthread_mutex_unlock(&g_scanCallbackListMutex);
-				return 0;
-			}
+			printf("have registered wifi scan callback\n");
+			pthread_mutex_unlock(&g_scanCallbackListMutex);
+			return 0;
 		}
-
-		list_add_tail(&pstScanCallbackData->callbackList, &g_scanCallbackListHead);
-		pthread_mutex_unlock(&g_scanCallbackListMutex);
 	}
+
+	list_add_tail(&pstScanCallbackData->callbackList, &g_scanCallbackListHead);
+	pthread_mutex_unlock(&g_scanCallbackListMutex);
 
 	printf("Leave Wifi_RegisterScanCallback\n");
 
@@ -606,9 +667,6 @@ void Wifi_UnRegisterScanCallback(WifiScanCallback pfnCallback)
 	WifiScanCallbackListData_t *pstScanCallbackData = NULL;
 	list_t *pListPos = NULL;
 	list_t *pListPosN = NULL;
-
-	if (!g_wifiStart)
-		return;
 
 	pthread_mutex_lock(&g_scanCallbackListMutex);
 	list_for_each_safe(pListPos, pListPosN, &g_scanCallbackListHead)
@@ -682,5 +740,5 @@ int Wifi_GetSupportStatus()
 
 int Wifi_GetCurConnStatus(MI_WLAN_Status_t *status)
 {
-	return MI_WLAN_GetStatus(status);
+	return MI_WLAN_GetStatus(g_hWlan, status);
 }

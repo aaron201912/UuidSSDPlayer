@@ -41,7 +41,7 @@
 static MI_WLAN_Status_t status;
 static int Ss_Wlan_State(void)
 {
-	MI_WLAN_GetStatus(&status);
+	SSTAR_GetWifiCurConnStatus(&status);
 	if(status.stStaStatus.state == WPA_COMPLETED)
 	{
 		char *wlan_id = (char*)status.stStaStatus.ssid;
@@ -50,6 +50,62 @@ static int Ss_Wlan_State(void)
 		return 0;
 	}
 	return -1;
+}
+
+// get ip
+static int Ss_Wlan_GetIp()
+{
+	struct sockaddr_in *addr;
+	struct ifreq ifr;
+	char*address;
+	int sockfd;
+
+	char *name = "wlan0";
+	if( strlen(name) >= IFNAMSIZ)
+	{
+		printf("device name is error.\n");
+		return -1;
+	}
+
+	strcpy( ifr.ifr_name, name);
+	sockfd = socket(AF_INET,SOCK_DGRAM,0);
+
+	//get inet addr
+	if( ioctl( sockfd, SIOCGIFADDR, &ifr) == -1)
+	{
+		printf("ioctl error.\n");
+		return -1;
+	}
+
+	addr = (struct sockaddr_in *)&(ifr.ifr_addr);
+	address = inet_ntoa(addr->sin_addr);
+	printf("inet addr: %s\n",address);
+
+#if 0
+	//get Mask
+	if( ioctl( sockfd, SIOCGIFNETMASK, &ifr) == -1)
+	{
+		printf("ioctl error.\n");
+		return -1;
+	}
+
+	addr = (struct sockaddr_in *)&ifr.ifr_addr;
+	address = inet_ntoa(addr->sin_addr);
+	printf("Mask: %s\n",address);
+
+	//get HWaddr
+	u_int8_t hd[6];
+	if(ioctl(sockfd, SIOCGIFHWADDR, &ifr) == -1)
+	{
+		printf("hwaddr error.\n");
+		return -1;
+	}
+
+	memcpy( hd, ifr.ifr_hwaddr.sa_data, sizeof(hd));
+	printf("HWaddr: %02X:%02X:%02X:%02X:%02X:%02X\n", hd[0], hd[1], hd[2], hd[3], hd[4], hd[5]);
+#endif
+
+	return 0;
 }
 
 static int  P2PGetMacAddr(char *pname)
@@ -81,7 +137,7 @@ int Ss_AirplayStart(void)
 {
 	char mpickname[60] = {'S','D','2','0','2'};
 	Ss_AO_Init();
-	if((P2PGetMacAddr(mpickname) == 1) && (Ss_Wlan_State()) == 0)
+	if((P2PGetMacAddr(mpickname) == 1) && (Ss_Wlan_State() == 0) && (Ss_Wlan_GetIp() == 0))
 	{
 		mAirplay_Text13Ptr->setText(mpickname);
 		AirplayServiceStart(mpickname);

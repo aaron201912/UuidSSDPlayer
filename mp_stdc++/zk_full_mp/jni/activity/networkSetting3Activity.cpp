@@ -4,6 +4,9 @@
 #include "networkSetting3Activity.h"
 
 /*TAG:GlobalVariable全局变量*/
+static ZKButton* mButton_confirmPtr;
+static ZKTextView* mTextView1Ptr;
+static ZKWindow* mWindow_passwdErrorPtr;
 static ZKButton* mButton_show_passwdPtr;
 static ZKButton* mButton_connect_connPtr;
 static ZKTextView* mTextview_connect_password_titlePtr;
@@ -48,6 +51,7 @@ typedef struct {
 
 /*TAG:ButtonCallbackTab按键映射表*/
 static S_ButtonCallback sButtonCallbackTab[] = {
+    ID_NETWORKSETTING3_Button_confirm, onButtonClick_Button_confirm,
     ID_NETWORKSETTING3_Button_show_passwd, onButtonClick_Button_show_passwd,
     ID_NETWORKSETTING3_Button_connect_conn, onButtonClick_Button_connect_conn,
     ID_NETWORKSETTING3_sys_back, onButtonClick_sys_back,
@@ -132,6 +136,9 @@ const char* networkSetting3Activity::getAppName() const{
 //TAG:onCreate
 void networkSetting3Activity::onCreate() {
 	Activity::onCreate();
+    mButton_confirmPtr = (ZKButton*)findControlByID(ID_NETWORKSETTING3_Button_confirm);
+    mTextView1Ptr = (ZKTextView*)findControlByID(ID_NETWORKSETTING3_TextView1);
+    mWindow_passwdErrorPtr = (ZKWindow*)findControlByID(ID_NETWORKSETTING3_Window_passwdError);
     mButton_show_passwdPtr = (ZKButton*)findControlByID(ID_NETWORKSETTING3_Button_show_passwd);
     mButton_connect_connPtr = (ZKButton*)findControlByID(ID_NETWORKSETTING3_Button_connect_conn);
     mTextview_connect_password_titlePtr = (ZKTextView*)findControlByID(ID_NETWORKSETTING3_Textview_connect_password_title);

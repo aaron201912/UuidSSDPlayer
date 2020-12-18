@@ -38,6 +38,7 @@ static bool g_bStopped = true;
 static bool g_bPaused = false;
 static HANDLE g_hTts = NULL;
 static bool g_bInit = false;
+static bool g_bLoaded = false;
 static const char g_textStr[] = "和泰车的TOYOTA与LEXUS品牌在4月共销售9786辆新车，虽较3月下滑8.7%，但仍保有34.2%市占率；但其4月营收51.95亿元，较3月的88亿元大幅衰退将近4成。";
 
 static int *g_pLangID = NULL;
@@ -64,6 +65,18 @@ static S_ACTIVITY_TIMEER REGISTER_ACTIVITY_TIMER_TAB[] = {
  */
 static void onUI_init(){
     //Tips :添加 UI初始化的显示代码到这里,如:mText1Ptr->setText("123");
+	// set date
+	system("date 032912122020.12");
+
+	if (TTS_Preload())
+	{
+		printf("tts module load failed\n");
+		g_bLoaded = 0;
+		return ;
+	}
+
+	g_bLoaded = 1;
+
 	// get text from m_pchText
 	g_pLangID = (int*)malloc(sizeof(int) * TTS_GetLanguageMaxNum());
 	if (!g_pLangID)
@@ -139,6 +152,9 @@ static void onUI_quit() {
 		free(g_pLangID);
 		g_pLangID = NULL;
 	}
+
+	g_bLoaded = 0;
+	TTS_Unload();
 
 	ShowStatusBar(1, 0, 0);
 }
@@ -404,6 +420,9 @@ static void TTS_StopPlayCallback()
 static bool onButtonClick_Button_init(ZKButton *pButton) {
     LOGD(" ButtonClick Button_init !!!\n");
     char *pText = (char*)mTextview_textPtr->getText().c_str();
+
+    if (!g_bLoaded)
+    	return false;
 
     if (g_hTts)
     {

@@ -8,8 +8,6 @@
 #ifndef JNI_WIFIINFO_H_
 #define JNI_WIFIINFO_H_
 
-#ifdef SUPPORT_WLAN_MODULE
-
 #ifdef  __cplusplus
 extern "C"
 {
@@ -44,8 +42,6 @@ int updateEnableStatus(bool bEnable);
 
 #ifdef  __cplusplus
 }
-#endif
-
 #endif
 
 #endif /* JNI_WIFIINFO_H_ */

@@ -1,174 +1,3 @@
-#ifdef SUPPORT_PLAYER_PROCESS
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <string>
-#include <stdbool.h>
-#include <stdint.h>
-#include <string.h>
-#include <signal.h>
-#include <pthread.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/time.h>
-
-#define CLT_IPC     "/appconfigs/client_input"
-#define SVC_IPC     "/appconfigs/server_input"
-
-typedef enum
-{
-  IPC_COMMAND_OPEN,
-  IPC_COMMAND_CLOSE,
-  IPC_COMMAND_PAUSE,
-  IPC_COMMAND_RESUME,
-  IPC_COMMAND_SEEK,
-  IPC_COMMAND_SEEK2TIME,
-  IPC_COMMAND_GET_POSITION,
-  IPC_COMMAND_GET_DURATION,
-  IPC_COMMAND_MAX,
-  IPC_COMMAND_ACK,
-  IPC_COMMAND_SET_VOLUMN,
-  IPC_COMMAND_SET_MUTE,
-  IPC_COMMAND_ERROR,
-  IPC_COMMAND_COMPLETE,
-  IPC_COMMAND_EXIT
-} IPC_COMMAND_TYPE;
-
-typedef struct{
-    int x;
-    int y;
-    int width;
-    int height;
-    double misc;
-    int aodev, volumn;
-    int status;
-    int rotate;
-    bool mute;
-    char filePath[512];
-}stPlayerData;
-
-typedef struct {
-    unsigned int EventType;
-    stPlayerData stPlData;
-} IPCEvent;
-
-class IPCOutput {
-public:
-    IPCOutput(const std::string& file):m_fd(-1), m_file(file) {
-    }
-
-    virtual ~IPCOutput() {
-        Term();
-    }
-
-    bool Init() {
-        if (m_fd < 0) {
-            m_fd = open(m_file.c_str(), O_WRONLY | O_NONBLOCK);
-            printf("IPCOutput m_fd = %d\n", m_fd);
-        }
-        return m_fd >= 0;
-    }
-
-    void Term() {
-        if (m_fd >= 0) {
-            close(m_fd);
-        }
-        m_fd = -1;
-        printf("%s term!\n", m_file.c_str());
-    }
-
-    int Send(const IPCEvent& evt) {
-        if (m_fd >= 0) {
-            ret = write(m_fd, &evt, sizeof(IPCEvent));
-            //printf("write %d byte to %s\n", ret, m_file.c_str());
-        } else {
-            ret = -1;
-            //printf("%s can't be writed!\n", m_file.c_str());
-        }
-        return ret;
-    }
-
-    void DeInit() {
-        m_fd = -1;
-        printf("%s deinit!\n", m_file.c_str());
-    }
-
-private:
-    int m_fd, ret;
-    std::string m_file;
-};
-
-class IPCNameFifo {
-public:
-    IPCNameFifo(const char* file): m_file(file) {
-        unlink(m_file.c_str());
-        m_valid = !mkfifo(m_file.c_str(), 0777);
-    }
-
-    ~IPCNameFifo() {
-    unlink(m_file.c_str());
-}
-
-inline const std::string& Path() { return m_file; }
-inline bool IsValid() { return m_valid; }
-
-private:
-    bool m_valid;
-    std::string m_file;
-};
-
-class IPCInput {
-public:
-    IPCInput(const std::string& file):m_fd(-1),m_file(file),m_fifo(file.c_str()){}
-
-    virtual ~IPCInput() {
-        Term();
-    }
-
-    bool Init() {
-        if (!m_fifo.IsValid()){
-            printf("%s non-existent!!!! \n",m_fifo.Path().c_str());
-            return false;
-        }
-        if (m_fd < 0) {
-            m_fd = open(m_file.c_str(), O_RDWR | O_NONBLOCK);
-            printf("IPCInput m_fd = %d\n", m_fd);
-        }
-        return m_fd >= 0;
-    }
-
-    int Read(IPCEvent& evt) {
-        if (m_fd >= 0) {
-            return read(m_fd, &evt, sizeof(IPCEvent));
-        }
-        printf("read %s failed!\n", m_file.c_str());
-        return 0;
-    }
-
-    void Term() {
-        if (m_fd >= 0) {
-            close(m_fd);
-        }
-        m_fd = -1;
-        printf("%s term!\n", m_file.c_str());
-    }
-
-private:
-    int m_fd, ret;
-    std::string m_file;
-    IPCNameFifo m_fifo;
-};
-
-IPCEvent i_recvevt;
-IPCEvent o_sendevt;
-IPCInput  tp_server(SVC_IPC);
-IPCOutput tp_client(CLT_IPC);
-
-static int g_status = 0;
-
-#endif
 #if defined(SUPPORT_CLOUD_PLAY_MODULE) || defined(SUPPORT_PLAYER_MODULE)
 #include "tp_player.h"
 #include "player.h"
@@ -198,7 +27,7 @@ static int sstar_video_init(void)
         MI_DIVP_OutputPortAttr_t stOutputPortAttr;
         MI_DISP_InputPortAttr_t stInputPortAttr;
         MI_SYS_ChnPort_t stDispChnPort;
-		MI_SYS_ChnPort_t stDivpChnPort;
+        MI_SYS_ChnPort_t stDivpChnPort;
 
         MI_GFX_Open();
 
@@ -233,7 +62,7 @@ static int sstar_video_init(void)
         stOutputPortAttr.u32Width           = ALIGN_BACK(g_is->src_width , 32);
         stOutputPortAttr.u32Height          = ALIGN_BACK(g_is->src_height, 32);
         MI_DIVP_SetOutputPortAttr(0, &stOutputPortAttr);
-		MI_DIVP_StartChn(0);
+        MI_DIVP_StartChn(0);
 
         MI_DISP_DisableInputPort(0, 0);
         MI_DISP_SetInputPortAttr(0, 0, &stInputPortAttr);
@@ -254,7 +83,7 @@ static int sstar_video_init(void)
 
         MI_SYS_SetChnOutputPortDepth(&stDivpChnPort, 0, 3);
         MI_SYS_BindChnPort(&stDivpChnPort, &stDispChnPort, 30, 30);
-    
+
         stRotateConfig.eRotateMode = E_MI_DISP_ROTATE_NONE;
     }
     else
@@ -388,7 +217,6 @@ static int SetVideoRotate(MI_PHY yAddr, MI_PHY uvAddr)
 
     return MI_SUCCESS;
 }
-
 
 // MI display video
 static int sstar_video_display(void *pData, bool bState)
@@ -528,49 +356,49 @@ static int sstar_video_display(void *pData, bool bState)
             {
                 memcpy(stBufInfo.stFrameData.pVirAddr[1] + index * stBufInfo.stFrameData.u32Stride[1], 
                        pFrame->data[1] + index * stBufInfo.stFrameData.u16Width,
-                       stBufInfo.stFrameData.u16Width);    
+                       stBufInfo.stFrameData.u16Width);
             }
         } else {
             SS_Vdec_BufInfo *stVdecBuf = (SS_Vdec_BufInfo *)pFrame->opaque;
             MI_S32 s32Len = pFrame->width * pFrame->height;
 
-			// bframe buf is meta data, inject function isn't supported, so using memory copy
-			if (stVdecBuf->bType)
-			{
-				mi_vdec_DispFrame_t *pstVdecInfo = (mi_vdec_DispFrame_t *)stVdecBuf->stVdecBufInfo.stMetaData.pVirAddr;
+            // bframe buf is meta data, inject function isn't supported, so using memory copy
+            if (stVdecBuf->bType)
+            {
+                mi_vdec_DispFrame_t *pstVdecInfo = (mi_vdec_DispFrame_t *)stVdecBuf->stVdecBufInfo.stMetaData.pVirAddr;
 
-				#if 1
-				MI_SYS_MemcpyPa(stBufInfo.stFrameData.phyAddr[0],
-								pstVdecInfo->stFrmInfo.phyLumaAddr ,
-								s32Len);
-				MI_SYS_MemcpyPa(stBufInfo.stFrameData.phyAddr[1],
-								pstVdecInfo->stFrmInfo.phyChromaAddr,
-								s32Len / 2);
-				#else
-				void *vdec_vir_addr;
-				MI_SYS_Mmap(pstVdecInfo->stFrmInfo.phyLumaAddr, ALIGN_UP(s32Len + s32Len / 2, 4096), &vdec_vir_addr, FALSE);
-				memcpy(stBufInfo.stFrameData.pVirAddr[0], vdec_vir_addr, s32Len);
-				memcpy(stBufInfo.stFrameData.pVirAddr[1], vdec_vir_addr + s32Len, s32Len / 2);
-				MI_SYS_Munmap(vdec_vir_addr, ALIGN_UP(s32Len + s32Len / 2, 4096));
-				#endif
+                #if 1
+                MI_SYS_MemcpyPa(stBufInfo.stFrameData.phyAddr[0],
+                                pstVdecInfo->stFrmInfo.phyLumaAddr,
+                                s32Len);
+                MI_SYS_MemcpyPa(stBufInfo.stFrameData.phyAddr[1],
+                                pstVdecInfo->stFrmInfo.phyChromaAddr,
+                                s32Len / 2);
+                #else
+                void *vdec_vir_addr;
+                MI_SYS_Mmap(pstVdecInfo->stFrmInfo.phyLumaAddr, ALIGN_UP(s32Len + s32Len / 2, 4096), &vdec_vir_addr, FALSE);
+                memcpy(stBufInfo.stFrameData.pVirAddr[0], vdec_vir_addr, s32Len);
+                memcpy(stBufInfo.stFrameData.pVirAddr[1], vdec_vir_addr + s32Len, s32Len / 2);
+                MI_SYS_Munmap(vdec_vir_addr, ALIGN_UP(s32Len + s32Len / 2, 4096));
+                #endif
 
-				sstar_buffer_putback(pFrame);
-			}
-			else
-			{
-				#if 0
-				if (MI_SUCCESS != MI_SYS_ChnPortInjectBuf(stVdecBuf->stVdecHandle, &stInputChnPort))
-					av_log(NULL, AV_LOG_ERROR, "MI_SYS_ChnPortInjectBuf failed!\n");
-				#else
-				MI_SYS_MemcpyPa(stBufInfo.stFrameData.phyAddr[0],
-								stVdecBuf->stVdecBufInfo.stFrameData.phyAddr[0],
-								s32Len);
-				MI_SYS_MemcpyPa(stBufInfo.stFrameData.phyAddr[1],
-								stVdecBuf->stVdecBufInfo.stFrameData.phyAddr[1],
-								s32Len / 2);
-				sstar_buffer_putback(pFrame);
-				#endif
-			}
+                sstar_buffer_putback(pFrame);
+            }
+            else
+            {
+                #if 0
+                if (MI_SUCCESS != MI_SYS_ChnPortInjectBuf(stVdecBuf->stVdecHandle, &stInputChnPort))
+                    av_log(NULL, AV_LOG_ERROR, "MI_SYS_ChnPortInjectBuf failed!\n");
+                #else
+                MI_SYS_MemcpyPa(stBufInfo.stFrameData.phyAddr[0],
+                                stVdecBuf->stVdecBufInfo.stFrameData.phyAddr[0],
+                                s32Len);
+                MI_SYS_MemcpyPa(stBufInfo.stFrameData.phyAddr[1],
+                                stVdecBuf->stVdecBufInfo.stFrameData.phyAddr[1],
+                                s32Len / 2);
+                sstar_buffer_putback(pFrame);
+                #endif
+            }
         }
 
         MI_SYS_ChnInputPortPutBuf(hHandle ,&stBufInfo , FALSE);
@@ -734,120 +562,60 @@ static void player_control_callback(player_stat_t *is, player_control_t *func)
 
 int tp_player_open(char *fp, uint16_t x, uint16_t y, uint16_t width, uint16_t height, void *parg)
 {
-#ifdef SUPPORT_PLAYER_PROCESS
-    printf("tp_player_open start!\n");
-
-    if(!tp_server.Init()) {
-        printf("[%s %d]create i_server fail!\n", __FILE__, __LINE__);
-        return -1;
-    }
-    if(!tp_client.Init()) {
-        printf("[%s %d]server process not start!\n", __FILE__, __LINE__);
-        return -1;
-    }
-
-    memset(&o_sendevt, 0, sizeof(IPCEvent));
-    o_sendevt.EventType = IPC_COMMAND_OPEN;
-    strcpy(o_sendevt.stPlData.filePath, fp);
-    // 旋转开关
-    #if ENABLE_ROTATE
-    o_sendevt.stPlData.rotate = E_MI_DISP_ROTATE_270;
-    #else
-    o_sendevt.stPlData.rotate = E_MI_DISP_ROTATE_NONE;
-    #endif
-    o_sendevt.stPlData.x = x;
-    o_sendevt.stPlData.y = y;
-    o_sendevt.stPlData.width  = width;
-    o_sendevt.stPlData.height = height;
-    o_sendevt.stPlData.aodev = AUDIO_DEV;
-    tp_client.Send(o_sendevt);
-    printf("tp_player try to open file: %s\n", fp);
-retry:
-    memset(&i_recvevt, 0, sizeof(IPCEvent));
-    if (tp_server.Read(i_recvevt) > 0) {
-        if (i_recvevt.EventType == IPC_COMMAND_ACK) {
-            printf("receive ack from my_player!\n");
-        } else if (i_recvevt.EventType == IPC_COMMAND_ERROR) {
-            g_status = i_recvevt.stPlData.status;
-            printf("my_player occur errord]!\n", g_status);
-        }
-    } else {
-        usleep(10 * 1000);
-        goto retry;
-    }
-
-    return 0;
-#else
-    int ret = -1;
+#ifndef SUPPORT_PLAYER_PROCESS
+    int ret;
     player_control_t *func_t = (player_control_t *)parg;
 
     if (g_is != NULL) {
         printf("\033[31;2mtp_player_open failed!\033[0m\n");
-		return -1;
+        return -1;
     }
 
-	if ((x + width) > MAINWND_W || (y + height) > MAINWND_H)
-	{
-		printf("parameter is invalid!\n");
-		return -1;
-	}
+    if ((x + width) > MAINWND_W || (y + height) > MAINWND_H || !width || !height) {
+        printf("parameter is invalid!\n");
+        return -1;
+    }
 
-	if (width % 16)
-	{
-		printf("width is not 16 alignment!\n");
-		return -1;
-	}
+    g_is = player_init(fp);
+    if (g_is == NULL) {
+        printf("player init failed\n");
+        return -1;
+    }
 
-	g_is = player_init(fp);
-	if (g_is == NULL)
-	{
-		printf("player init failed\n");
-		return -1;
-	}
+    g_is->in_width  = width;
+    g_is->in_height = height;
+    printf("tp_player_open w/h = [%d %d]\n", g_is->in_width, g_is->in_height);
 
-	player_control_callback(g_is, func_t);
+    sstar_audio_init();
+    //sstar_video_init(x, y, width, height);
 
-	ret = open_demux(g_is);
-	if (ret < 0)
-	{
-		player_deinit(g_is);
-		g_is = NULL;
-		return -1;
-	}
+    player_control_callback(g_is, func_t);
 
-	g_is->in_width = width;
-	g_is->in_width = height;
-	sstar_audio_init();
-	//sstar_video_init(x, y, width, height);
+    ret = open_demux(g_is);
+    if (ret < 0) {
+        return -1;
+    }
 
-	ret = open_video(g_is);
-	ret = open_audio(g_is);
+    ret = open_video(g_is);
+    if (ret < 0) {
+        g_is->play_error = ret;
+        return -1;
+    }
 
-	g_loop_flag = 1;
+    ret = open_audio(g_is);
+    if (ret < 0) {
+        g_is->play_error = ret;
+        return -1;
+    }
 
-    //printf("\033[31;2mgtp_player_open exit!\033[0m\n");
-
-    return ret;
+    g_loop_flag = 1;
 #endif
+    return 0;
 }
 
 int tp_player_close(void)
 {
-#ifdef SUPPORT_PLAYER_PROCESS
-    if(!tp_client.Init()) {
-        printf("my_player is not start!\n");
-        return -1;
-    }
-	memset(&o_sendevt, 0, sizeof(IPCEvent));
-	o_sendevt.EventType = IPC_COMMAND_CLOSE;
-    tp_client.Send(o_sendevt);
-    printf("tp_player_close done!\n");
-
-    tp_server.Term();
-    return 0;
-#else
-    int ret = -1;
-
+#ifndef SUPPORT_PLAYER_PROCESS
     if (!g_is) {
         printf("\033[31;2mtp_player_close failed!\n\033[0m");
         return -1;
@@ -858,42 +626,23 @@ int tp_player_close(void)
     //sstar_video_deinit();
     sstar_audio_deinit();
     g_is = NULL;
-    ret = 0;
-
-    return ret;
 #endif
+    return 0;
 }
 
-int tp_player_status(int *status)
+int tp_player_status(void)
 {
-#ifdef SUPPORT_PLAYER_PROCESS
-    memset(&i_recvevt, 0, sizeof(IPCEvent));
-    if (tp_server.Read(i_recvevt) > 0) {
-        if (i_recvevt.EventType == IPC_COMMAND_ERROR) {
-            printf("my_player occur error in playing!\n");
-        } else if (i_recvevt.EventType == IPC_COMMAND_COMPLETE){
-            printf("my_player has played completely!\n");
-        }
-        *status = i_recvevt.stPlData.status;
-    } else {
-        *status = 0;
-    }
-
-    if (g_status < 0) {
-        *status = g_status;
-    }
-    return 0;
-#else
+#ifndef SUPPORT_PLAYER_PROCESS
     if (g_is != NULL)
     {
         //stream_seek(g_is, g_is->p_fmt_ctx->start_time, 0, 0);
-        if (g_is->audio_complete && g_is->video_complete) {
+        if ((g_is->enable_video || g_is->enable_audio) && g_is->audio_complete && g_is->video_complete) {
             return 1;
         } else {
-            return 0;
+            return g_is->play_error;
         }
     }
-    return -1;
 #endif
+    return 0;
 }
 #endif

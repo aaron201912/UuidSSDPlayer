@@ -56,6 +56,7 @@ typedef struct {
 } IPCEvent;
 
 
+char gsd20xipaddr[32] = {1};
 
 static MI_DISP_PubAttr_t stDispPubAttr;
 

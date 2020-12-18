@@ -29,7 +29,6 @@
 *
 * 在Eclipse编辑器中  使用 “alt + /”  快捷键可以打开智能提示
 */
-#ifdef SUPPORT_WLAN_MODULE
 #include <string.h>
 #include "hotplugdetect.h"
 
@@ -67,7 +66,6 @@ static char* strlwr(char* src)
 }
 #endif
 
-#endif
 /**
  * 注册定时器
  * 填充数组用于注册定时器
@@ -93,14 +91,13 @@ static void onUI_intent(const Intent *intentPtr) {
     if (intentPtr != NULL) {
         //TODO
     }
-#ifdef SUPPORT_WLAN_MODULE
+
     SSTAR_GetWifiCurConnStatus(&status);
 
     mTextview_connected_ssidPtr->setText((char*)status.stStaStatus.ssid);
 	mTextview_connected_ipPtr->setText((char*)status.stStaStatus.ip_address);
 	mTextview_connected_macPtr->setText(strupr((char*)status.stStaStatus.bssid));
 	mTextview_connected_encryptionPtr->setText(strupr((char*)status.stStaStatus.key_mgmt));
-#endif
 }
 
 /*
@@ -181,10 +178,9 @@ static bool onButtonClick_sys_back(ZKButton *pButton) {
 
 static bool onButtonClick_Button_connected_disconn(ZKButton *pButton) {
     //LOGD(" ButtonClick Button_connected_disconn !!!\n");
-#ifdef SUPPORT_WLAN_MODULE
 	printf("page2 disconnect\n");
 	SSTAR_DisconnectWifi();
 	EASYUICONTEXT->closeActivity("networkSetting2Activity");
-#endif
+
     return false;
 }

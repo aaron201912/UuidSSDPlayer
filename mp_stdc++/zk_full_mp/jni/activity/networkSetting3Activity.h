@@ -26,6 +26,9 @@
 #include "window/ZKSlideWindow.h"
 
 /*TAG:Macro宏ID*/
+#define ID_NETWORKSETTING3_Button_confirm    20001
+#define ID_NETWORKSETTING3_TextView1    50004
+#define ID_NETWORKSETTING3_Window_passwdError    110001
 #define ID_NETWORKSETTING3_Button_show_passwd    20004
 #define ID_NETWORKSETTING3_Button_connect_conn    20007
 #define ID_NETWORKSETTING3_Textview_connect_password_title    50003

@@ -122,14 +122,6 @@ const char* IconTab[]={
 };
 
 static void onSlideItemClick_Slidewindow1(ZKSlideWindow *pSlideWindow, int index) {
-#ifndef SUPPORT_WLAN_MODULE
-	if (!strcmp(IconTab[index], "networkSettingActivity"))
-	{
-		printf("wifi module is not loaded\n");
-		return;
-	}
-#endif
-
 #ifndef SUPPORT_PLAYER_MODULE
 	if (!strcmp(IconTab[index], "playlistActivity"))
 	{

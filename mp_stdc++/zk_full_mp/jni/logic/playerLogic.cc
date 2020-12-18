@@ -516,7 +516,7 @@ MI_S32 StartPlayVideo()
 
 void StopPlayVideo()
 {
-	MI_DISP_ClearInputPortBuffer(DISP_LAYER, DISP_INPUTPORT);
+	MI_DISP_ClearInputPortBuffer(DISP_LAYER, DISP_INPUTPORT, TRUE);
     MI_DISP_HideInputPort(DISP_LAYER, DISP_INPUTPORT);
 }
 

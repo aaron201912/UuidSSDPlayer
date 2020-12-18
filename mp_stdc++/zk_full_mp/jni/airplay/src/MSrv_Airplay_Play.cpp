@@ -16,6 +16,7 @@
 #include <UtilS_SPS_PPS.h>
 #include <MSrv_Airplay_Player.h>
 #include "mi_wlan.h"
+#include "ffmpegFunctionSet.h"
 
 #define VDEC_INPUT_WIDTH1        1920
 #define VDEC_INPUT_HEIGHT1       1080
@@ -57,10 +58,11 @@ fpZmDLNAServiceStart fsZmDLNAServiceStart = NULL;
 //-------------------------------------------
 int gVedioWidth = 0;
 int gVedioHeight = 0;
+char gsd20xipaddr[32];
 
 static ss_player_t margs1,margs2;
 static pthread_t g_thid_pcm = 0;
-
+static AirplayFfmpegAssembly_t g_stAirplayFfmpegAssembly;
 
 //-----------------------------------------------DLNA-------------------------------------------------------------------------
 /*--------------------------------------------
@@ -95,31 +97,32 @@ static void *sstar_play_pthread(void *arg)
 	ss_player_t *args = (ss_player_t *)arg;
     AVFormatContext *format_ctx = NULL;
     AVDictionary *format_opts = NULL;
-    AVPacket *packet = (AVPacket *)av_malloc(sizeof(AVPacket));
+    AVPacket *packet = (AVPacket *)g_stAirplayFfmpegAssembly.pfn_av_malloc(sizeof(AVPacket));
     int ret = 0, video_idx;
 
     printf("get in sstar_play_pthread!\n");
     printf("try to play %s ...\n", args->fp);
 
 replay:
-    format_ctx = avformat_alloc_context();
+	format_ctx = g_stAirplayFfmpegAssembly.pfn_avformat_alloc_context();
     if (format_ctx == NULL)
     {
         printf("avformat_alloc_context failed!\n");
         goto error;
     }
 
-    av_dict_set(&format_opts, "stimeout", "5000000", 0);
-    av_dict_set(&format_opts, "http_transport",  "http", 0);
+    g_stAirplayFfmpegAssembly.pfn_av_dict_set(&format_opts, "stimeout", "5000000", 0);
+    g_stAirplayFfmpegAssembly.pfn_av_dict_set(&format_opts, "http_transport",  "http", 0);
+
     //av_dict_set(&format_opts, "rtsp_transport",  "tcp", 0);
 
     //start player
-    if ((ret = avformat_open_input(&format_ctx, args->fp, NULL, &format_opts)) != 0) {
+    if ((ret = g_stAirplayFfmpegAssembly.pfn_avformat_open_input(&format_ctx, args->fp, NULL, &format_opts)) != 0) {
         printf("avformat_open_input failed!\n");
         goto error;
     }
 
-    if ((ret = avformat_find_stream_info(format_ctx, NULL)) < 0)
+    if ((ret = g_stAirplayFfmpegAssembly.pfn_avformat_find_stream_info(format_ctx, NULL)) < 0)
     {
         printf("avformat_find_stream_info() failed!\n");
         goto error;
@@ -136,18 +139,18 @@ replay:
 	Ss_UI_Close();
     while (args->exit!=1)
     {
-        if ((ret = av_read_frame(format_ctx, packet)) >= 0)
+    	if ((ret = g_stAirplayFfmpegAssembly.pfn_av_read_frame(format_ctx, packet)) >= 0)
         {
             if (packet->stream_index == video_idx || format_ctx->nb_streams == 0)
             {
                 sstar_send_stream((const char*)packet->data, packet->size, packet->pts);
             }
-            av_packet_unref(packet);
+            g_stAirplayFfmpegAssembly.pfn_av_packet_unref(packet);
         }
         else
         {
-            avformat_close_input(&format_ctx);
-            av_dict_free(&format_opts);
+        	g_stAirplayFfmpegAssembly.pfn_avformat_close_input(&format_ctx);
+        	g_stAirplayFfmpegAssembly.pfn_av_dict_free(&format_opts);
             printf("play again\n");
             goto replay;
         }
@@ -156,14 +159,14 @@ replay:
     }
 
 error:
-    av_free(packet);
+	g_stAirplayFfmpegAssembly.pfn_av_free(packet);
     if (format_ctx != NULL)
     {
-        avformat_close_input(&format_ctx);
+    	g_stAirplayFfmpegAssembly.pfn_avformat_close_input(&format_ctx);
     }
     if (format_opts != NULL)
     {
-        av_dict_free(&format_opts);
+    	g_stAirplayFfmpegAssembly.pfn_av_dict_free(&format_opts);
     }
     if (ret < 0)
     {
@@ -188,7 +191,7 @@ void Ss_DLNA_pthread_close(void)
 	}
 	nPlayerStatuc = MPLAYER_IDLE;
 	//deinit sdk
-	Ss_Player_DeInit(0);
+	Ss_Player_DeInit(1);
 }
 
 void mDLNAPlayback_Open(char *url,char *MetaData, float fPosition)
@@ -268,7 +271,7 @@ int  mDLNAPlayPlayback_IsStopped()
 
 int Ss_DLNA_ServiceClose(void)
 {
-	fpZmDLNAServiceClose fsZmDLNAServiceClose=  (fpZmDLNAServiceClose)dlsym(m_pLibHandle, "ZmDLNAServiceClose");
+	fpZmDLNAServiceClose fsZmDLNAServiceClose=  (fpZmDLNAServiceClose)dlsym(m_pLibdlnaHandle, "ZmDLNAServiceClose");
 	if(fsZmDLNAServiceClose)
 	{
 		fsZmDLNAServiceClose();
@@ -276,6 +279,15 @@ int Ss_DLNA_ServiceClose(void)
 	}
 	//Ss_Player_DeInit(0);
 	nPlayerStatuc = MPLAYER_IDLE;
+
+	if (m_pLibdlnaHandle)
+	{
+		dlclose(m_pLibdlnaHandle);
+		m_pLibdlnaHandle = NULL;
+	}
+
+	CloseAirplayFfmpegLib(&g_stAirplayFfmpegAssembly);
+
 	return 0;
 }
 
@@ -283,7 +295,7 @@ int Ss_DLNA_ServiceStart(void)
 {
     char *dlaname = (char*)"/customer/lib/libmdlna.so";
     margs2.pcm_exit = 0;
-    printf(" reception\n");
+    printf("Start Of Ss_DLNA_ServiceStart\n");
 	dlna_callbacks_t uo;
     if(1)
     {
@@ -306,6 +318,13 @@ int Ss_DLNA_ServiceStart(void)
         return -1;
     }
 
+    // load ffmpeg libs
+    if (OpenAirplayFfmpegLib(&g_stAirplayFfmpegAssembly))
+    {
+    	printf("Airplay: load ffmpeg libs failed\n");
+    	return -1;
+    }
+
     if(m_pLibdlnaHandle == NULL)
     {
 		m_pLibdlnaHandle = dlopen(dlaname, RTLD_LAZY);
@@ -313,9 +332,11 @@ int Ss_DLNA_ServiceStart(void)
     if(m_pLibdlnaHandle != NULL)
     {
         fsZmDLNAServiceStart  = (fpZmDLNAServiceStart)dlsym(m_pLibdlnaHandle, "ZmDLNAServiceStart");
-        if (dlerror() != NULL)
+        char *error = dlerror();
+        if (error != NULL)
         {
             printf("!!!warning dlsym(ZmDLNAServiceStart) failed.\n");
+            printf("dlerror: %s\n", error);
         }
         else
         {
@@ -330,6 +351,7 @@ int Ss_DLNA_ServiceStart(void)
         if(error != NULL)
         {
             printf("!!!warning(%s) open fail| error.\n", dlaname);
+            printf("dlerror: %s\n", error);
         }
         else
         {
@@ -337,6 +359,7 @@ int Ss_DLNA_ServiceStart(void)
         }
         return -1;
     }
+    printf("End Of Ss_DLNA_ServiceStart\n");
 	return nStartMediaStatuc;
 }
 
@@ -432,17 +455,23 @@ static void Ss_pthread_finish(void)
 
 void VideoMirroringOpen(void *cls, int width, int height, const void *buffer, int buflen, int payloadtype, double timestamp)
 {
-//	int ret = 0;
 	int spscnt =0,spsnalsize=0,ppscnt=0,ppsnalsize=0;
 	MI_VDEC_VideoStream_t stVdecStream;
 	MI_U32 s32Ret;
 
+    if (nPlayerStatuc != MPLAYER_IDLE) {
+        return;
+    }
+
+    printf("Start Of VideoMirroringOpen\n");
+
 #if SAVE_264_FILE
-	printf("start open test.h264");
-	FP_H264 = fopen("/customer/test.h264", "wb");
+    printf("start open test.h264\n");
+    int ret = 0;
+    FP_H264 = fopen("/customer/test.h264", "wb");
     if(FP_H264 == NULL)
     {
-        fprintf(stderr,"=====FP_H264 null=======");
+        fprintf(stderr,"=====FP_H264 null=======\n");
         return;
     }
 #endif
@@ -470,11 +499,10 @@ void VideoMirroringOpen(void *cls, int width, int height, const void *buffer, in
     data[6 + spsnalsize] = 0;
     data[7 + spsnalsize] = 1;
     memcpy(data + 8 + spsnalsize, head + 11 + spsnalsize, ppsnalsize);
-	printf("VideoMirroringOpen");
 	
 #if SAVE_264_FILE
 	ret = fwrite(data,1,4 + spsnalsize + 4 + ppsnalsize,FP_H264);
-	printf("ret = %d\n",ret);
+	printf("fwrite h264 ret = %d\n",ret);
 #endif
 
 	IsH264ModeChange(data,spsnalsize);
@@ -495,8 +523,10 @@ void VideoMirroringOpen(void *cls, int width, int height, const void *buffer, in
         return;
 	}
 	Ss_UI_Close();
-	Ss_Pthread_Pcm();
+	//Ss_Pthread_Pcm();
 	free(data);
+
+	printf("End Of VideoMirroringOpen\n");
 }
 
 
@@ -526,6 +556,7 @@ void VideoMirroringProcess(void *cls, const void *buffer, int buflen, int payloa
 
 #if SAVE_264_FILE
 	fwrite(data, 1, buflen, FP_H264);
+	//printf("[%d]stream data : %x %x %x %x %x, size : %d\n", payloadtype, data[1], data[2], data[3], data[4], buflen);
 #endif
 
 	MI_VDEC_VideoStream_t stVdecStream;
@@ -575,13 +606,14 @@ void VideoMirroringProcess(void *cls, const void *buffer, int buflen, int payloa
 
 #if SAVE_264_FILE
 		fwrite(data,1,4 + spsnalsize + 4 + ppsnalsize,FP_H264);
+		//printf("[%d]stream data : %x %x %x %x %x, size : %d\n", payloadtype, data[1], data[2], data[3], data[4], (4 + spsnalsize + 4 + ppsnalsize));
 #endif
 
 		if(IsH264ModeChange(data,spsnalsize))
 		{
-			Ss_Player_DeInit(0);
+			Ss_Player_DeInit(1);
 			printf("width = %d , hight = %d \n",gVedioWidth,gVedioHeight);
-			Ss_Player_Init(gVedioWidth,gVedioHeight,0);
+            Ss_Player_Init(gVedioWidth, gVedioHeight, 1);
 
 			MI_VDEC_VideoStream_t stVdecStream;
 			MI_U32 s32Ret;
@@ -606,16 +638,17 @@ void VideoMirroringProcess(void *cls, const void *buffer, int buflen, int payloa
 
 void VideoMirroringStop(void *cls)
 {
-	printf("=====video_mirroring_stop=1=======\r\n");
-
+    if (nPlayerStatuc == MPLAYER_IDLE) {
+        return;
+    }
 #if SAVE_264_FILE
 	if(FP_H264)
     {
         fclose(FP_H264);
     }
 #endif
-
-	Ss_Player_DeInit(0);
+    printf("=====video_mirroring_stop=1=======\r\n");
+	Ss_Player_DeInit(1);
 	//Ss_pthread_finish();
 	printf("=====video_mirroring_stop=2=======\r\n");
 	Ss_UI_Open();
@@ -646,7 +679,7 @@ void AudioSetVolume(void *cls, int volume)
    {
 		volume = 30;
    }
-   printf("=====audio_setvolume====%d====",volume);
+    printf("=====audio_setvolume====%d====\n",volume);
    MI_AO_SetVolume(AoDevId, volume);
 }
 
@@ -667,7 +700,9 @@ void AudioProcess(void *cls, const void *buffer, int buflen, double timestamp, u
 	stAoSendFrame.u32Len = buflen;
     stAoSendFrame.apVirAddr[0] = (void *)buffer;
     stAoSendFrame.apVirAddr[1] = NULL;
-	s32RetSendStatus = MI_AO_SendFrame(AoDevId, AoChn, &stAoSendFrame, 0);
+    do{
+        s32RetSendStatus = MI_AO_SendFrame(AoDevId, AoChn, &stAoSendFrame, 24);
+    }while(s32RetSendStatus == MI_AO_ERR_NOBUF);
 	if(s32RetSendStatus != MI_SUCCESS)
 	{
 		printf("[Warning]: MI_AO_SendFrame fail, error is 0x%x: \n",s32RetSendStatus);
@@ -838,8 +873,9 @@ void Airplay_setosversion(void *cls,double osversion)
         }
         else
         {
-          nStartMediaStatuc =fStartMediaServerFuc(pickname,dllname,keypath,nMWeight, nMHeight,60,(char*)"867589136",&ao);
-           // SSLPRT_MSG("AriplayV.%d.%s-%s-StartMediaOption(%x)ServerResult(%d)WxH(%d,%d)\n",ZYFLAY_VERSION,__DATE__,__TIME__,nCastmode,nStartMediaStatuc,nMWeight,nMHeight);//20
+            //nStartMediaStatuc =fStartMediaServerFuc(pickname,dllname,keypath,nMWeight, nMHeight,60,(char*)"867589136",&ao);
+            nStartMediaStatuc =fStartMediaServerFuc(pickname,dllname,keypath,nMWeight, nMHeight,60,(char*)"927589132",&ao);
+            // SSLPRT_MSG("AriplayV.%d.%s-%s-StartMediaOption(%x)ServerResult(%d)WxH(%d,%d)\n",ZYFLAY_VERSION,__DATE__,__TIME__,nCastmode,nStartMediaStatuc,nMWeight,nMHeight);//20
         }
     }
     else
@@ -848,6 +884,7 @@ void Airplay_setosversion(void *cls,double osversion)
         if(error != NULL)
         {
             printf("!!!warning(%s) open fail| error.\n", dllname);
+            printf("dlerror: %s\n", error);
         }
         else
         {

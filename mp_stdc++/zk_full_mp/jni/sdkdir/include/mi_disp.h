@@ -1,15 +1,16 @@
-/* Copyright (c) 2018-2019 Sigmastar Technology Corp.
- All rights reserved.
+/* SigmaStar trade secret */
+/* Copyright (c) [2019~2020] SigmaStar Technology.
+All rights reserved.
 
-  Unless otherwise stipulated in writing, any and all information contained
- herein regardless in any format shall remain the sole proprietary of
- Sigmastar Technology Corp. and be kept in strict confidence
- (��Sigmastar Confidential Information��) by the recipient.
- Any unauthorized act including without limitation unauthorized disclosure,
- copying, use, reproduction, sale, distribution, modification, disassembling,
- reverse engineering and compiling of the contents of Sigmastar Confidential
- Information is unlawful and strictly prohibited. Sigmastar hereby reserves the
- rights to any and all damages, losses, costs and expenses resulting therefrom.
+Unless otherwise stipulated in writing, any and all information contained
+herein regardless in any format shall remain the sole proprietary of
+SigmaStar and be kept in strict confidence
+(SigmaStar Confidential Information) by the recipient.
+Any unauthorized act including without limitation unauthorized disclosure,
+copying, use, reproduction, sale, distribution, modification, disassembling,
+reverse engineering and compiling of the contents of SigmaStar Confidential
+Information is unlawful and strictly prohibited. SigmaStar hereby reserves the
+rights to any and all damages, losses, costs and expenses resulting therefrom.
 */
 #ifndef _MI_DISP_H_
 #define _MI_DISP_H_
@@ -72,7 +73,7 @@ MI_S32 MI_DISP_SetCvbsParam(MI_DISP_DEV DispDev, MI_DISP_CvbsParam_t *pstCvbsPar
 MI_S32 MI_DISP_DeviceSetColorTempeture(MI_DISP_DEV DispDev, MI_DISP_ColorTemperature_t *pstColorTempInfo);
 MI_S32 MI_DISP_DeviceGetColorTempeture(MI_DISP_DEV DispDev, MI_DISP_ColorTemperature_t *pstColorTempInfo);
 MI_S32 MI_DISP_DeviceSetGammaParam(MI_DISP_DEV DispDev, MI_DISP_GammaParam_t * pstGammaParam);
-MI_S32 MI_DISP_ClearInputPortBuffer(MI_DISP_LAYER DispLayer, MI_DISP_INPUTPORT LayerInputPort);
+MI_S32 MI_DISP_ClearInputPortBuffer(MI_DISP_LAYER DispLayer, MI_DISP_INPUTPORT LayerInputPort, MI_BOOL bClrAll);
 MI_S32 MI_DISP_SetVideoLayerRotateMode(MI_DISP_LAYER DispLayer, MI_DISP_RotateConfig_t *pstRotateConfig);
 
 #ifdef __cplusplus

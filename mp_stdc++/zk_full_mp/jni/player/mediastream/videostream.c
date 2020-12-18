@@ -78,7 +78,6 @@ static int alloc_for_frame(frame_t *vp, AVFrame *frame)
 
 static int queue_picture(player_stat_t *is, AVFrame *src_frame, double pts, double duration, int64_t pos)
 {
-    int ret;
     frame_t *vp;
     frame_queue_t *f = &is->video_frm_queue;
 
@@ -103,12 +102,12 @@ static int queue_picture(player_stat_t *is, AVFrame *src_frame, double pts, doub
     // 将AVFrame拷入队列相应位置
     if (is->decode_type == SOFT_DECODING)
     {
-        av_frame_move_ref(vp->frame, src_frame);
-        /*ret = alloc_for_frame(vp, src_frame);
+        //av_frame_move_ref(vp->frame, src_frame);
+        int ret = alloc_for_frame(vp, src_frame);
         if (ret < 0) {
             av_log(NULL, AV_LOG_ERROR, "alloc_for_frame failed!\n");
             return 0;
-        }*/
+        }
         //printf("queue frame fomat: %d\n",vp->frame->format);
         // 更新队列计数及写索引
         //printf("before queue ridx: %d,widx: %d,size: %d,maxsize: %d\n ",is->video_frm_queue.rindex,is->video_frm_queue.windex,is->video_frm_queue.size,is->video_frm_queue.max_size);
@@ -173,6 +172,8 @@ static int video_decode_frame(AVCodecContext *p_codec_ctx, packet_queue_t *p_pkt
                 else
                 {
                     av_log(NULL, AV_LOG_ERROR, "video avcodec_receive_frame(): other errors\n");
+                    g_myplayer->play_error = -1;
+                    av_usleep(10 * 1000);
                     continue;
                 }
             }
@@ -196,12 +197,14 @@ static int video_decode_frame(AVCodecContext *p_codec_ctx, packet_queue_t *p_pkt
             pthread_mutex_lock(&g_myplayer->video_mutex);
             if ((g_myplayer->seek_flags & (1 << 6)) && p_codec_ctx->frame_number > 1) {
                 g_myplayer->seek_flags &= ~(1 << 6);
-                frame_queue_flush(&g_myplayer->video_frm_queue);
+                //frame_queue_flush(&g_myplayer->video_frm_queue);
             }
             pthread_mutex_unlock(&g_myplayer->video_mutex);
 
             // 复位解码器内部状态/刷新内部缓冲区。
+            //p_codec_ctx->flags |= (1 << 7);
             avcodec_flush_buffers(p_codec_ctx);
+            //p_codec_ctx->flags &= ~(1 << 7);
 
             printf("avcodec_flush_buffers for video!\n");
         }
@@ -222,9 +225,15 @@ static int video_decode_frame(AVCodecContext *p_codec_ctx, packet_queue_t *p_pkt
             //    发送packet的顺序是按dts递增的顺序，如IPBBPBB
             //    pkt.pos变量可以标识当前packet在视频文件中的地址偏移
             //printf("send packet to decoder!\n");
-            if (avcodec_send_packet(p_codec_ctx, &pkt) == AVERROR(EAGAIN))
+            ret = avcodec_send_packet(p_codec_ctx, &pkt);
+            if (ret == AVERROR(EAGAIN))
             {
                 av_log(NULL, AV_LOG_ERROR, "receive_frame and send_packet both returned EAGAIN, which is an API violation.\n");
+            }
+            else if (ret == MI_ERR_VDEC_FAILED)
+            {
+                av_log(NULL, AV_LOG_ERROR, "vdec occur fatal erro in decoding!\n");
+                g_myplayer->play_error = -1;
             }
         }
         av_packet_unref(&pkt);
@@ -440,7 +449,7 @@ retry:
         return;
 recheck:
     while (is->seek_flags & (1 << 6)) {
-        is->start_play = false;
+        //is->start_play = false;
         pthread_cond_signal(&is->video_frm_queue.cond);
         av_usleep(10 * 1000);
     }
