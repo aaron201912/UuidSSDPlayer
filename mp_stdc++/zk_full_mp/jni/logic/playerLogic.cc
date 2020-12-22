@@ -39,15 +39,29 @@
 #include <stdint.h>
 #include <string.h>
 #include <signal.h>
+#include <errno.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/time.h>
+#include <sys/prctl.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
 
-#define CLT_IPC     "/appconfigs/client_input"
-#define SVC_IPC     "/appconfigs/server_input"
+struct shared_use_st
+{
+    int  written;    //作为一个标志，非0：表示可读，0表示可写
+    bool flag;
+};
+
+struct shared_use_st *shm_addr = NULL;
+int shm_id = 0;
+
+#define CLT_IPC         "/appconfigs/client_input"
+#define SVC_IPC         "/appconfigs/server_input"
+#define MYPLAYER_PATH   "/customer/MyPlayer &"
 
 typedef enum
 {
@@ -65,7 +79,10 @@ typedef enum
   IPC_COMMAND_SET_MUTE,
   IPC_COMMAND_ERROR,
   IPC_COMMAND_COMPLETE,
-  IPC_COMMAND_EXIT
+  IPC_COMMAND_CREATE,
+  IPC_COMMAND_DESTORY,
+  IPC_COMMAND_EXIT,
+  IPC_COMMAND_PANT
 } IPC_COMMAND_TYPE;
 
 typedef struct{
@@ -78,6 +95,8 @@ typedef struct{
     int status;
     int rotate;
     bool mute;
+    bool audio_only, video_only;
+    int  play_mode;
     char filePath[512];
 }stPlayerData;
 
@@ -97,7 +116,7 @@ public:
 
     bool Init() {
         if (m_fd < 0) {
-            m_fd = open(m_file.c_str(), O_WRONLY | O_NONBLOCK);
+            m_fd = open(m_file.c_str(), O_WRONLY | O_NONBLOCK, S_IWUSR | S_IWOTH);
             printf("IPCOutput m_fd = %d\n", m_fd);
         }
         return m_fd >= 0;
@@ -113,18 +132,10 @@ public:
 
     int Send(const IPCEvent& evt) {
         if (m_fd >= 0) {
-            ret = write(m_fd, &evt, sizeof(IPCEvent));
-            //printf("write %d byte to %s\n", ret, m_file.c_str());
-        } else {
-            ret = -1;
-            //printf("%s can't be writed!\n", m_file.c_str());
+            return write(m_fd, &evt, sizeof(IPCEvent));
         }
-        return ret;
-    }
-
-    void DeInit() {
-        m_fd = -1;
-        printf("%s deinit!\n", m_file.c_str());
+        printf("write %s failed!\n", m_file.c_str());
+        return -1;
     }
 
 private:
@@ -165,7 +176,7 @@ public:
             return false;
         }
         if (m_fd < 0) {
-            m_fd = open(m_file.c_str(), O_RDWR | O_NONBLOCK);
+            m_fd = open(m_file.c_str(), O_RDWR | O_CREAT | O_NONBLOCK, S_IRWXU | S_IWOTH);
             printf("IPCInput m_fd = %d\n", m_fd);
         }
         return m_fd >= 0;
@@ -323,6 +334,7 @@ static bool g_bPlayError = false;
 static RepeatMode_e g_eRepeatMode = LIST_REPEAT_MODE;
 static SkipMode_e g_eSkipMode = NO_SKIP;
 static pthread_mutex_t g_playFileMutex;
+static bool g_bPantStatus = false;
 
 extern void GetPrevFile(char *pCurFileFullName, char *pPrevFileFullName, int prevFilePathLen);
 extern void GetNextFile(char *pCurFileFullName, char *pNextFileFullName, int nextFilePathLen);
@@ -1223,20 +1235,110 @@ void DetectUsbHotplug(UsbParam_t *pstUsbParam)		// action 0, connect; action 1, 
 	}
 }
 
+#define USE_POPEN       1
+#define PANT_TIME       5
+FILE *player_fd = NULL;
+extern int errno;
+
 static void StartPlayStreamFile(char *pFileName)
 {
-	printf("Start to StartPlayStreamFile\n");
+    printf("Start to StartPlayStreamFile\n");
 #ifdef SUPPORT_PLAYER_PROCESS
-	mWindow_errMsgPtr->setVisible(false);
-	ResetSpeedMode();
-	system("echo 1 > /sys/class/gpio/gpio12/value");
+    int ret;
+    struct timeval time_start, time_wait;
+    void *shm = NULL;
 
-	memset(&sendevt, 0, sizeof(IPCEvent));
+    mWindow_errMsgPtr->setVisible(false);
+    ResetSpeedMode();
+    system("echo 1 > /sys/class/gpio/gpio12/value");
+
+    memset(&recvevt, 0, sizeof(IPCEvent));
+
+    if(!i_server.Init()) {
+        printf("[%s %d]create i_server fail!\n", __FILE__, __LINE__);
+        fprintf(stderr, "Error：%s\n", strerror(errno));
+        return;
+    }
+
+    #if USE_POPEN
+    //创建共享内存
+    shm_id = shmget((key_t)1234, sizeof(struct shared_use_st), 0666 | IPC_CREAT);
+    if(shm_id < 0) {
+        fprintf(stderr, "shmget failed\n");
+        goto next;
+    }
+
+    //将共享内存连接到当前进程的地址空间
+    shm = shmat(shm_id, (void*)NULL, 0);
+    if(shm < 0) {
+        fprintf(stderr, "shmat failed\n");
+        goto next;
+    }
+
+    shm_addr = (struct shared_use_st *)shm;
+    memset(shm_addr, 0x0, sizeof(struct shared_use_st));
+    printf("shared memory attached at %x\n", (int)shm);
+
+    player_fd = popen(MYPLAYER_PATH, "w");
+    if (NULL == player_fd) {
+        printf("my_player is not exit!\n");
+        goto next;
+    }
+    printf("popen myplayer progress done!\n");
+
+    gettimeofday(&time_start, NULL);
+    while (i_server.Read(recvevt) <= 0
+           || (recvevt.EventType != IPC_COMMAND_CREATE)) {
+        usleep(10 * 1000);
+        gettimeofday(&time_wait, NULL);
+        if (time_wait.tv_sec - time_start.tv_sec > 2) {
+            printf("myplayer progress create failed!\n");
+            break;
+        }
+    }
+next:
+    if (recvevt.EventType == IPC_COMMAND_CREATE) {
+        printf("myplayer progress create success!\n");
+    } else {
+        if (shm_addr) {
+            //把共享内存从当前进程中分离
+            ret = shmdt((void *)shm_addr);
+            if (ret < 0) {
+                fprintf(stderr, "shmdt failed\n");
+            }
+
+            //删除共享内存
+            ret = shmctl(shm_id, IPC_RMID, NULL);
+            if(ret < 0) {
+                fprintf(stderr, "shmctl(IPC_RMID) failed\n");
+            }
+        }
+        shm_addr = NULL;
+        shm_id = 0;
+
+        mTextview_msgPtr->setText("Other Error Occur!");
+        mWindow_errMsgPtr->setVisible(true);
+
+        pthread_mutex_lock(&g_playFileMutex);
+        g_bPlayError = true;
+        pthread_mutex_unlock(&g_playFileMutex);
+
+        return;
+    }
+    #endif
+
+    if(!o_client.Init()) {
+        printf("[%s %d]my_player process not start!\n", __FILE__, __LINE__);
+        fprintf(stderr, "Error：%s\n", strerror(errno));
+        return;
+    }
+
+    memset(&sendevt, 0, sizeof(IPCEvent));
     sendevt.EventType = IPC_COMMAND_OPEN;
     strcpy(sendevt.stPlData.filePath, pFileName);
     printf("list file name to play = %s\n", sendevt.stPlData.filePath);
 
-	// 旋转开关
+    // 旋转开关
     #if ENABLE_ROTATE
     sendevt.stPlData.rotate = E_MI_DISP_ROTATE_270;
     #else
@@ -1247,123 +1349,202 @@ static void StartPlayStreamFile(char *pFileName)
     sendevt.stPlData.width  = g_playViewWidth;
     sendevt.stPlData.height = g_playViewHeight;
     sendevt.stPlData.aodev = AUDIO_DEV;
+    sendevt.stPlData.audio_only = false;
+    sendevt.stPlData.video_only = false;
+    sendevt.stPlData.play_mode  = 0;    // 0: 单次播放,1: 循环播放(seek to start)
     o_client.Send(sendevt);
     printf("try to open file: %s\n", pFileName);
-retry:
+
     memset(&recvevt, 0, sizeof(IPCEvent));
-    if (i_server.Read(recvevt) > 0) {
-    	if (recvevt.EventType == IPC_COMMAND_ACK) {
-    		printf("receive ack from my_player!\n");
+    gettimeofday(&time_start, NULL);
+    while (i_server.Read(recvevt) <= 0
+           || ((recvevt.EventType != IPC_COMMAND_ACK)
+           && (recvevt.EventType != IPC_COMMAND_ERROR))) {
+        usleep(10 * 1000);
+        gettimeofday(&time_wait, NULL);
+        if (time_wait.tv_sec - time_start.tv_sec > 10) {
+            memset(&sendevt, 0, sizeof(IPCEvent));
+            #if USE_POPEN
+            sendevt.EventType = IPC_COMMAND_EXIT;
+            #else
+            sendevt.EventType = IPC_COMMAND_CLOSE;
+            #endif
+            o_client.Send(sendevt);
+            break;
+        }
+    }
+    if (recvevt.EventType == IPC_COMMAND_ACK) {
+        printf("receive ack from my_player!\n");
 
-    		memset(&sendevt, 0, sizeof(IPCEvent));
-    		sendevt.EventType = IPC_COMMAND_GET_DURATION;
-    	    o_client.Send(sendevt);
-    	} else if(recvevt.EventType == IPC_COMMAND_ERROR) {
-		    if (recvevt.stPlData.status == -101)
-		        mTextview_msgPtr->setText("请检查网络连接！");
-		    else if (recvevt.stPlData.status == -2)
-		        mTextview_msgPtr->setText("不支持播放720P以上的视频！");
-		    else if (recvevt.stPlData.status == -3)
-		        mTextview_msgPtr->setText("解码速度不够，请降低视频帧率！");
-		    else if (recvevt.stPlData.status == -4)
-		        mTextview_msgPtr->setText("读取网络超时！");
-		    else
-		        mTextview_msgPtr->setText("Other Error Occur!");
+        memset(&sendevt, 0, sizeof(IPCEvent));
+        sendevt.EventType = IPC_COMMAND_GET_DURATION;
+        o_client.Send(sendevt);
+    } else if(recvevt.EventType == IPC_COMMAND_ERROR) {
+        if (recvevt.stPlData.status == -101)
+            mTextview_msgPtr->setText("请检查网络连接！");
+        else if (recvevt.stPlData.status == -2)
+            mTextview_msgPtr->setText("不支持播放720P以上的视频！");
+        else if (recvevt.stPlData.status == -3)
+            mTextview_msgPtr->setText("解码速度不够，请降低视频帧率！");
+        else if (recvevt.stPlData.status == -4)
+            mTextview_msgPtr->setText("读取网络超时！");
+        else
+            mTextview_msgPtr->setText("Other Error Occur!");
 
-		    mWindow_errMsgPtr->setVisible(true);
+        mWindow_errMsgPtr->setVisible(true);
 
-		    pthread_mutex_lock(&g_playFileMutex);
-			g_bPlayError = true;
-			pthread_mutex_unlock(&g_playFileMutex);
-    	}
-    } else {
-    	usleep(10 * 1000);
-    	goto retry;
+        pthread_mutex_lock(&g_playFileMutex);
+        g_bPlayError = true;
+        pthread_mutex_unlock(&g_playFileMutex);
     }
 
     SetPlayerVolumn(g_s32VolValue);
 #else
-	// ffmpeg_player初始化 & ui初始化
-	mWindow_errMsgPtr->setVisible(false);
-	// init player
-	ResetSpeedMode();
-	StartPlayVideo();
-	StartPlayAudio();
+    // ffmpeg_player初始化 & ui初始化
+    mWindow_errMsgPtr->setVisible(false);
+    // init player
+    ResetSpeedMode();
+    StartPlayVideo();
+    StartPlayAudio();
 
-	g_pstPlayStat = player_init(pFileName);
-	if (!g_pstPlayStat)
-	{
-		StopPlayAudio();
-		StopPlayVideo();
-		printf("Initilize player failed!\n");
-		return;
-	}
-	// 旋转开关
-    #if ENABLE_ROTATE
-	g_pstPlayStat->display_mode = E_MI_DISP_ROTATE_270;
-    #else
-	g_pstPlayStat->display_mode = E_MI_DISP_ROTATE_NONE;
-	#endif
-	// 设置视频显示位置与窗口
-	g_pstPlayStat->pos_x = 0;
-	g_pstPlayStat->pos_y = 0;
-	g_pstPlayStat->in_width  = g_playViewWidth;
-	g_pstPlayStat->in_height = g_playViewHeight;
-	printf("video file name is : %s, panel w/h = [%d %d]\n", g_pstPlayStat->filename, g_playViewWidth, g_playViewHeight);
-
-	SetStreamPlayerControlCallBack(g_pstPlayStat);
-	printf("open_demux\n");
-	open_demux(g_pstPlayStat);
-	printf("open_video\n");
-	open_video(g_pstPlayStat);
-	printf("open_audio\n");
-	open_audio(g_pstPlayStat);
-	SetPlayerVolumn(g_s32VolValue);
+    g_pstPlayStat = player_init(pFileName);
+    if (!g_pstPlayStat)
+    {
+        StopPlayAudio();
+        StopPlayVideo();
+        printf("Initilize player failed!\n");
+        return;
+    }
+    // 旋转开关
+#if ENABLE_ROTATE
+    g_pstPlayStat->display_mode = E_MI_DISP_ROTATE_270;
+#else
+    g_pstPlayStat->display_mode = E_MI_DISP_ROTATE_NONE;
 #endif
-	printf("End to StartPlayStreamFile\n");
+    // 设置视频显示位置与窗口
+    g_pstPlayStat->pos_x = 0;
+    g_pstPlayStat->pos_y = 0;
+    g_pstPlayStat->in_width  = g_playViewWidth;
+    g_pstPlayStat->in_height = g_playViewHeight;
+    printf("video file name is : %s, panel w/h = [%d %d]\n", g_pstPlayStat->filename, g_playViewWidth, g_playViewHeight);
+
+    SetStreamPlayerControlCallBack(g_pstPlayStat);
+    printf("open_demux\n");
+    open_demux(g_pstPlayStat);
+    printf("open_video\n");
+    open_video(g_pstPlayStat);
+    printf("open_audio\n");
+    open_audio(g_pstPlayStat);
+    SetPlayerVolumn(g_s32VolValue);
+#endif
+    printf("End to StartPlayStreamFile\n");
 }
 
 static void StopPlayStreamFile()
 {
-	printf("Start to StopPlayStreamFile\n");
+    printf("Start to StopPlayStreamFile\n");
 #ifdef SUPPORT_PLAYER_PROCESS
-    if(!o_client.Init()) {
-        printf("my_player is not start!\n");
-        return;
-    }
+    int ret;
+    struct timeval time_start, time_wait;
 
     system("echo 0 > /sys/class/gpio/gpio12/value");
+
+    if(o_client.Init()) {
+        memset(&sendevt, 0, sizeof(IPCEvent));
+        #if USE_POPEN
+        sendevt.EventType = IPC_COMMAND_EXIT;
+        o_client.Send(sendevt);
+
+        memset(&recvevt, 0, sizeof(IPCEvent));
+        gettimeofday(&time_start, NULL);
+        while ((i_server.Read(recvevt) <= 0 || recvevt.EventType != IPC_COMMAND_DESTORY) &&
+               (shm_addr && (shm_addr->written || !shm_addr->flag))) {
+            usleep(10 * 1000);
+            gettimeofday(&time_wait, NULL);
+            if (time_wait.tv_sec - time_start.tv_sec > 2) {
+                printf("myplayer progress destory failed!\n");
+                break;
+            }
+        }
+        #else
+        sendevt.EventType = IPC_COMMAND_CLOSE;
+        o_client.Send(sendevt);
+
+        memset(&recvevt, 0, sizeof(IPCEvent));
+        gettimeofday(&time_start, NULL);
+        while (i_server.Read(recvevt) <= 0 || recvevt.EventType != IPC_COMMAND_ACK) {
+            usleep(10 * 1000);
+            gettimeofday(&time_wait, NULL);
+            if (time_wait.tv_sec - time_start.tv_sec > 2) {
+                printf("myplayer progress close failed!\n");
+                break;
+            }
+        }
+        #endif
+    } else {
+        printf("my_player is not start!\n");
+        fprintf(stderr, "Error：%s\n", strerror(errno));
+    }
+
+    #if USE_POPEN
+    if ((shm_addr && shm_addr->flag) || recvevt.EventType == IPC_COMMAND_DESTORY) {
+        printf("myplayer progress destory done!\n");
+    }
+
+    if (shm_addr) {
+        //把共享内存从当前进程中分离
+        ret = shmdt((void *)shm_addr);
+        if (ret < 0) {
+            fprintf(stderr, "shmdt failed\n");
+        }
+
+        //删除共享内存
+        ret = shmctl(shm_id, IPC_RMID, NULL);
+        if(ret < 0) {
+            fprintf(stderr, "shmctl(IPC_RMID) failed\n");
+        }
+    }
+    shm_addr = NULL;
+    shm_id = 0;
+
+    if (player_fd) {
+        pclose(player_fd);
+        player_fd = NULL;
+    }
+
+    i_server.Term();
+    o_client.Term();
+    system("rm -rf /appconfigs/server_input");
+    printf("remove server_input file\n");
+    #endif
+
     g_bPlaying = false;
-	g_bPause = false;
+    g_bPause = false;
 
-	memset(&sendevt, 0, sizeof(IPCEvent));
-    sendevt.EventType = IPC_COMMAND_CLOSE;
-    o_client.Send(sendevt);
-
-	ResetSpeedMode();
-	SetPlayingStatus(false);
-	mTextview_speedPtr->setText("");
-	mTextview_curtimePtr->setText("00:00:00");
-	mSeekbar_progressPtr->setProgress(0);
-	g_firstPlayPos = PLAY_INIT_POS;
+    ResetSpeedMode();
+    SetPlayingStatus(false);
+    mTextview_speedPtr->setText("");
+    mTextview_curtimePtr->setText("00:00:00");
+    mSeekbar_progressPtr->setProgress(0);
+    g_firstPlayPos = PLAY_INIT_POS;
 #else
-	// ffmpeg_player反初始化 & ui反初始化
-	g_bPlaying = false;
-	g_bPause = false;
-	StopPlayVideo();
-	player_deinit(g_pstPlayStat);
-	StopPlayAudio();
-	ResetSpeedMode();
+    // ffmpeg_player反初始化 & ui反初始化
+    g_bPlaying = false;
+    g_bPause = false;
+    StopPlayVideo();
+    player_deinit(g_pstPlayStat);
+    StopPlayAudio();
+    ResetSpeedMode();
 
-	SetPlayingStatus(false);
-	mTextview_speedPtr->setText("");
-	mTextview_curtimePtr->setText("00:00:00");
-	mSeekbar_progressPtr->setProgress(0);
+    SetPlayingStatus(false);
+    mTextview_speedPtr->setText("");
+    mTextview_curtimePtr->setText("00:00:00");
+    mSeekbar_progressPtr->setProgress(0);
 
-	// reset pts
-	g_firstPlayPos = PLAY_INIT_POS;
+    // reset pts
+    g_firstPlayPos = PLAY_INIT_POS;
 #endif
-	printf("End of StopPlayStreamFile\n");
+    printf("End of StopPlayStreamFile\n");
 }
 
 static void TogglePlayStreamFile()
@@ -1541,11 +1722,14 @@ static void *PlayFileProc(void *pData)
 	SkipMode_e eSkipMode = NO_SKIP;
 	bool bPlayCompleted = false;
 	bool bPlayError = false;
+    struct timeval pant_start, pant_wait;
 	printf("get in PlayFileProc!\n");
 	strncpy(curFileName, pFileName, sizeof(curFileName));
 	RepeatMode_e eRepeatMode = LIST_REPEAT_MODE;
 	StartPlayFile(curFileName);
 	AutoDisplayToolbar();
+
+    gettimeofday(&pant_start, NULL);
 
 	while (!g_bPlayFileThreadExit)
 	{
@@ -1615,82 +1799,111 @@ static void *PlayFileProc(void *pData)
 			}
 		}
 #ifdef SUPPORT_PLAYER_PROCESS
-		memset(&recvevt, 0, sizeof(IPCEvent));
-	    if (i_server.Read(recvevt) > 0) {
-	    	switch (recvevt.EventType)
-	    	{
-	    		case IPC_COMMAND_GET_DURATION : {
-	    			char totalTime[32];
-	    			long int durationSec = recvevt.stPlData.misc / 1.0;
+        if (g_playStream) {
+            memset(&recvevt, 0, sizeof(IPCEvent));
+            if (i_server.Read(recvevt) > 0) {
+                switch (recvevt.EventType)
+                {
+                    case IPC_COMMAND_GET_DURATION : {
+                        char totalTime[32];
+                        long int durationSec = recvevt.stPlData.misc / 1.0;
 
-	    			if (durationSec / 3600 < 99) {
-						memset(totalTime, 0, sizeof(totalTime));
-						sprintf(totalTime, "%02d:%02d:%02d", durationSec/3600, (durationSec%3600)/60, durationSec%60);
-						mTextview_durationPtr->setText(totalTime);
-						g_duration = durationSec;
-	    				printf("file duration time = %lld\n", g_duration);
-	    			}
-	    		}
-	    		break;
+                        if (durationSec / 3600 < 99) {
+                            memset(totalTime, 0, sizeof(totalTime));
+                            sprintf(totalTime, "%02d:%02d:%02d", durationSec/3600, (durationSec%3600)/60, durationSec%60);
+                            mTextview_durationPtr->setText(totalTime);
+                            g_duration = durationSec;
+                            printf("file duration time = %lld\n", g_duration);
+                        }
+                    }
+                    break;
 
-	    		case IPC_COMMAND_GET_POSITION : {
-	    		    char curTime[32];
-	    		    int curSec = recvevt.stPlData.misc / 1.0;
-	    		    int trackPos;
-	    		    //printf("get video current position time = %d\n", curSec);
-	    		    memset(curTime, 0, sizeof(curTime));
-	    		    sprintf(curTime, "%02d:%02d:%02d", curSec/3600, (curSec%3600)/60, curSec%60);
-	    		    mTextview_curtimePtr->setText(curTime);
+                    case IPC_COMMAND_GET_POSITION : {
+                        char curTime[32];
+                        int curSec = recvevt.stPlData.misc / 1.0;
+                        int trackPos;
+                        //printf("get video current position time = %d\n", curSec);
+                        memset(curTime, 0, sizeof(curTime));
+                        sprintf(curTime, "%02d:%02d:%02d", curSec/3600, (curSec%3600)/60, curSec%60);
+                        mTextview_curtimePtr->setText(curTime);
 
-	    		    trackPos  = (curSec * mSeekbar_progressPtr->getMax()) / g_duration;
-	    		    mSeekbar_progressPtr->setProgress(trackPos);
-	    		}
-	    		break;
+                        trackPos  = (curSec * mSeekbar_progressPtr->getMax()) / g_duration;
+                        mSeekbar_progressPtr->setProgress(trackPos);
+                    }
+                    break;
 
-	    		case IPC_COMMAND_ERROR : {
-	    		    if (recvevt.stPlData.status == -101)
-	    		        mTextview_msgPtr->setText("请检查网络连接！");
-	    		    else if (recvevt.stPlData.status == -2)
-	    		        mTextview_msgPtr->setText("不支持播放720P以上的视频！");
-	    		    else if (recvevt.stPlData.status == -3)
-	    		        mTextview_msgPtr->setText("解码速度不够，请降低视频帧率！");
-	    		    else if (recvevt.stPlData.status == -4)
-	    		        mTextview_msgPtr->setText("读取网络超时！");
-	    		    else
-	    		        mTextview_msgPtr->setText("Other Error Occur!");
+                    case IPC_COMMAND_ERROR : {
+                        if (recvevt.stPlData.status == -101)
+                            mTextview_msgPtr->setText("请检查网络连接！");
+                        else if (recvevt.stPlData.status == -2)
+                            mTextview_msgPtr->setText("不支持播放720P以上的视频！");
+                        else if (recvevt.stPlData.status == -3)
+                            mTextview_msgPtr->setText("解码速度不够，请降低视频帧率！");
+                        else if (recvevt.stPlData.status == -4)
+                            mTextview_msgPtr->setText("读取网络超时！");
+                        else
+                            mTextview_msgPtr->setText("Other Error Occur!");
 
-	    		    mWindow_errMsgPtr->setVisible(true);
+                        mWindow_errMsgPtr->setVisible(true);
 
-	    		    pthread_mutex_lock(&g_playFileMutex);
-	    			g_bPlayError = true;
-	    			pthread_mutex_unlock(&g_playFileMutex);
-	    			printf("[%s] play error!\n", curFileName);
-	    		}
-	    		break;
+                        pthread_mutex_lock(&g_playFileMutex);
+                        g_bPlayError = true;
+                        pthread_mutex_unlock(&g_playFileMutex);
+                        printf("[%s] play error!\n", curFileName);
+                    }
+                    break;
 
-	    		case IPC_COMMAND_COMPLETE : {
-	    			SetPlayingStatus(false);
-	    			mTextview_speedPtr->setText("");
-	    			g_bShowPlayToolBar = FALSE;
+                    case IPC_COMMAND_COMPLETE : {
+                        SetPlayingStatus(false);
+                        mTextview_speedPtr->setText("");
+                        g_bShowPlayToolBar = FALSE;
+                        g_bPantStatus = false;
 
-	    			pthread_mutex_lock(&g_playFileMutex);
-	    			g_bPlayCompleted = true;
-	    			pthread_mutex_unlock(&g_playFileMutex);
-	    			printf("[%s] play complete!\n", curFileName);
-	    		}
-	    		break;
+                        pthread_mutex_lock(&g_playFileMutex);
+                        g_bPlayCompleted = true;
+                        pthread_mutex_unlock(&g_playFileMutex);
+                        printf("[%s] play complete!\n", curFileName);
+                    }
+                    break;
 
-	    		default : break;
-	    	}
-	    }
+                    case IPC_COMMAND_PANT : {
+                        g_bPantStatus = true;
+                        gettimeofday(&pant_start, NULL);
+                        if(!o_client.Init()) {
+                            printf("[%s %d]my_player process not start!\n", __FILE__, __LINE__);
+                            fprintf(stderr, "Error：%s\n", strerror(errno));
+                        } else {
+                            memset(&sendevt, 0, sizeof(IPCEvent));
+                            sendevt.EventType = IPC_COMMAND_PANT;
+                            o_client.Send(sendevt);
+                        }
+                    }
+                    break;
+
+                    default : break;
+                }
+            }
+
+            //心跳包判断
+            gettimeofday(&pant_wait, NULL);
+            if (pant_wait.tv_sec - pant_start.tv_sec > 2 * PANT_TIME && g_bPantStatus) {
+                mTextview_msgPtr->setText("Other Error Occur!");
+                mWindow_errMsgPtr->setVisible(true);
+                pthread_mutex_lock(&g_playFileMutex);
+                g_bPlayError = true;
+                pthread_mutex_unlock(&g_playFileMutex);
+                printf("myplayer has exit abnormallity!\n");
+            }
+        }
 #endif
-		usleep(100 * 1000);
-	}
+        usleep(100 * 1000);
+    }
 
-	StopPlayFile();
-	g_fileName = curFileName;
-	printf("### PlayFileProc Exit ###\n");
-	return NULL;
+    StopPlayFile();
+    g_fileName = curFileName;
+    g_bPantStatus = false;
+    printf("### PlayFileProc Exit ###\n");
+    return NULL;
 }
 #endif
 
@@ -1712,18 +1925,6 @@ static void onUI_init(){
     printf("create player dev\n");
 
 #ifdef SUPPORT_PLAYER_MODULE
-
-	#ifdef SUPPORT_PLAYER_PROCESS
-    if(!i_server.Init()) {
-        printf("[%s %d]create i_server fail!\n", __FILE__, __LINE__);
-        return -1;
-    }
-    if(!o_client.Init()) {
-        printf("[%s %d]server process not start!\n", __FILE__, __LINE__);
-        return -1;
-    }
-	#endif
-
     // init play view real size
     LayoutPosition layoutPos = mVideoview_videoPtr->getPosition();
     g_playViewWidth = layoutPos.mWidth * PANEL_MAX_WIDTH / UI_MAX_WIDTH;
@@ -1775,18 +1976,13 @@ static void onUI_hide() {
 static void onUI_quit() {
 	printf("destroy player dev\n");
 #ifdef SUPPORT_PLAYER_MODULE
+    pthread_mutex_destroy(&g_playFileMutex);
+    DestroyPlayerDev();
+    g_firstPlayPos = PLAY_INIT_POS;
 
-	#ifdef SUPPORT_PLAYER_PROCESS
-	i_server.Term();
-	#endif
-
-	pthread_mutex_destroy(&g_playFileMutex);
-	DestroyPlayerDev();
-	g_firstPlayPos = PLAY_INIT_POS;
-
-	printf("start to UnRegisterUsbListener\n");
-	SSTAR_UnRegisterUsbListener(DetectUsbHotplug);
-	printf("end of UnRegisterUsbListener\n");
+    printf("start to UnRegisterUsbListener\n");
+    SSTAR_UnRegisterUsbListener(DetectUsbHotplug);
+    printf("end of UnRegisterUsbListener\n");
 #endif
 }
 
@@ -2216,9 +2412,15 @@ static void onProgressChanged_Seekbar_volumn(ZKSeekBar *pSeekBar, int progress) 
 	printf("voice changed!!!!!!!!\n");
 	g_s32VolValue = GetPlayerVolumn();
 	if (g_s32VolValue)
+	{
 		vol = g_s32VolValue * (MAX_ADJUST_AO_VOLUME - MIN_ADJUST_AO_VOLUME) / 100 + MIN_ADJUST_AO_VOLUME;
+		g_bMute = false;
+	}
 	else
+	{
 		vol = MIN_AO_VOLUME;
+		g_bMute = true;
+	}
 
 	memset(&stAoState, 0, sizeof(MI_AO_ChnState_t));
 	if (MI_SUCCESS == MI_AO_QueryChnStat(AUDIO_DEV, AUDIO_CHN, &stAoState))
@@ -2227,12 +2429,28 @@ static void onProgressChanged_Seekbar_volumn(ZKSeekBar *pSeekBar, int progress) 
 		MI_AO_SetMute(AUDIO_DEV, g_bMute);
 	}
 #endif
+
+	SetMuteStatus(g_bMute);
 #endif
 }
 static bool onButtonClick_Button_confirm(ZKButton *pButton) {
     LOGD(" ButtonClick Button_confirm !!!\n");
 #ifdef SUPPORT_PLAYER_MODULE
 	mWindow_errMsgPtr->setVisible(false);
+
+	if (g_hideToolbarThread.isRunning())
+	{
+		printf("stop hideToolBarthread\n");
+		g_hideToolbarThread.requestExitAndWait();
+	}
+
+	g_bPlayFileThreadExit = true;
+	if (g_playFileThread)
+	{
+		pthread_join(g_playFileThread, NULL);
+		g_playFileThread = NULL;
+	}
+
 	EASYUICONTEXT->goBack();
 #endif
     return false;

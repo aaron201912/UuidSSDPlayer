@@ -31,8 +31,8 @@ CONFIG_PLAYER_SWITCH := "enable"
 #CONFIG_PLAYER_SWITCH :=
 
 #cloudplay功能启用开关
-#CONFIG_CLOUD_PLAY_SWITCH := "enable"
-CONFIG_CLOUD_PLAY_SWITCH :=
+CONFIG_CLOUD_PLAY_SWITCH := "enable"
+#CONFIG_CLOUD_PLAY_SWITCH :=
 
 #myplayer多进程功能启用开关
 CONFIG_MULTIPROC_SWITCH := "enable"
@@ -53,23 +53,23 @@ INCLUDE_DIR := -I$(EASYUI_COMMON_INCLUDE) \
 					-I$(ZKSW_PREBUILT_INCLUDE_PATH)/mgeff \
 					-I ../jni/sdkdir/include \
 					-I ../jni/voicedetect \
-					-I ../jni/tts
-
-LDFLAGS =  -leasyui -pthread -lmi_sys -lmi_disp -lmi_panel -lmi_ao -lmi_gfx -lmi_divp -lmi_vdec -lmi_common -lmi_wlan -lcjson -lstdc++ -lmi_ai -lDSpotter -lCReader -ldl -lrt -fPIC -shared
-LDFLAGS += -L$(ZKSW_PREBUILT_LIB_PATH)/system -L. -L ../jni/sdkdir/lib
+					-I ../jni/tts \
+					-I ../jni/rtsp/include	\
+					-I ../jni/rtsp	\
+					-I ../jni/airplay/include
+		
+LDFLAGS =  -leasyui -pthread -lmi_sys -lmi_disp -lmi_panel -lmi_ao -lmi_gfx -lmi_divp -lmi_vdec -lmi_common -lmi_wlan -lcjson -lstdc++ -lmi_ai -ldl -lrt -shared -fPIC
+LDFLAGS += -L$(ZKSW_PREBUILT_LIB_PATH)/system -L. -L ../jni/sdkdir/lib 
 
 INCLUDE_DIR += -I ../jni/player -I ../jni/player/ffmpeg -I ../jni/player/ffmpeg/include -I ../jni/player/mediastream -I ../jni/player/imagedata
 INCLUDE_DIR += -I ../jni/v4l2/inc -I ../jni/v4l2/inc/uvc -I ../jni/v4l2/inc/video -I ../jni/v4l2/src -I ../jni/v4l2/src/control -I ../jni/v4l2/src/gcc \
                -I ../jni/v4l2/src/libv4l -I ../jni/v4l2/src/processing
 INCLUDE_DIR += -I ../jni/hotplugdetect -I ../jni/hotplugdetect/common -I ../jni/hotplugdetect/usbdetect -I ../jni/hotplugdetect/wifidetect \
 			   -I ../jni/hotplugdetect/wirednetworkdetect
-INCLUDE_DIR += -I ../jni/airplay/include
 
 ifneq ($(CONFIG_PLAYER_SWITCH),)
 CFLAGS+=-DSUPPORT_PLAYER_MODULE
 CXXFLAGS+=-DSUPPORT_PLAYER_MODULE
-
-LDFLAGS += -lavformat -lavcodec -lavutil -lswscale -lswresample -L../jni/player/ffmpeg/lib
 endif
 
 ifneq ($(CONFIG_CLOUD_PLAY_SWITCH),)

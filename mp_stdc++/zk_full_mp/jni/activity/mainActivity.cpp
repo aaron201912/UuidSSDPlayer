@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 /*TAG:GlobalVariable全局变量*/
 static ZKListView* mListview_indicatorPtr;
@@ -141,6 +143,11 @@ typedef enum
   IPC_COMMAND_SETUP_WATERMARK,
   IPC_COMMAND_APP_START,
   IPC_COMMAND_APP_STOP,
+  IPC_COMMAND_UI_EXIT,
+  IPC_COMMAND_APP_SUSPEND,
+  IPC_COMMAND_APP_SUSPEND_DONE,
+  IPC_COMMAND_APP_RESUME,
+  IPC_COMMAND_APP_RESUME_DONE,
   IPC_COMMAND_MAX,
 } IPC_COMMAND_TYPE;
 
@@ -150,7 +157,67 @@ typedef struct {
   char StrData[256];
 } IPCEvent;
 
-#define SVC_IPC "/tmp/brown_svc_input"
+#define SSD_IPC "/tmp/ssd_apm_input"
+#define UI_IPC	"/tmp/zkgui_msg_input"
+
+class IPCNameFifo {
+public:
+  IPCNameFifo(const char* file): m_file(file) {
+    unlink(m_file.c_str());
+    printf("mkfifo: %s\n",m_file.c_str());
+    m_valid = !mkfifo(m_file.c_str(), 0777);
+  }
+
+  ~IPCNameFifo() {
+    unlink(m_file.c_str());
+  }
+
+  inline const std::string& Path() { return m_file; }
+  inline bool IsValid() { return m_valid; }
+
+private:
+  bool m_valid;
+  std::string m_file;
+};
+
+class IPCInput {
+public:
+  IPCInput(const std::string& file):m_fd(-1),m_file(file),m_fifo(file.c_str()){
+  printf("construct ipcinput\n");}
+
+  virtual ~IPCInput() {
+    Term();
+  }
+  bool Init() {
+    if (!m_fifo.IsValid()){
+        printf("%s non-existent!!!! \n",m_fifo.Path().c_str());
+        return false;
+    }
+    if (m_fd < 0) {
+      m_fd = open(m_file.c_str(), O_RDWR | O_NONBLOCK);
+    }
+    return m_fd >= 0;
+  }
+
+  int Read(IPCEvent& evt) {
+    if (m_fd >= 0) {
+      return read(m_fd, &evt, sizeof(IPCEvent));
+    }
+    return 0;
+  }
+
+  void Term() {
+    if (m_fd >= 0) {
+      close(m_fd);
+      m_fd = -1;
+    }
+  }
+
+private:
+  int m_fd;
+  std::string m_file;
+  IPCNameFifo m_fifo;
+};
 
 class IPCOutput {
 public:
@@ -300,6 +367,9 @@ void mainActivity::obtainListItemData(ZKListView *pListView,ZKListView::ZKListIt
 
 void mainActivity::onItemClick(ZKListView *pListView, int index, int id){
     int tablen = sizeof(SListViewFunctionsCallbackTab) / sizeof(S_ListViewFunctionsCallback);
+
+    printf("click index:%d, id:%d\n", index, id);
+
     for (int i = 0; i < tablen; ++i) {
         if (SListViewFunctionsCallbackTab[i].id == pListView->getID()) {
             SListViewFunctionsCallbackTab[i].onItemClickCallback(pListView, index, id);
@@ -310,33 +380,39 @@ void mainActivity::onItemClick(ZKListView *pListView, int index, int id){
 
 void mainActivity::onSlideItemClick(ZKSlideWindow *pSlideWindow, int index) {
     int tablen = sizeof(SSlideWindowItemClickCallbackTab) / sizeof(S_SlideWindowItemClickCallback);
+
     for (int i = 0; i < tablen; ++i)
     {
         if (SSlideWindowItemClickCallbackTab[i].id == pSlideWindow->getID())
         {
-            if (index < sizeof(IconTab)/sizeof(char*))
-            {
-                SSlideWindowItemClickCallbackTab[i].onSlideItemClickCallback(pSlideWindow, index);
-                break;
-            }
-            else
-            {
+        	if (index < (sizeof(IconTab) / sizeof(const char*)))
+        	{
+        		SSlideWindowItemClickCallbackTab[i].onSlideItemClickCallback(pSlideWindow, index);
+        		break;
+        	}
+        	else if (index == (sizeof(IconTab) / sizeof(const char*)))
+        	{
+        		//while (!MI_GFX_Close());
                 //browser start
-                IPCOutput o(SVC_IPC);
+        		IPCOutput o(SSD_IPC);
                 if(!o.Init())
                 {
-                    printf("Brown process Not start!!!\n");
+                    printf("main ipc init fail!!!\n");
                     o.Term();
                 }
                 IPCEvent sendevt;
                 memset(&sendevt,0,sizeof(IPCEvent));
                 sendevt.EventType = IPC_COMMAND;
-                sendevt.Data = IPC_COMMAND_APP_START;  //IPC_COMMAND_APP_STOP to stop browser fg
-
+                sendevt.Data = IPC_COMMAND_UI_EXIT;
                 o.Send(sendevt);
+                printf("UI process send %d to exit\n", IPC_COMMAND_UI_EXIT);
                 SSTAR_DeinitHotPlugDetect();
                 exit(0);
-            }
+        	}
+			else
+			{
+				// do str stuff
+			}
         }
     }
 }

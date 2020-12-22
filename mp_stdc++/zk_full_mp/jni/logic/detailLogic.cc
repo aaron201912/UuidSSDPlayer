@@ -212,6 +212,7 @@ static void onListItemClick_ListviewMenu(ZKListView *pListView, int index, int i
 static void startWash() {
 	g_washerState.isRun = true;
 	g_washerState.progress = 0;
+	mSeekbarProgressPtr->setProgress(0);
 	mSeekbarProgressPtr->setVisible(true);
 	mbtnStartPtr->setSelected(true);
 	mbtnStartPtr->setTextTr("stop");

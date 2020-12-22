@@ -29,8 +29,10 @@
 *
 * 在Eclipse编辑器中  使用 “alt + /”  快捷键可以打开智能提示
 */
+#include "rtspclient.h"
+#include "panelconfig.h"
 
-#include "tp_player.h"
+#define RTSP_CONFIG_PATH	"/customer/res/rtsp/config/RTSP_CLIENT_SLOT.ini"
 
 /**
  * 注册定时器
@@ -41,31 +43,6 @@ static S_ACTIVITY_TIMEER REGISTER_ACTIVITY_TIMER_TAB[] = {
 	//{0,  6000}, //定时器id=0, 时间间隔6秒
 	//{1,  1000},
 };
-
-static player_control_t g_stPlayStat;
-
-static int PlayComplete()
-{
-	tp_player_close();
-	EASYUICONTEXT->goBack();
-    return 0;
-}
-
-static int PlayErrorr(int error_id)
-{
-	char error_text[20];
-	sprintf(error_text,"error :%d",error_id);
-	printf("connenct fail!\n");
-	mWindow_errMsgPtr->setVisible(true);
-	mTextview_msgPtr->setText(error_text);
-
-	return 0;
-}
-static void SetPlayerControlCallBack(player_control_t *is)
-{
-	is->fpPlayComplete = PlayComplete;
-	is->fpPlayError = PlayErrorr;
-}
 
 /**
  * 当界面构造时触发
@@ -84,8 +61,7 @@ static void onUI_intent(const Intent *intentPtr) {
     if (intentPtr != NULL) {
     	std::string strUrl = intentPtr->getExtra("url");
 
-    	SetPlayerControlCallBack(&g_stPlayStat);
-		tp_player_open((char*)strUrl.c_str(), 0, 0, 1024, 600, &g_stPlayStat);
+    	SSTAR_RTSPClinet_Init(strUrl.c_str(), RTSP_CONFIG_PATH, PANEL_MAX_WIDTH, PANEL_MAX_HEIGHT);
     }
 }
 
@@ -107,7 +83,8 @@ static void onUI_hide() {
  * 当界面完全退出时触发
  */
 static void onUI_quit() {
-	tp_player_close();
+	printf("onUI_quit\n");
+	SSTAR_RTSPClient_Deinit();
 }
 
 /**
@@ -161,12 +138,12 @@ static bool onrtspstreamActivityTouchEvent(const MotionEvent &ev) {
 }
 static bool onButtonClick_sys_back(ZKButton *pButton) {
     //LOGD(" ButtonClick sys_back !!!\n");
+	printf("sys_back\n");
+	SSTAR_RTSPClient_Deinit();
+
     return false;
 }
 static bool onButtonClick_Button_confirm(ZKButton *pButton) {
     //LOGD(" ButtonClick Button_confirm !!!\n");
-	mWindow_errMsgPtr->setVisible(false);
-	tp_player_close();
-	EASYUICONTEXT->goBack();
     return false;
 }

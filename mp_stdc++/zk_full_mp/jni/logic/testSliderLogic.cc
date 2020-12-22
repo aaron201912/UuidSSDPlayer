@@ -76,7 +76,7 @@ static bool ontestSliderActivityTouchEvent(const MotionEvent &ev) {
 static void onProgressChanged_SeekBar2(ZKSeekBar *pSeekBar, int progress) {
 	printf("seekbar2 pos:%d\n", progress);
 	mTextValuePtr->setText(progress);
-	BRIGHTNESSHELPER->setBrightness(progress);
+//	BRIGHTNESSHELPER->setBrightness(progress);
     BYTE data[2] = {0x00, (BYTE)progress};
     sendProtocol(CMD_SEEKBAR_LIGHT, data, sizeof(data));
 }
