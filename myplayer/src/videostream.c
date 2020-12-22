@@ -1675,6 +1675,10 @@ int my_display_unset(player_stat_t *is)
 #endif
     }
 
+    MI_DISP_RotateConfig_t stRotateConfig;
+    stRotateConfig.eRotateMode = E_MI_DISP_ROTATE_NONE;
+    MI_DISP_SetVideoLayerRotateMode(DISP_LAYER, &stRotateConfig);
+
     MI_DISP_ClearInputPortBuffer(DISP_LAYER, DISP_INPUTPORT, TRUE);
     //MI_DISP_HideInputPort(DISP_LAYER, DISP_INPUTPORT);
     MI_DISP_DisableInputPort(DISP_LAYER, DISP_INPUTPORT);
