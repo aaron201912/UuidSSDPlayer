@@ -147,9 +147,7 @@ void* SSTAR_aoSendFrame(void* data)
         return NULL;
     }
     bAoExit = FALSE;
-	system("echo 12 > /sys/class/gpio/export");
-	system("echo out > /sys/class/gpio/gpio12/direction");
-	system("echo 1 > /sys/class/gpio/gpio12/value");
+
     while(FALSE == bAoExit)
     {
 		///printf("go audio play\n");

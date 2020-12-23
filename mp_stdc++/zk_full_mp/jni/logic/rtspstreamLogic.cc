@@ -49,9 +49,6 @@ static S_ACTIVITY_TIMEER REGISTER_ACTIVITY_TIMER_TAB[] = {
  */
 static void onUI_init(){
     //Tips :添加 UI初始化的显示代码到这里,如:mText1Ptr->setText("123");
-	system("echo 12 > /sys/class/gpio/export");
-	system("echo out > /sys/class/gpio/gpio12/direction");
-	system("echo 1 > /sys/class/gpio/gpio12/value");
 }
 
 /**

@@ -456,8 +456,6 @@ MI_S32 StartPlayAudio()
     MI_S32 s32SetVolumeDb;
     MI_S32 s32GetVolumeDb;
 
-    system("echo 1 > /sys/class/gpio/gpio12/value");
-
     //set Ao Attr struct
     memset(&stSetAttr, 0, sizeof(MI_AUDIO_Attr_t));
     stSetAttr.eBitwidth = E_MI_AUDIO_BIT_WIDTH_16;
@@ -511,8 +509,6 @@ void StopPlayAudio()
     MI_AUDIO_DEV AoDevId = AUDIO_DEV;
     MI_AO_CHN AoChn = AUDIO_CHN;
 
-    system("echo 0 > /sys/class/gpio/gpio12/value");
-
     /* disable ao channel of */
     MI_AO_DisableChn(AoDevId, AoChn);
 
@@ -545,10 +541,6 @@ MI_S32 CreatePlayerDev()
     MI_DISP_RotateConfig_t stRotateConfig;*/
 
     MI_DISP_InputPortAttr_t stInputPortAttr;
-
-    system("echo 12 > /sys/class/gpio/export");
-    system("echo out > /sys/class/gpio/gpio12/direction");
-    //system("echo 1 > /sys/class/gpio/gpio12/value");
 
     // 1.初始化DISP模块
     memset(&stInputPortAttr, 0, sizeof(MI_DISP_InputPortAttr_t));
@@ -1250,7 +1242,6 @@ static void StartPlayStreamFile(char *pFileName)
 
     mWindow_errMsgPtr->setVisible(false);
     ResetSpeedMode();
-    system("echo 1 > /sys/class/gpio/gpio12/value");
 
     memset(&recvevt, 0, sizeof(IPCEvent));
 
@@ -1446,8 +1437,6 @@ static void StopPlayStreamFile()
 #ifdef SUPPORT_PLAYER_PROCESS
     int ret;
     struct timeval time_start, time_wait;
-
-    system("echo 0 > /sys/class/gpio/gpio12/value");
 
     if(o_client.Init()) {
         memset(&sendevt, 0, sizeof(IPCEvent));

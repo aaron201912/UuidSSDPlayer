@@ -346,9 +346,6 @@ static void onUI_init(){
     //Tips :添加 UI初始化的显示代码到这里,如:mText1Ptr->setText("123");
 #ifdef SUPPORT_CLOUD_PLAY_MODULE
 	printf("hrer  %s!!!\n",g_file);
-	system("echo 12 > /sys/class/gpio/export");
-	system("echo out > /sys/class/gpio/gpio12/direction");
-	system("echo 1 > /sys/class/gpio/gpio12/value");
 
 	/*mTextview_addressPtr->setText(g_file);
 	//SetPlayerControlCallBackk(&g_pstPlayStatt);
