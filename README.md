@@ -25,8 +25,18 @@ tool:
 	echo 800x480.bin > /sys/bus/i2c/devices/1-005d/gtcfg
 
 myplayer:
-    播放器源码, 使能多进程模式时, 需要单独编译生成bin文件. 先运行MyPlayer再运行zkgui.
+    在makefile中通过宏SUPPORT_PLAYER_PROCESS使能跨进程模式, 需要单独编译生成bin文件.
     编译方法:
     1. cd myplayer/stdc++
     2. make clean;make
     3. 将生成的MyPlayer文件拷贝到sdk/verify/application/zk_full_sercurity/bin下
+
+    播放器进程与主进程通讯说明.
+    1. 播放器进程间通讯源码在UuidSSDPlayer/myplayer/app/main.cpp中, 主要接收主进程的消息, 并反馈播放状态信息.
+    2. 主进程(即zkgui)通讯相关的源码在UuidSSDPlayer/stdc++/zk_full/jni/logic/playerLogic.cc中, 主要函数StartPlayStreamFile, StopPlayStreamFile, PlayFileProc发送消息到播放进程并接收反馈.
+    3. 主进程中会通过UI的一些操作调到进程间通讯的接口. 主进程中会通过popen创建一个播放器进程, 退出时销毁播放器进程.
+
+    使用注意事项：
+    播放器切换为跨进程模式, SDK版本需要在V008版本上更新“20201224_DISP支持多进程”的RedFlag.
+    跨进程模式下使用了心跳包机制, 如果进程间超过5秒没有消息握手, 播放进程会自动退出.
+    播放器进程与主进程的版本需要保持一致, 否则可能导致进程间通讯失败.
