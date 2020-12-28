@@ -196,6 +196,7 @@ int sstar_disp_Deinit(MI_DISP_PubAttr_t *pstDispPubAttr)
     MI_DISP_DisableVideoLayer(0);
     MI_DISP_UnBindVideoLayer(0, 0);
     MI_DISP_Disable(0);
+	MI_DISP_DeInitDev();
 
     switch(pstDispPubAttr->eIntfType) {
 #if ENABLE_HDMI
