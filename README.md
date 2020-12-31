@@ -8,7 +8,11 @@ stdc++/uclibc++:
 
     libsercurity：存放编译libzkgui.so所依赖的zk_sdk头文件和libeasyui.so，以及运行时依赖的libs。随zk_sdk发布来同步更新。
                   注：运行时依赖的libeasyui.so为加密版本的lib，与参与编译的libeasyui.so不同，不可混淆。
-                      运行时libeasyui.so分设备授权和手动授权版本，默认适用手动授权版本。
+                      运行时libeasyui.so有授权版本和水印版本，分别位于libs目录和libs/watermark目录下。
+                      授权版本在正式生产版本中使用，依赖芯片的UUID，需要申请授权账号，购买授权次数来进行授权；
+                      水印版本用于开发阶段测试使用，不依赖于UUID，无需授权。使用水印版本lib的app在运行时会出现"Powered by Flythings"的水印标记。
+                      授权版本和水印版本的切换只需替换对应的libeasyui.so即可。
+
 
     app：编译zkgui bin的source code目录，根据使用panel类型和规格来替换屏参，编译适用于平台的zkgui bin。
 
