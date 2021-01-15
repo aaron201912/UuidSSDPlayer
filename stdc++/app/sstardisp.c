@@ -29,19 +29,11 @@
 
 // loacl play res
 #if UI_1024_600
-//#define LOCAL_VIDEO_W  822
-//#define LOCAL_VIDEO_H  464
-//#define LOCAL_VIDEO_X  100
-//#define LOCAL_VIDEO_Y  60
 #define LOCAL_VIDEO_W  1024
 #define LOCAL_VIDEO_H  600
 #define LOCAL_VIDEO_X  0
 #define LOCAL_VIDEO_Y  0
 #else
-//#define LOCAL_VIDEO_W  640
-//#define LOCAL_VIDEO_H  360
-//#define LOCAL_VIDEO_X  100
-//#define LOCAL_VIDEO_Y  60
 #define LOCAL_VIDEO_W  800
 #define LOCAL_VIDEO_H  480
 #define LOCAL_VIDEO_X  0
@@ -75,7 +67,6 @@ static MI_S32 Hdmi_callback_impl(MI_HDMI_DeviceId_e eHdmi, MI_HDMI_EventType_e E
 
 int sstar_disp_init(MI_DISP_PubAttr_t *pstDispPubAttr)
 {
-    MI_PANEL_LinkType_e eLinkType;
     MI_DISP_InputPortAttr_t stInputPortAttr;
 #if ENABLE_HDMI
     MI_HDMI_InitParam_t stInitParam;
@@ -89,6 +80,14 @@ int sstar_disp_init(MI_DISP_PubAttr_t *pstDispPubAttr)
 
     if (pstDispPubAttr->eIntfType == E_MI_DISP_INTF_LCD)
     {
+        MI_PANEL_LinkType_e eLinkType;
+
+#if USE_MIPI
+        eLinkType = E_MI_PNL_LINK_MIPI_DSI;
+#else
+        eLinkType = E_MI_PNL_LINK_TTL;
+#endif
+
         pstDispPubAttr->stSyncInfo.u16Vact = stPanelParam.u16Height;
         pstDispPubAttr->stSyncInfo.u16Vbb = stPanelParam.u16VSyncBackPorch;
         pstDispPubAttr->stSyncInfo.u16Vfb = stPanelParam.u16VTotal - (stPanelParam.u16VSyncWidth +
@@ -104,12 +103,7 @@ int sstar_disp_init(MI_DISP_PubAttr_t *pstDispPubAttr)
         pstDispPubAttr->stSyncInfo.u16Vpw = stPanelParam.u16VSyncWidth;
         pstDispPubAttr->stSyncInfo.u32FrameRate = stPanelParam.u16DCLK * 1000000 / (stPanelParam.u16HTotal * stPanelParam.u16VTotal);
         pstDispPubAttr->eIntfSync = E_MI_DISP_OUTPUT_USER;
-        pstDispPubAttr->eIntfType = E_MI_DISP_INTF_LCD;
-#if USE_MIPI
-		eLinkType = E_MI_PNL_LINK_MIPI_DSI;
-#else
-        eLinkType = E_MI_PNL_LINK_TTL;
-#endif
+
         stInputPortAttr.u16SrcWidth = LOCAL_VIDEO_W;
         stInputPortAttr.u16SrcHeight = LOCAL_VIDEO_H;
         stInputPortAttr.stDispWin.u16X = LOCAL_VIDEO_X;
@@ -120,6 +114,7 @@ int sstar_disp_init(MI_DISP_PubAttr_t *pstDispPubAttr)
         MI_DISP_SetPubAttr(0, pstDispPubAttr);
         MI_DISP_Enable(0);
         MI_DISP_BindVideoLayer(0, 0);
+
 		memset(&stLayerAttr, 0, sizeof(stLayerAttr));
         stLayerAttr.stVidLayerSize.u16Width  = LOCAL_VIDEO_W;
         stLayerAttr.stVidLayerSize.u16Height = LOCAL_VIDEO_H;
@@ -133,7 +128,15 @@ int sstar_disp_init(MI_DISP_PubAttr_t *pstDispPubAttr)
 
         MI_DISP_SetInputPortAttr(0, 0, &stInputPortAttr);
         MI_DISP_EnableInputPort(0, 0);
-        MI_DISP_SetInputPortSyncMode(0, 0, E_MI_DISP_SYNC_MODE_FREE_RUN);	
+        MI_DISP_SetInputPortSyncMode(0, 0, E_MI_DISP_SYNC_MODE_FREE_RUN);
+
+        MI_PANEL_Init(eLinkType);
+        MI_PANEL_SetPanelParam(&stPanelParam);
+
+        if (eLinkType == E_MI_PNL_LINK_MIPI_DSI)
+        {
+            MI_PANEL_SetMipiDsiConfig(&stMipiDsiConfig);
+        }
     }
 #if ENABLE_HDMI
     else if (E_MI_DISP_INTF_HDMI == pstDispPubAttr->eIntfType)
@@ -159,11 +162,13 @@ int sstar_disp_init(MI_DISP_PubAttr_t *pstDispPubAttr)
         stAttr.stVideoAttr.eOutputMode = E_MI_HDMI_OUTPUT_MODE_HDMI;
         MI_HDMI_SetAttr(E_MI_HDMI_ID_0, &stAttr);
         MI_HDMI_Start(E_MI_HDMI_ID_0);
-        pstDispPubAttr->u32BgColor = YUYV_BLACK;
+
         pstDispPubAttr->eIntfSync = E_MI_DISP_OUTPUT_1080P60;
+
         MI_DISP_SetPubAttr(0, pstDispPubAttr);
         MI_DISP_Enable(0);
         MI_DISP_BindVideoLayer(0, 0);
+
         memset(&stLayerAttr, 0, sizeof(stLayerAttr));
         stLayerAttr.stVidLayerSize.u16Width  = 1920;
         stLayerAttr.stVidLayerSize.u16Height = 1080;
@@ -176,16 +181,37 @@ int sstar_disp_init(MI_DISP_PubAttr_t *pstDispPubAttr)
         MI_DISP_EnableVideoLayer(0);
     }
 #endif
-    if (pstDispPubAttr->eIntfType == E_MI_DISP_INTF_LCD)
+    else if (E_MI_DISP_INTF_VGA == pstDispPubAttr->eIntfType)
     {
-        MI_PANEL_Init(eLinkType);
-        MI_PANEL_SetPanelParam(&stPanelParam);
-        if(eLinkType == E_MI_PNL_LINK_MIPI_DSI)
-        {
-#if USE_MIPI
-            MI_PANEL_SetMipiDsiConfig(&stMipiDsiConfig);
-#endif
-        }
+        pstDispPubAttr->u32BgColor = YUYV_BLACK;
+        pstDispPubAttr->eIntfSync = E_MI_DISP_OUTPUT_1080P60;
+
+        printf("VGA: timing id is %d\n", (int)pstDispPubAttr->eIntfSync);
+
+        MI_DISP_SetPubAttr(0, pstDispPubAttr);
+        MI_DISP_Enable(0);
+        MI_DISP_BindVideoLayer(0, 0);
+
+        memset(&stLayerAttr, 0, sizeof(stLayerAttr));
+        stLayerAttr.stVidLayerSize.u16Width = 1920;
+        stLayerAttr.stVidLayerSize.u16Height = 1080;
+        stLayerAttr.ePixFormat = E_MI_SYS_PIXEL_FRAME_YUV_MST_420;
+        stLayerAttr.stVidLayerDispWin.u16X = 0;
+        stLayerAttr.stVidLayerDispWin.u16Y = 0;
+        stLayerAttr.stVidLayerDispWin.u16Width = 1920;
+        stLayerAttr.stVidLayerDispWin.u16Height = 1080;
+        MI_DISP_SetVideoLayerAttr(0, &stLayerAttr);
+        MI_DISP_EnableVideoLayer(0);
+
+        stInputPortAttr.u16SrcWidth = 1920;
+        stInputPortAttr.u16SrcHeight = 1080;
+        stInputPortAttr.stDispWin.u16X = 0;
+        stInputPortAttr.stDispWin.u16Y = 0;
+        stInputPortAttr.stDispWin.u16Width = 1920;
+        stInputPortAttr.stDispWin.u16Height = 1080;
+        MI_DISP_SetInputPortAttr(0, 0, &stInputPortAttr);
+        MI_DISP_EnableInputPort(0, 0);
+        MI_DISP_SetInputPortSyncMode(0, 0, E_MI_DISP_SYNC_MODE_FREE_RUN);
     }
     return 0;
 }
@@ -197,7 +223,6 @@ int sstar_disp_Deinit(MI_DISP_PubAttr_t *pstDispPubAttr)
     MI_DISP_UnBindVideoLayer(0, 0);
     MI_DISP_Disable(0);
 	MI_DISP_DeInitDev();
-	MI_PANEL_DeInit();
 
     switch(pstDispPubAttr->eIntfType) {
 #if ENABLE_HDMI

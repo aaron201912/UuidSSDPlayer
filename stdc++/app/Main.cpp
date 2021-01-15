@@ -454,10 +454,18 @@ int main(int argc, const char *argv[])
 
 	if (forkPid > 0)
 	{
-		stDispPubAttr.eIntfType = E_MI_DISP_INTF_LCD;
-		stDispPubAttr.eIntfSync = E_MI_DISP_OUTPUT_USER;
 		stDispPubAttr.u32BgColor = YUYV_BLACK;
 
+        // panel
+		stDispPubAttr.eIntfType = E_MI_DISP_INTF_LCD;
+		stDispPubAttr.eIntfSync = E_MI_DISP_OUTPUT_USER;
+#if 0
+        //hdmi
+        stDispPubAttr.eIntfType = E_MI_DISP_INTF_HDMI;
+
+        //vga
+        stDispPubAttr.eIntfType = E_MI_DISP_INTF_VGA;
+#endif
 		sstar_disp_init(&stDispPubAttr);
 		
 		child_pid = forkPid;

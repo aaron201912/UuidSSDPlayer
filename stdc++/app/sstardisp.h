@@ -6,7 +6,7 @@ extern "C"{
 #endif // __cplusplus
 
 #include <mi_disp_datatype.h>
-#ifdef MI_HDMI
+#ifdef ENABLE_HDMI
 #include "mi_hdmi_datatype.h"
 #include "mi_hdmi.h"
 typedef struct stTimingArray_s
