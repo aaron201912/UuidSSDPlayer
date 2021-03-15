@@ -31,6 +31,7 @@
 
 #include "statusbarconfig.h"
 #include "hotplugdetect.h"
+#include "mi_disp.h"
 
 static int g_curPageIdx = 0;
 /**
@@ -45,6 +46,12 @@ static S_ACTIVITY_TIMEER REGISTER_ACTIVITY_TIMER_TAB[] = {
 static void onUI_init(){
     //Tips :添加 UI初始化的显示代码到这里,如:mText1->setText("123");
 	ShowStatusBar(1, 0, 0);
+
+	printf("clear disp inputport buf\n");
+	if (MI_DISP_EnableInputPort(0, 0))
+		printf("main: Enable disp inputport 0 failed\n");
+	if (MI_DISP_ClearInputPortBuffer(0, 0, TRUE))
+		printf("main: clear disp inputport buf failed\n");
 }
 
 static void onUI_quit() {
