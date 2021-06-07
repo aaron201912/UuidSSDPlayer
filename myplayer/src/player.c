@@ -29,7 +29,7 @@
 
 //#include "mcheck.h"
 
-AVPacket a_flush_pkt, v_flush_pkt;
+AVPacket a_flush_pkt, v_flush_pkt, v_extra_pkt;
 static int av_sync_type = AV_SYNC_AUDIO_MASTER;
 //static int av_sync_type = AV_SYNC_VIDEO_MASTER;
 player_stat_t *g_myplayer = NULL;
@@ -316,8 +316,10 @@ player_stat_t *player_init(const char *p_input_file)
 
     av_init_packet(&a_flush_pkt);
     av_init_packet(&v_flush_pkt);
+    av_init_packet(&v_extra_pkt);
     a_flush_pkt.data = (uint8_t *)&a_flush_pkt;
     v_flush_pkt.data = (uint8_t *)&v_flush_pkt;
+    v_extra_pkt.data = (uint8_t *)&v_extra_pkt;
 
     packet_queue_put(&is->video_pkt_queue, &v_flush_pkt);
     packet_queue_put(&is->audio_pkt_queue, &a_flush_pkt);

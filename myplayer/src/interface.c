@@ -193,10 +193,15 @@ int my_player_getposition(double *position)
         return -1;
     }
 
-    *position = get_master_clock(ssplayer);
+    *position = NAN;
+    if (ssplayer->video_idx >= 0) {
+        *position = ssplayer->video_clk.pts;
+    } else {
+        *position = ssplayer->audio_clk.pts;
+    }
 
     if (isnan(*position)) {
-        NANOX_MARK("get invalid position time\n");
+        //NANOX_MARK("get invalid position time\n");
         pthread_mutex_unlock(&myplayer_mutex);
         return -1;
     } else {
