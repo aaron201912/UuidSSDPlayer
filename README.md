@@ -1,10 +1,13 @@
 # UuidSSDPlayer
 
-stdc++/uclibc++:
+mp_stdc++ : mp_stdc++是从stdc++引出来的稳定版本，针对匹配Release给客户的版本（v030版本对应匹配Demo）
+	目前 release 给客户主要使用的 zkgui 的 demo 源码以及公版的 demo app 示例 (可以跟客户手上的 SDK 相匹配，推荐客户版本使用)
 
-    UuidSSDPlayer为加密版本的全功能播放器，包含链接标准c++库的版本和链接uclibc++的版本，分别对应于stdc++目录和uclibc++目录。
+stdc++/uclibc++: 分别是链接标准c++库的版本和链接uclibc++的版本，分别对应于stdc++目录和uclibc++目录。
+	这个是目前跟公版最新 sdk 相匹配的且随时更新的 zkgui 相关配套源码及 demo 示例(非特殊说明，不适用于客户端)，如有需要请咨询使用
+	
     目录下有libsercurity，app，zk_full三个目录。
-    注：新增mp_stdc++目录，记录sdk v008版本对应的demo。
+    注：新增mp_stdc++目录，记录sdk v008/v030版本对应的demo。
 
     libsercurity：存放编译libzkgui.so所依赖的zk_sdk头文件和libeasyui.so，以及运行时依赖的libs。随zk_sdk发布来同步更新。
                   注：运行时依赖的libeasyui.so为加密版本的lib，与参与编译的libeasyui.so不同，不可混淆。
@@ -22,13 +25,12 @@ stdc++/uclibc++:
 	2. 选中项目，点击右键选择清空项目，构建项目；
 	3. 导出生成文件到指定根目录，生成文件包含libzkgui.so和ui等。
 
-tool:
-
+tool:获取跟公版 panel 分辨率相关的 cfg 文件，后续如有工具跟新以实际说明为准
 	用来改变触屏分辨率配置的文件：
 	echo 1024x600.bin > /sys/bus/i2c/devices/1-005d/gtcfg
 	echo 800x480.bin > /sys/bus/i2c/devices/1-005d/gtcfg
 
-myplayer:
+myplayer: 公版的视频播放器的相关源码，跟 zkgui 这个进程做快进程通讯配合适用（myplayer是独立进程应用，兼容zkgui版本）
     在makefile中通过宏SUPPORT_PLAYER_PROCESS使能跨进程模式, 需要单独编译生成bin文件.
     编译方法:
     1. cd myplayer/stdc++
