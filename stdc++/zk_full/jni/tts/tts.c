@@ -330,7 +330,7 @@ int StartPlay(Player *poPlayer)
 	{
 		if(poPlayer->m_nPlayStatus == PLAY_STATUS_STOPPED)
 		{
-			//printf("Stop!!\n");
+			printf("StartPlay() Stop!!\n");
 			break;
 		}
 
@@ -390,7 +390,7 @@ int StartPlay(Player *poPlayer)
 			}
 			//The speed of play TTS data is more than the speed of generating TTS data
 			usleep(10000);
-			printf("StartPlay():: No TTS data!, m_nPlayStatus: %s\n", (poPlayer->m_nPlayStatus == PLAY_STATUS_PAUSE)?"pause":((poPlayer->m_nPlayStatus == PLAY_STATUS_PLAYING)?"playing":"stop"));
+			//printf("StartPlay():: No TTS data!, m_nPlayStatus: %s\n", (poPlayer->m_nPlayStatus == PLAY_STATUS_PAUSE)?"pause":((poPlayer->m_nPlayStatus == PLAY_STATUS_PLAYING)?"playing":"stop"));
 		}
 	}
 
@@ -416,9 +416,6 @@ int StartPlay(Player *poPlayer)
 		}
 	}
 
-//	AudioPlayerDeinit();
-//	poPlayer->m_bAudioInit = FALSE;
-
 	printf("StartPlay() end\n");
 
 	return 0;
@@ -441,7 +438,6 @@ void* ThreadPlay(void* param)
 	}
 	printf("ThreadPlay():: wait TTS data End!\n");
 	StartPlay(poPlayer);
-	pthread_exit(0);
 	return NULL;
 }
 
@@ -472,6 +468,11 @@ void* ThreadTTS(void* param)
 
 	do 
 	{
+		if(poPlayer->m_nPlayStatus == PLAY_STATUS_STOPPED)
+		{
+			break;
+		}
+
 		if(poPlayer->m_nPlayStatus == PLAY_STATUS_PAUSE)
 		{
 			usleep(20000);
@@ -482,6 +483,8 @@ void* ThreadTTS(void* param)
 
 	} while(nRes == CREADER_RET_OK);
 	
+	g_stCReaderAssembly.pfnCReader_Stop(poPlayer->m_hCReader);
+
 	poPlayer->m_bTTSFinished = TRUE;
 
 	printf("ThreadTTS: Exit while loop, nRes=%d, g_nPlayStatus: %s\n", nRes, (poPlayer->m_nPlayStatus == PLAY_STATUS_PAUSE)?"pause":((poPlayer->m_nPlayStatus == PLAY_STATUS_PLAYING)?"playing":"stop"));
@@ -493,6 +496,8 @@ void* ThreadTTS(void* param)
 		poPlayer->m_hPlayThread = (pthread_t)NULL;
 	}
 	
+	printf("pthread_join m_hPlayThread done!\n");
+
 	//Remove remainder data
 	pthread_mutex_lock(&(poPlayer->m_hMutex));
 	while (!list_empty(&poPlayer->m_audioListHead))
@@ -523,7 +528,6 @@ void* ThreadTTS(void* param)
 	pthread_mutex_unlock(&(poPlayer->m_hMutex));
 	printf("ThreadTTS():: ThreadTTS end!\n");
 	poPlayer->m_nPlayStatus = PLAY_STATUS_STOPPED;
-	//pthread_exit(0);
 
 	return NULL;
 }
@@ -792,7 +796,7 @@ int TTS_Pause(HANDLE hPlayer)
 		return __PLAYER_ERR_NULL_HANDLE__;
 
 	printf("TTS_Pause\n");
-	AudioPlayerPause();
+	//AudioPlayerPause();
 	poPlayer->m_nPlayStatus = PLAY_STATUS_PAUSE;
 	printf("TTS_Pause done\n");
 
@@ -807,14 +811,15 @@ int TTS_Stop(HANDLE hPlayer)
 		return __PLAYER_ERR_NULL_HANDLE__;
 
 	poPlayer->m_nPlayStatus = PLAY_STATUS_STOPPED;
-	g_stCReaderAssembly.pfnCReader_Stop(poPlayer->m_hCReader);
 	poPlayer->m_bAudioStart = FALSE;
 
+	printf("join m_hSynthesizeThread ...\n");
 	if(poPlayer->m_hSynthesizeThread != (pthread_t)NULL)
 	{
 		pthread_join(poPlayer->m_hSynthesizeThread, NULL);
 		poPlayer->m_hSynthesizeThread = (pthread_t)NULL;
 	}
+	printf("join m_hSynthesizeThread done\n");
 
 	return __PLAYER_SUCCESS__;
 }
@@ -827,7 +832,7 @@ int TTS_Resume(HANDLE hPlayer)
 		return __PLAYER_ERR_NULL_HANDLE__;
 
 	printf("TTS_Resume\n");
-	AudioPlayerResume();
+	//AudioPlayerResume();
 	poPlayer->m_nPlayStatus = PLAY_STATUS_PLAYING;
 	printf("TTS_Resume done\n");
 
