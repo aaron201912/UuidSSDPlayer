@@ -447,4 +447,24 @@ int my_player_set_window(int x, int y, int width, int height)
     return 0;
 }
 
+int my_player_clear_screen(bool enable)
+{
+    MI_DISP_QueryChannelStatus_t stDispStatus;
+    MI_DISP_QueryInputPortStat(DISP_LAYER, DISP_INPUTPORT, &stDispStatus);
+
+    if (ssplayer)
+    {
+        if (enable)
+            MI_DISP_HideInputPort(DISP_LAYER, DISP_INPUTPORT);
+        else
+            MI_DISP_ShowInputPort(DISP_LAYER, DISP_INPUTPORT);
+    }
+    else
+    {
+        if (enable && stDispStatus.bEnable)
+            MI_DISP_DisableInputPort(DISP_LAYER, DISP_INPUTPORT);
+    }
+
+    return 0;
+}
 

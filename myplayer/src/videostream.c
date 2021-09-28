@@ -552,7 +552,7 @@ static int video_load_picture(player_stat_t *is, AVFrame *frame)
 #if USE_DIVP_MODULE
         if (0)
 #else
-        if (is->display_mode == E_MI_DISP_ROTATE_NONE)
+        if (is->display_mode == E_MI_DISP_ROTATE_NONE && 0)
 #endif
         {
             if (MI_SUCCESS != MI_SYS_ChnPortInjectBuf(stVdecBuf->stVdecHandle, &stInputChnPort))
@@ -1314,7 +1314,7 @@ int open_video(player_stat_t *is)
         ret = open_video_playing(is);
         if (ret < 0)
             return ret;
-    } 
+    }
 
     return 0;
 }
@@ -1375,7 +1375,7 @@ int my_display_set(player_stat_t *is)
 
     MI_GFX_Open();
 
-    MI_DISP_DisableInputPort(0, 0);
+    //MI_DISP_DisableInputPort(0, 0);
     memset(&stRotateConfig, 0, sizeof(MI_DISP_RotateConfig_t));
 
     if (is->decoder_type == SOFT_DECODING)
@@ -1427,11 +1427,11 @@ int my_display_set(player_stat_t *is)
         MI_DIVP_SetOutputPortAttr(0, &stOutputPortAttr);
         MI_DIVP_StartChn(0);
 
-        MI_DISP_DisableInputPort(DISP_LAYER, DISP_INPUTPORT);
+        //MI_DISP_DisableInputPort(DISP_LAYER, DISP_INPUTPORT);
         MI_DISP_SetInputPortAttr(DISP_LAYER, DISP_INPUTPORT, &stInputPortAttr);
         MI_DISP_EnableInputPort(DISP_LAYER, DISP_INPUTPORT);
         MI_DISP_SetInputPortSyncMode(DISP_LAYER, DISP_INPUTPORT, E_MI_DISP_SYNC_MODE_FREE_RUN);
-        MI_DISP_ShowInputPort(DISP_LAYER, DISP_INPUTPORT);
+        //MI_DISP_ShowInputPort(DISP_LAYER, DISP_INPUTPORT);
 
         memset(&stDispChnPort, 0, sizeof(MI_SYS_ChnPort_t));
         stDispChnPort.eModId                = E_MI_MODULE_ID_DISP;
@@ -1500,11 +1500,11 @@ int my_display_set(player_stat_t *is)
         MI_DIVP_SetOutputPortAttr(0, &stOutputPortAttr);
         MI_DIVP_StartChn(0);
 
-        MI_DISP_DisableInputPort(DISP_LAYER, DISP_INPUTPORT);
+        //MI_DISP_DisableInputPort(DISP_LAYER, DISP_INPUTPORT);
         MI_DISP_SetInputPortAttr(DISP_LAYER, DISP_INPUTPORT, &stInputPortAttr);
         MI_DISP_EnableInputPort(DISP_LAYER, DISP_INPUTPORT);
         MI_DISP_SetInputPortSyncMode(DISP_LAYER, DISP_INPUTPORT, E_MI_DISP_SYNC_MODE_FREE_RUN);
-        MI_DISP_ShowInputPort(DISP_LAYER, DISP_INPUTPORT);
+        //MI_DISP_ShowInputPort(DISP_LAYER, DISP_INPUTPORT);
 
         memset(&stDispChnPort, 0, sizeof(MI_SYS_ChnPort_t));
         stDispChnPort.eModId                = E_MI_MODULE_ID_DISP;
@@ -1535,11 +1535,11 @@ int my_display_set(player_stat_t *is)
         stInputPortAttr.stDispWin.u16Width  = is->out_width;
         stInputPortAttr.stDispWin.u16Height = is->out_height;
 
-        MI_DISP_DisableInputPort(DISP_LAYER, DISP_INPUTPORT);
+        //MI_DISP_DisableInputPort(DISP_LAYER, DISP_INPUTPORT);
         MI_DISP_SetInputPortAttr(DISP_LAYER, DISP_INPUTPORT, &stInputPortAttr);
         MI_DISP_EnableInputPort(DISP_LAYER, DISP_INPUTPORT);
         MI_DISP_SetInputPortSyncMode(DISP_LAYER, DISP_INPUTPORT, E_MI_DISP_SYNC_MODE_FREE_RUN);
-        MI_DISP_ShowInputPort(DISP_LAYER, DISP_INPUTPORT);
+        //MI_DISP_ShowInputPort(DISP_LAYER, DISP_INPUTPORT);
         // 硬解时也用GFX旋转
         stRotateConfig.eRotateMode = E_MI_DISP_ROTATE_NONE;
 #endif
@@ -1608,9 +1608,9 @@ int my_display_unset(player_stat_t *is)
     stRotateConfig.eRotateMode = E_MI_DISP_ROTATE_NONE;
     MI_DISP_SetVideoLayerRotateMode(DISP_LAYER, &stRotateConfig);
 
-    MI_DISP_ClearInputPortBuffer(DISP_LAYER, DISP_INPUTPORT, TRUE);
+    //MI_DISP_ClearInputPortBuffer(DISP_LAYER, DISP_INPUTPORT, TRUE);
     //MI_DISP_HideInputPort(DISP_LAYER, DISP_INPUTPORT);
-    MI_DISP_DisableInputPort(DISP_LAYER, DISP_INPUTPORT);
+    //MI_DISP_DisableInputPort(DISP_LAYER, DISP_INPUTPORT);
 
     MI_GFX_Close();
 
