@@ -312,6 +312,7 @@ static void Enter_STR_SuspendMode()
 	system("rmmod ssw101b_wifi_usb");
 
     MI_GFX_DeInitDev();
+    MI_DISP_DeInitDev();
     printf("gfx disable\n");
 
     IPCOutput o(SSD_IPC);
