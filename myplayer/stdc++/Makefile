@@ -13,7 +13,7 @@ CONFIG_SUPPORT_HDMI =
 ifeq ($(CONFIG_ENABLE_STR),enable)
 PROJECT_PATH = $(CURRENT_PATH)/../../stdc++/zk_full_str/jni/
 else
-PROJECT_PATH = $(CURRENT_PATH)/../../stdc++/zk_full/jni/
+PROJECT_PATH = $(CURRENT_PATH)/../../stdc++/zk_full_cocheer/jni/
 endif
 
 COM_FLAGS = -Wall -O2 -fPIC -mcpu=cortex-a9 -mfpu=neon-fp16 -mfloat-abi=hard -mthumb-interwork -marm -g -funwind-tables -ffunction-sections -rdynamic
