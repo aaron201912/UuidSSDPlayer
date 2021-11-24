@@ -1,4 +1,4 @@
-﻿#ifndef __PLAYER_H__
+#ifndef __PLAYER_H__
 #define __PLAYER_H__
 
 #ifdef __cplusplus
@@ -23,27 +23,10 @@ extern "C"{
 #include <libavutil/samplefmt.h>
 #include <libavutil/avassert.h>
 #include <libavutil/log.h>
+#include <libavutil/opt.h>
 
-
-#include "mi_common.h"
-#include "mi_sys.h"
-#include "mi_disp.h"
-#include "mi_divp.h"
-#include "mi_vdec.h"
-#include "mi_gfx.h"
-#include "mi_ao.h"
-#include "mi_vdec_extra.h"
-
-
-#define     SUCCESS         0
-#define     FAIL            1
-
-#define CheckFuncResult(result)\
-    if (result != SUCCESS)\
-    {\
-        printf("[%s %d]exec function failed\n", __FUNCTION__, __LINE__);\
-        return -1;\
-    }\
+#define ALIGN_UP(x, align)          (((x) + ((align) - 1)) & ~((align) - 1))
+#define ALIGN_BACK(x, align)        (((x) / (align)) * (align))
 
 /* no AV sync correction is done if below the minimum AV sync threshold */
 #define AV_SYNC_THRESHOLD_MIN 0.04
@@ -60,7 +43,7 @@ extern "C"{
 #define REFRESH_RATE 0.01
 
 #define SDL_AUDIO_BUFFER_SIZE 1024
-#define MAX_AUDIO_FRAME_SIZE 192000
+#define MAX_AUDIO_FRAME_SIZE  192000
 
 #define MIN_QUEUE_SIZE      (50 * 1024)
 #define MAX_QUEUE_SIZE      (3 * 1024 * 1024)
@@ -77,12 +60,22 @@ extern "C"{
 #define SAMPLE_QUEUE_SIZE 9
 #define FRAME_QUEUE_SIZE FFMAX(SAMPLE_QUEUE_SIZE, FFMAX(VIDEO_PICTURE_QUEUE_SIZE, SUBPICTURE_QUEUE_SIZE))
 
+#define AV_NOTHING          (0x0000)
+#define AV_AUDIO_COMPLETE   (0x0001)
+#define AV_VIDEO_COMPLETE   (0x0002)
+#define AV_PLAY_PAUSE       (0x0004)
+#define AV_ACODEC_ERROR     (0x0008)
+#define AV_VCODEC_ERROR     (0x0010)
+#define AV_NOSYNC           (0x0020)
+#define AV_READ_TIMEOUT     (0x0040)
+#define AV_NO_NETWORK       (0x0080)
+#define AV_INVALID_FILE     (0x0100)
+#define AV_AUDIO_MUTE       (0x0200)
+#define AV_AUDIO_PAUSE      (0x0400)
+#define AV_PLAY_LOOP        (0x0800)
 
-#define FF_QUIT_EVENT   (SDL_USEREVENT + 2)
-#define NANOX_MARK      printf
-#define NANOX_LOG       printf
-#define NANOX_ERR       printf
-
+#define AV_PLAY_COMPLETE    (AV_AUDIO_COMPLETE | AV_VIDEO_COMPLETE)
+#define AV_PLAY_ERROR       (AV_ACODEC_ERROR | AV_VCODEC_ERROR | AV_NOSYNC | AV_READ_TIMEOUT | AV_NO_NETWORK | AV_INVALID_FILE)
 
 enum {
     AV_SYNC_AUDIO_MASTER, /* default choice */
@@ -93,6 +86,25 @@ enum {
 enum {
     AV_ONCE,
     AV_LOOP,
+};
+
+enum {
+    AV_ROTATE_NONE,
+    AV_ROTATE_90,
+    AV_ROTATE_180,
+    AV_ROTATE_270
+};
+
+enum {
+    AV_SOFT_DECODING,
+    AV_HARD_DECODING
+};
+
+enum {
+    AV_ORIGIN_MODE   = 0,
+    AV_SCREEN_MODE   = 1,
+    AV_SAR_4_3_MODE  = 2,
+    AV_SAR_16_9_MODE = 3
 };
 
 typedef struct {
@@ -159,9 +171,29 @@ typedef struct {
 typedef struct {
     int audio_only;
     int video_only;
+    int video_ratio;
+    int video_rotate;
+    int audio_dev;
+    int audio_layout;
+    int enable_scaler;
+    char resolution[32];
     int play_mode;
-    int x, y, w, h;
 } player_opts_t;
+
+typedef struct {
+    int (*audio_init)(void *args);
+    int (*audio_deinit)(void *args);
+    int (*audio_pause)(void);
+    int (*audio_resume)(void);
+    int (*audio_clear_buf)(void);
+    int (*audio_play)(void *args, char *data, int len);
+    int (*video_init)(void *args);
+    int (*video_deinit)(void *args);
+    int (*video_play)(void *args, void *data);
+    int (*video_putbuf)(void *args);
+    int (*sys_malloc)(void *name, void **vir_addr, void *phy_addr, int size);
+    int (*sys_free)(void *vir_addr, unsigned long long phy_addr, int size);
+} player_func_t;
 
 typedef struct {
     char *filename;
@@ -177,8 +209,8 @@ typedef struct {
     int audio_idx;
     int video_idx;
 
-    play_clock_t audio_clk;                   // 音频时钟
-    play_clock_t video_clk;                   // 视频时钟
+    play_clock_t audio_clk;             // 音频时钟
+    play_clock_t video_clk;             // 视频时钟
     play_clock_t extclk;
     double frame_timer;
 
@@ -228,7 +260,7 @@ typedef struct {
     int src_width, src_height;  // 保存视频原宽高
     int dst_width, dst_height;  // 保存视频旋转后的宽高
     int out_width, out_height;  // 保存视频最终显示的宽高
-    int in_width, in_height;    // 保存外部输入的显示宽高
+    int in_width, in_height;    // 保存外部输入的显示宽高,一般为屏的size
     int pos_x, pos_y;
     bool flush, start_play, enable_video, enable_audio;
 
@@ -242,18 +274,16 @@ typedef struct {
 
     int decoder_type, play_status;
     bool demux_status, time_out;
-
-    struct timeval start, now;
     struct timeval tim_open, tim_play;
-    struct timeval buf_start, buf_end;
     pthread_mutex_t audio_mutex, video_mutex;
-    player_opts_t opts;
+    player_func_t functions;
+    bool keep_frames, the_last_frame;
 }   player_stat_t;
 
-extern player_stat_t *g_myplayer;
-extern player_opts_t g_opts;
+extern player_stat_t *g_mmplayer;
+extern player_opts_t  g_opts;
 
-int player_running(const char *p_input_file, char *type);
+int    player_running(const char *p_input_file, char *type);
 double get_clock(play_clock_t *c);
 void   set_clock_at(play_clock_t *c, double pts, int serial, double time);
 void   set_clock(play_clock_t *c, double pts, int serial);
@@ -262,8 +292,9 @@ void   stream_seek(player_stat_t *is, int64_t pos, int64_t rel, int seek_by_byte
 double get_master_clock(player_stat_t *is);
 void   toggle_pause(player_stat_t *is);
 player_stat_t *player_init(const char *p_input_file);
-int   player_deinit(player_stat_t *is);
-int   open_video(player_stat_t *is);
+int    player_deinit(player_stat_t *is);
+int    open_video(player_stat_t *is);
+
 #ifdef __cplusplus
 }
 #endif // __cplusplu

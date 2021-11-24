@@ -331,10 +331,11 @@ static pthread_t g_playFileThread = 0;
 static bool g_bPlayFileThreadExit = false;
 static bool g_bPlayCompleted = false;
 static bool g_bPlayError = false;
-static RepeatMode_e g_eRepeatMode = LIST_REPEAT_MODE;
+static RepeatMode_e g_eRepeatMode = FILE_REPEAT_MODE;
 static SkipMode_e g_eSkipMode = NO_SKIP;
 static pthread_mutex_t g_playFileMutex;
 static bool g_bPantStatus = false;
+static bool g_bFileSeek = false;
 
 extern void GetPrevFile(char *pCurFileFullName, char *pPrevFileFullName, int prevFilePathLen);
 extern void GetNextFile(char *pCurFileFullName, char *pNextFileFullName, int nextFilePathLen);
@@ -1622,7 +1623,8 @@ static void StopPlayFile()
 static void StartPlayFile(char *pFileName)
 {
 	g_bPlayCompleted = false;
-	g_playStream = IsMediaStreamFile(pFileName);
+	//g_playStream = IsMediaStreamFile(pFileName);
+	g_playStream = 1;
 
 	if (g_playStream)
 		StartPlayStreamFile(pFileName);
@@ -1712,9 +1714,12 @@ static void *PlayFileProc(void *pData)
 	bool bPlayCompleted = false;
 	bool bPlayError = false;
     struct timeval pant_start, pant_wait;
+    bool bPrintfLog = false;
+
 	printf("get in PlayFileProc!\n");
-	strncpy(curFileName, pFileName, sizeof(curFileName));
-	RepeatMode_e eRepeatMode = LIST_REPEAT_MODE;
+	//strncpy(curFileName, pFileName, sizeof(curFileName));
+	strncpy(curFileName, pFileName, strlen(pFileName));
+	RepeatMode_e eRepeatMode = FILE_REPEAT_MODE;
 	StartPlayFile(curFileName);
 	AutoDisplayToolbar();
 
@@ -1811,13 +1816,21 @@ static void *PlayFileProc(void *pData)
                         char curTime[32];
                         int curSec = recvevt.stPlData.misc / 1.0;
                         int trackPos;
-                        //printf("get video current position time = %d\n", curSec);
-                        memset(curTime, 0, sizeof(curTime));
-                        sprintf(curTime, "%02d:%02d:%02d", curSec/3600, (curSec%3600)/60, curSec%60);
-                        mTextview_curtimePtr->setText(curTime);
-
-                        trackPos  = (curSec * mSeekbar_progressPtr->getMax()) / g_duration;
-                        mSeekbar_progressPtr->setProgress(trackPos);
+                        float cur_time = 0.0;
+                        gettimeofday(&pant_wait, NULL);
+                        if (g_bFileSeek || !bPrintfLog) {
+                            g_bFileSeek = false;
+                            bPrintfLog  = true;
+                            cur_time = 1.0 * pant_wait.tv_sec + 1.0 * pant_wait.tv_usec / 1000000;
+                            printf("get video current position time = %d, system time [%.6f]\n", curSec, cur_time);
+                        }
+                        if (!g_bFileSeek) {
+                            memset(curTime, 0, sizeof(curTime));
+                            sprintf(curTime, "%02d:%02d:%02d", curSec/3600, (curSec%3600)/60, curSec%60);
+                            mTextview_curtimePtr->setText(curTime);
+                            trackPos  = (curSec * mSeekbar_progressPtr->getMax()) / g_duration;
+                            mSeekbar_progressPtr->setProgress(trackPos);
+                        }
                     }
                     break;
 
@@ -1937,10 +1950,13 @@ static void onUI_init(){
 static void onUI_intent(const Intent *intentPtr) {
     if (intentPtr != NULL) {
 #ifdef SUPPORT_PLAYER_MODULE
-    g_fileName = intentPtr->getExtra("filepath");
+    //g_fileName = intentPtr->getExtra("filepath");
+    const char *url = "https://video.papwmhz.cn/Upload/nw/N1003.m3u8";
+    //memcpy(g_fileName.c_str(), url, strlen(url));
 
     g_bPlayFileThreadExit = false;
-    pthread_create(&g_playFileThread, NULL, PlayFileProc, (void*)g_fileName.c_str());
+    //pthread_create(&g_playFileThread, NULL, PlayFileProc, (void*)g_fileName.c_str());
+    pthread_create(&g_playFileThread, NULL, PlayFileProc, (void*)url);
 #endif
     }
 }
@@ -2147,6 +2163,7 @@ static void onStopTrackingTouch_Seekbar_progress(ZKSeekBar *pSeekBar) {
 		sendevt.stPlData.misc = (double)curPos;
 		printf("send seek gap time to myplayer = %.3f!\n", sendevt.stPlData.misc);
 		o_client.Send(sendevt);
+		g_bFileSeek = true;
 	#else
 		//stream_seek(g_pstPlayStat, curPos, (curPos - g_lastpos), 0);
 		stream_seek(g_pstPlayStat, curPos, 0, g_pstPlayStat->seek_by_bytes);		// fot test
