@@ -1,4 +1,4 @@
-# flythings project basedon SSD21X & SSD20X
+# flythings project basedon  SSD20X
 # UuidSSDPlayer
 ```
 mp_stdc++ : mp_stdc++是从stdc++引出来的稳定版本，针对匹配Release给客户的版本（v030版本对应匹配Demo）
