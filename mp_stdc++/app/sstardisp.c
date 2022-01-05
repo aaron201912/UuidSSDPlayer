@@ -87,6 +87,8 @@ int sstar_disp_init(MI_DISP_PubAttr_t *pstDispPubAttr)
 
     MI_SYS_Init();
 
+    pstDispPubAttr->u32BgColor = YUYV_BLACK;
+
     if (pstDispPubAttr->eIntfType == E_MI_DISP_INTF_LCD)
     {
         pstDispPubAttr->stSyncInfo.u16Vact = stPanelParam.u16Height;
@@ -159,7 +161,6 @@ int sstar_disp_init(MI_DISP_PubAttr_t *pstDispPubAttr)
         stAttr.stVideoAttr.eOutputMode = E_MI_HDMI_OUTPUT_MODE_HDMI;
         MI_HDMI_SetAttr(E_MI_HDMI_ID_0, &stAttr);
         MI_HDMI_Start(E_MI_HDMI_ID_0);
-        pstDispPubAttr->u32BgColor = YUYV_BLACK;
         pstDispPubAttr->eIntfSync = E_MI_DISP_OUTPUT_1080P60;
         MI_DISP_SetPubAttr(0, pstDispPubAttr);
         MI_DISP_Enable(0);

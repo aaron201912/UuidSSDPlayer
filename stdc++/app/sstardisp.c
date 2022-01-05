@@ -78,6 +78,8 @@ int sstar_disp_init(MI_DISP_PubAttr_t *pstDispPubAttr)
 
     MI_SYS_Init();
 
+    pstDispPubAttr->u32BgColor = YUYV_BLACK;
+
     if (pstDispPubAttr->eIntfType == E_MI_DISP_INTF_LCD)
     {
         MI_PANEL_LinkType_e eLinkType;
@@ -183,7 +185,6 @@ int sstar_disp_init(MI_DISP_PubAttr_t *pstDispPubAttr)
 #endif
     else if (E_MI_DISP_INTF_VGA == pstDispPubAttr->eIntfType)
     {
-        pstDispPubAttr->u32BgColor = YUYV_BLACK;
         pstDispPubAttr->eIntfSync = E_MI_DISP_OUTPUT_1080P60;
 
         printf("VGA: timing id is %d\n", (int)pstDispPubAttr->eIntfSync);
